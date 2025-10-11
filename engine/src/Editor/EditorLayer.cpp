@@ -541,6 +541,8 @@ void EditorLayer::RenderViewport() {
 void EditorLayer::RenderHierarchy() {
     ImGui::Begin("Hierarchy");
 
+    m_IsDraggingEntity = false;
+
     if (m_Engine && m_Engine->GetActiveScene()) {
         Scene* scene = m_Engine->GetActiveScene();
         entt::registry& registry = scene->GetRegistry();
@@ -566,8 +568,19 @@ void EditorLayer::RenderHierarchy() {
                 tag.name.c_str()
             );
 
-            if (ImGui::IsItemClicked()) {
-                m_SelectedEntity = entity;
+            bool itemHovered = ImGui::IsItemHovered();
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                m_IsDraggingEntity = true;
+                ImGui::SetDragDropPayload("ENTITY_REFERENCE", &entity, sizeof(entt::entity));
+                ImGui::Text("%s", tag.name.c_str());
+                ImGui::EndDragDropSource();
+            }
+
+            if (itemHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !m_IsDraggingEntity) {
+                if (!m_InspectorLocked) {
+                    m_SelectedEntity = entity;
+                }
             }
 
             if (ImGui::BeginPopupContextItem()) {
@@ -598,13 +611,24 @@ void EditorLayer::RenderHierarchy() {
 void EditorLayer::RenderInspector() {
     ImGui::Begin("Inspector");
 
-    if (m_SelectedEntity != entt::null && m_Engine && m_Engine->GetActiveScene()) {
+    if (ImGui::Button(m_InspectorLocked ? "Unlock" : "Lock")) {
+        m_InspectorLocked = !m_InspectorLocked;
+        if (m_InspectorLocked) {
+            m_LockedEntity = m_SelectedEntity;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled(m_InspectorLocked ? "(Inspector Locked)" : "(Inspector Unlocked)");
+
+    entt::entity inspectedEntity = m_InspectorLocked ? m_LockedEntity : m_SelectedEntity;
+
+    if (inspectedEntity != entt::null && m_Engine && m_Engine->GetActiveScene()) {
         Scene* scene = m_Engine->GetActiveScene();
         entt::registry& registry = scene->GetRegistry();
 
-        if (registry.valid(m_SelectedEntity)) {
-            if (registry.all_of<Tag>(m_SelectedEntity)) {
-                Tag& tag = registry.get<Tag>(m_SelectedEntity);
+        if (registry.valid(inspectedEntity)) {
+            if (registry.all_of<Tag>(inspectedEntity)) {
+                Tag& tag = registry.get<Tag>(inspectedEntity);
 
                 char buffer[256]{};
                 size_t copyLen = (tag.name.length() < sizeof(buffer) - 1) ? tag.name.length() : sizeof(buffer) - 1;
@@ -618,9 +642,9 @@ void EditorLayer::RenderInspector() {
 
             ImGui::Separator();
 
-            if (registry.all_of<Transform>(m_SelectedEntity)) {
+            if (registry.all_of<Transform>(inspectedEntity)) {
                 if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    Transform& transform = registry.get<Transform>(m_SelectedEntity);
+                    Transform& transform = registry.get<Transform>(inspectedEntity);
 
                     if (!m_IsModifyingTransform) {
                         m_CachedTransform = transform;
@@ -644,7 +668,7 @@ void EditorLayer::RenderInspector() {
                             m_CachedTransform.scale.y != transform.scale.y) {
 
                             m_CommandHistory.AddCommand(
-                                std::make_unique<ModifyTransformCommand>(&registry, m_SelectedEntity, m_CachedTransform, transform)
+                                std::make_unique<ModifyTransformCommand>(&registry, inspectedEntity, m_CachedTransform, transform)
                             );
                         }
                         m_IsModifyingTransform = false;
@@ -652,7 +676,7 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<Camera>(m_SelectedEntity)) {
+            if (registry.all_of<Camera>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeCamera = false;
 
@@ -664,7 +688,7 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (cameraOpen) {
-                    Camera& camera = registry.get<Camera>(m_SelectedEntity);
+                    Camera& camera = registry.get<Camera>(inspectedEntity);
 
                     bool wasPrimary = camera.isPrimary;
                     Reflection::ImGuiRenderer::RenderProperties(camera, [this](const char* label, entt::entity* entity) {
@@ -672,8 +696,8 @@ void EditorLayer::RenderInspector() {
                     });
 
                     if (camera.isPrimary != wasPrimary && camera.isPrimary) {
-                        registry.view<Camera>().each([this, &registry](entt::entity entity, Camera& otherCamera) {
-                            if (entity != m_SelectedEntity) {
+                        registry.view<Camera>().each([inspectedEntity, &registry](entt::entity entity, Camera& otherCamera) {
+                            if (entity != inspectedEntity) {
                                 otherCamera.isPrimary = false;
                             }
                         });
@@ -684,12 +708,12 @@ void EditorLayer::RenderInspector() {
 
                 if (removeCamera) {
                     m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<Camera>>(&registry, m_SelectedEntity)
+                        std::make_unique<RemoveComponentCommand<Camera>>(&registry, inspectedEntity)
                     );
                 }
             }
 
-            if (registry.all_of<Sprite>(m_SelectedEntity)) {
+            if (registry.all_of<Sprite>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeSprite = false;
 
@@ -701,7 +725,7 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (spriteOpen) {
-                    Sprite& sprite = registry.get<Sprite>(m_SelectedEntity);
+                    Sprite& sprite = registry.get<Sprite>(inspectedEntity);
 
                     ImGui::Text("Texture");
                     ImGui::SameLine();
@@ -756,12 +780,12 @@ void EditorLayer::RenderInspector() {
 
                 if (removeSprite) {
                     m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<Sprite>>(&registry, m_SelectedEntity)
+                        std::make_unique<RemoveComponentCommand<Sprite>>(&registry, inspectedEntity)
                     );
                 }
             }
 
-            if (registry.all_of<RigidBody2D>(m_SelectedEntity)) {
+            if (registry.all_of<RigidBody2D>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeRigidBody = false;
 
@@ -773,7 +797,7 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (rigidBodyOpen) {
-                    RigidBody2D& rb = registry.get<RigidBody2D>(m_SelectedEntity);
+                    RigidBody2D& rb = registry.get<RigidBody2D>(inspectedEntity);
 
                     const char* bodyTypes[] = {"Static", "Dynamic", "Kinematic"};
                     int currentType = static_cast<int>(rb.type);
@@ -790,12 +814,12 @@ void EditorLayer::RenderInspector() {
 
                 if (removeRigidBody) {
                     m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<RigidBody2D>>(&registry, m_SelectedEntity)
+                        std::make_unique<RemoveComponentCommand<RigidBody2D>>(&registry, inspectedEntity)
                     );
                 }
             }
 
-            if (registry.all_of<BoxCollider2D>(m_SelectedEntity)) {
+            if (registry.all_of<BoxCollider2D>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeBoxCollider = false;
 
@@ -807,15 +831,15 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (boxColliderOpen) {
-                    BoxCollider2D& collider = registry.get<BoxCollider2D>(m_SelectedEntity);
+                    BoxCollider2D& collider = registry.get<BoxCollider2D>(inspectedEntity);
 
                     Reflection::ImGuiRenderer::RenderProperties(collider, [this](const char* label, entt::entity* entity) {
                         return RenderEntityPicker(label, entity);
                     });
 
-                    if (registry.all_of<Sprite>(m_SelectedEntity)) {
+                    if (registry.all_of<Sprite>(inspectedEntity)) {
                         if (ImGui::Button("Fit to Sprite")) {
-                            const Sprite& sprite = registry.get<Sprite>(m_SelectedEntity);
+                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
                             collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
                             collider.offset = Vector2{0.0f, 0.0f};
                         }
@@ -826,12 +850,12 @@ void EditorLayer::RenderInspector() {
 
                 if (removeBoxCollider) {
                     m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<BoxCollider2D>>(&registry, m_SelectedEntity)
+                        std::make_unique<RemoveComponentCommand<BoxCollider2D>>(&registry, inspectedEntity)
                     );
                 }
             }
 
-            if (registry.all_of<Script>(m_SelectedEntity)) {
+            if (registry.all_of<Script>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeScript = false;
 
@@ -844,7 +868,7 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (scriptOpen) {
-                    Script& script = registry.get<Script>(m_SelectedEntity);
+                    Script& script = registry.get<Script>(inspectedEntity);
 
                     if (script.instance) {
                         ImGui::Text("Script: %s", script.scriptName.c_str());
@@ -874,7 +898,7 @@ void EditorLayer::RenderInspector() {
                                         script.instance = scriptSystem->CreateScript(name);
                                         script.scriptName = name;
                                         if (script.instance) {
-                                            script.instance->Initialize(m_SelectedEntity, m_Engine->GetActiveScene());
+                                            script.instance->Initialize(inspectedEntity, m_Engine->GetActiveScene());
                                         }
                                     }
                                 }
@@ -887,7 +911,7 @@ void EditorLayer::RenderInspector() {
                 }
 
                 if (removeScript) {
-                    registry.remove<Script>(m_SelectedEntity);
+                    registry.remove<Script>(inspectedEntity);
                 }
             }
 
@@ -899,7 +923,7 @@ void EditorLayer::RenderInspector() {
 
             if (ImGui::BeginPopup("AddComponentPopup")) {
                 if (ImGui::MenuItem("Camera")) {
-                    if (!registry.all_of<Camera>(m_SelectedEntity)) {
+                    if (!registry.all_of<Camera>(inspectedEntity)) {
                         bool hasPrimaryCamera = false;
                         registry.view<Camera>().each([&hasPrimaryCamera](const Camera& cam) {
                             if (cam.isPrimary) {
@@ -910,41 +934,41 @@ void EditorLayer::RenderInspector() {
                         Camera newCamera{};
                         newCamera.isPrimary = !hasPrimaryCamera;
                         m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<Camera>>(&registry, m_SelectedEntity, newCamera)
+                            std::make_unique<AddComponentCommand<Camera>>(&registry, inspectedEntity, newCamera)
                         );
                     }
                 }
                 if (ImGui::MenuItem("Sprite")) {
-                    if (!registry.all_of<Sprite>(m_SelectedEntity)) {
+                    if (!registry.all_of<Sprite>(inspectedEntity)) {
                         m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<Sprite>>(&registry, m_SelectedEntity, Sprite{})
+                            std::make_unique<AddComponentCommand<Sprite>>(&registry, inspectedEntity, Sprite{})
                         );
                     }
                 }
                 if (ImGui::MenuItem("Rigid Body 2D")) {
-                    if (!registry.all_of<RigidBody2D>(m_SelectedEntity)) {
+                    if (!registry.all_of<RigidBody2D>(inspectedEntity)) {
                         m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<RigidBody2D>>(&registry, m_SelectedEntity, RigidBody2D{})
+                            std::make_unique<AddComponentCommand<RigidBody2D>>(&registry, inspectedEntity, RigidBody2D{})
                         );
                     }
                 }
                 if (ImGui::MenuItem("Box Collider 2D")) {
-                    if (!registry.all_of<BoxCollider2D>(m_SelectedEntity)) {
+                    if (!registry.all_of<BoxCollider2D>(inspectedEntity)) {
                         BoxCollider2D collider{};
 
-                        if (registry.all_of<Sprite>(m_SelectedEntity)) {
-                            const Sprite& sprite = registry.get<Sprite>(m_SelectedEntity);
+                        if (registry.all_of<Sprite>(inspectedEntity)) {
+                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
                             collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
                         }
 
                         m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<BoxCollider2D>>(&registry, m_SelectedEntity, collider)
+                            std::make_unique<AddComponentCommand<BoxCollider2D>>(&registry, inspectedEntity, collider)
                         );
                     }
                 }
                 if (ImGui::MenuItem("Script")) {
-                    if (!registry.all_of<Script>(m_SelectedEntity)) {
-                        registry.emplace<Script>(m_SelectedEntity);
+                    if (!registry.all_of<Script>(inspectedEntity)) {
+                        registry.emplace<Script>(inspectedEntity);
                     }
                 }
                 ImGui::EndPopup();
@@ -2487,6 +2511,19 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
         });
 
         ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_REFERENCE")) {
+            if (payload->DataSize == sizeof(entt::entity)) {
+                entt::entity draggedEntity = *static_cast<entt::entity*>(payload->Data);
+                if (registry.valid(draggedEntity)) {
+                    *entity = draggedEntity;
+                    changed = true;
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
     }
 
     return changed;

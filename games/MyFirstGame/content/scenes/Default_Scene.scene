@@ -10,8 +10,12 @@
                 "rotation": 0.0,
                 "zoom": 1.0
             },
+            "Script": {
+                "enabled": true,
+                "scriptName": "FollowCamera"
+            },
             "Tag": {
-                "name": "New Entity"
+                "name": "Camera"
             },
             "Transform": {
                 "position": [
@@ -24,7 +28,7 @@
                     1.0
                 ]
             },
-            "id": 4
+            "id": 4194308
         },
         {
             "BoxCollider2D": {
@@ -79,7 +83,7 @@
                     1.0
                 ]
             },
-            "id": 3
+            "id": 4194307
         },
         {
             "BoxCollider2D": {
@@ -134,7 +138,7 @@
                     4.0
                 ]
             },
-            "id": 2
+            "id": 4194306
         },
         {
             "Sprite": {
@@ -171,7 +175,7 @@
                     1.0
                 ]
             },
-            "id": 1
+            "id": 4194305
         },
         {
             "BoxCollider2D": {
@@ -191,10 +195,6 @@
                 "mass": 10.0,
                 "restitution": 0.0,
                 "type": 2
-            },
-            "Script": {
-                "enabled": true,
-                "scriptName": "FollowCamera"
             },
             "Sprite": {
                 "layer": 0,
@@ -230,7 +230,7 @@
                     4.0
                 ]
             },
-            "id": 0
+            "id": 4194304
         }
     ],
     "scene": "Default Scene"

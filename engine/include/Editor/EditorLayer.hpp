@@ -118,6 +118,10 @@ private:
     Transform m_CachedTransform;
     bool m_IsModifyingTransform{false};
 
+    bool m_IsDraggingEntity{false};
+    bool m_InspectorLocked{false};
+    entt::entity m_LockedEntity{entt::null};
+
     std::string m_CurrentScenePath{};
 
     std::string m_PlayModeSnapshot{};
