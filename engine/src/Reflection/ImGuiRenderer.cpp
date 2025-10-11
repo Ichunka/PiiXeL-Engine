@@ -45,7 +45,14 @@ bool ImGuiRenderer::RenderField(const FieldInfo& field, void* fieldPtr, EntityPi
         case FieldType::String: {
             std::string* value = static_cast<std::string*>(fieldPtr);
             char buffer[256];
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
             strncpy(buffer, value->c_str(), sizeof(buffer) - 1);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
             buffer[sizeof(buffer) - 1] = '\0';
             if (ImGui::InputText(field.name.c_str(), buffer, sizeof(buffer))) {
                 *value = buffer;

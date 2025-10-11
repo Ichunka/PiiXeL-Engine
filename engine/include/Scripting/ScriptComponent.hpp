@@ -3,6 +3,8 @@
 
 #include <entt/entt.hpp>
 #include <raylib.h>
+#include <optional>
+#include "Physics/ComponentHandles.hpp"
 
 namespace PiiXeL {
 
@@ -49,6 +51,9 @@ public:
     Vector2 GetPosition();
     void SetPosition(Vector2 position);
     void Translate(Vector2 offset);
+
+    template<typename Component>
+    [[nodiscard]] std::optional<typename ComponentHandle<Component>::Type> GetHandle();
 
     virtual void OnCollisionEnter(entt::entity other) { (void)other; }
     virtual void OnCollisionExit(entt::entity other) { (void)other; }

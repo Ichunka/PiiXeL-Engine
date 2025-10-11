@@ -2,9 +2,11 @@
 #define MYFIRSTGAME_EXAMPLESCRIPT_HPP
 
 #include "Scripting/ScriptComponent.hpp"
+#include "Scripting/ScriptComponentHandles.inl"
 #include "Scripting/AssetRef.hpp"
 #include "Scripting/EntityRef.hpp"
 #include "Components/Transform.hpp"
+#include "Components/RigidBody2D.hpp"
 #include "Systems/ScriptSystem.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
@@ -13,8 +15,8 @@ class PlayerController : public PiiXeL::ScriptComponent {
 public:
     PlayerController() = default;
 
-    float moveSpeed{200.0f};
-    float jumpForce{500.0f};
+    float moveSpeed{300.0f};
+    float jumpForce{600.0f};
     PiiXeL::AssetRef<Texture2D> playerTexture;
 
 protected:
@@ -23,36 +25,32 @@ protected:
     }
 
     void OnUpdate(float deltaTime) override {
-        Vector2 movement{0.0f, 0.0f};
+        (void)deltaTime;
+
+        auto rb = GetHandle<PiiXeL::RigidBody2D>();
+        if (!rb) return;
+
+        Vector2 vel = rb->GetVelocity();
 
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-            movement.x -= moveSpeed * deltaTime;
-        }
-        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
-            movement.x += moveSpeed * deltaTime;
-        }
-
-        if ((IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) && m_IsGrounded) {
-            movement.y -= jumpForce * deltaTime;
-            m_IsGrounded = false;
+            vel.x = -moveSpeed;
+        } else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+            vel.x = moveSpeed;
+        } else {
+            vel.x = 0.0f;
         }
 
-        Translate(movement);
-    }
+        if (rb->IsGrounded() && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
+            rb->AddImpulse({0.0f, -jumpForce});
+        }
 
-    void OnCollisionEnter(entt::entity other) override {
-        (void)other;
-        TraceLog(LOG_INFO, "PlayerController: Collision Enter!");
-        m_IsGrounded = true;
+        rb->SetVelocity(vel);
     }
 
     void OnTriggerEnter(entt::entity other) override {
         (void)other;
         TraceLog(LOG_INFO, "PlayerController: Trigger Enter - Collected item!");
     }
-
-private:
-    bool m_IsGrounded{false};
 };
 
 BEGIN_REFLECT(PlayerController)

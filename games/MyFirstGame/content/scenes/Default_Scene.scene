@@ -143,12 +143,12 @@
                         "y": 0.0
                     },
                     "smoothSpeed": 5.0,
-                    "target": 2743804717711246141
+                    "target": 16409735270390632352
                 },
                 "scriptName": "FollowCamera"
             },
             "Tag": {
-                "name": "New Entity"
+                "name": "Camera"
             },
             "Transform": {
                 "position": [
@@ -164,6 +164,13 @@
             "uuid": 18192462657191418153
         },
         {
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 2
+            },
             "Script": {
                 "enabled": true,
                 "properties": {
@@ -208,6 +215,125 @@
                 ]
             },
             "uuid": 10375025575426431521
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    64.0,
+                    128.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": true,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 1
+            },
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "jumpForce": 500.0,
+                    "moveSpeed": 200.0,
+                    "playerTexture": {}
+                },
+                "scriptName": "PlayerController"
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    1.0
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    64.0,
+                    64.0
+                ],
+                "texturePath": "",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "Player"
+            },
+            "Transform": {
+                "position": [
+                    219.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    2.0
+                ]
+            },
+            "uuid": 16409735270390632352
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    640.0,
+                    64.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 0
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    5.0,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    64.0,
+                    64.0
+                ],
+                "texturePath": "",
+                "tint": [
+                    255,
+                    0,
+                    0,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    217.0,
+                    161.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    10.0,
+                    1.0
+                ]
+            },
+            "uuid": 16008428460662544570
         }
     ],
     "scene": "Default Scene"
