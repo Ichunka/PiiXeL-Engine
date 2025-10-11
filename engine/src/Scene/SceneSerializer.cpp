@@ -11,6 +11,7 @@
 #include "Scene/EntityRegistry.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Resources/AssetManager.hpp"
+#include "Reflection/Reflection.hpp"
 #include <fstream>
 #include <filesystem>
 #include <raylib.h>
@@ -172,10 +173,25 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
 
     if (registry.all_of<Script>(entity)) {
         const Script& script = registry.get<Script>(entity);
-        entityJson["Script"] = {
-            {"scriptName", script.scriptName},
-            {"enabled", script.instance ? script.instance->m_Enabled : true}
-        };
+        nlohmann::json scriptJson{};
+        scriptJson["scriptName"] = script.scriptName;
+        scriptJson["enabled"] = script.instance ? script.instance->m_Enabled : true;
+
+        if (script.instance) {
+            const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+            if (typeInfo) {
+                nlohmann::json propertiesJson{};
+                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                    if (field.flags & Reflection::FieldFlags::Serializable) {
+                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                        propertiesJson[field.name] = Reflection::JsonSerializer::SerializeField(field, fieldPtr);
+                    }
+                }
+                scriptJson["properties"] = propertiesJson;
+            }
+        }
+
+        entityJson["Script"] = scriptJson;
     }
 
     return entityJson;

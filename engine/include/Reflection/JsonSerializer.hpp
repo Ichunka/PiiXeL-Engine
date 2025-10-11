@@ -52,7 +52,6 @@ public:
         }
     }
 
-private:
     static nlohmann::json SerializeField(const FieldInfo& field, const void* fieldPtr);
     static void DeserializeField(const FieldInfo& field, const nlohmann::json& j, void* fieldPtr);
 };

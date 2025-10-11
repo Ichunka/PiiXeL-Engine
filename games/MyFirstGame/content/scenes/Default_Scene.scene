@@ -137,6 +137,14 @@
             },
             "Script": {
                 "enabled": true,
+                "properties": {
+                    "offset": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "smoothSpeed": 5.0,
+                    "target": 2743804717711246141
+                },
                 "scriptName": "FollowCamera"
             },
             "Tag": {
@@ -154,6 +162,52 @@
                 ]
             },
             "uuid": 18192462657191418153
+        },
+        {
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "amplitude": 100.0,
+                    "frequency": 1.0,
+                    "rotationSpeed": 90.0
+                },
+                "scriptName": "RotatingPlatform"
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    2.0,
+                    2.0
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "texturePath": "content/assets/grass_side.png",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity (Copy) (Copy)"
+            },
+            "Transform": {
+                "position": [
+                    -320.0,
+                    -7.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "uuid": 10375025575426431521
         }
     ],
     "scene": "Default Scene"

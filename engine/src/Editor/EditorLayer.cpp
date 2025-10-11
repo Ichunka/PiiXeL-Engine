@@ -23,7 +23,9 @@
 #include <imgui_internal.h>
 #include <rlImGui.h>
 #include <entt/entt.hpp>
+#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <fstream>
 #include <algorithm>
 
 namespace PiiXeL {
@@ -68,6 +70,7 @@ EditorLayer::EditorLayer(Engine* engine)
         SceneSerializer serializer{scene};
         if (serializer.Deserialize(defaultScenePath)) {
             m_CurrentScenePath = defaultScenePath;
+            RestoreScriptPropertiesFromFile(defaultScenePath);
             TraceLog(LOG_INFO, "Loaded default scene: %s", defaultScenePath.c_str());
         }
     }
@@ -1254,6 +1257,7 @@ void EditorLayer::RenderContentBrowser() {
                             m_CurrentScenePath = asset.path;
                             m_SelectedEntity = entt::null;
                             m_CommandHistory.Clear();
+                            RestoreScriptPropertiesFromFile(asset.path);
                             TraceLog(LOG_INFO, "Loaded scene: %s", asset.path.c_str());
                         }
                     }
@@ -2196,14 +2200,50 @@ void EditorLayer::OnStopButtonPressed() {
                     entt::registry& registry = scene->GetRegistry();
                     ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
 
-                    registry.view<Script>().each([&](entt::entity entity, Script& script) {
-                        if (!script.scriptName.empty() && !script.instance) {
-                            script.instance = scriptSystem->CreateScript(script.scriptName);
-                            if (script.instance) {
-                                script.instance->Initialize(entity, scene);
+                    try {
+                        nlohmann::json snapshotJson = nlohmann::json::parse(m_PlayModeSnapshot);
+
+                        if (snapshotJson.contains("entities") && snapshotJson["entities"].is_array()) {
+                            size_t entityIndex = 0;
+                            const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+
+                            for (entt::entity entity : entityOrder) {
+                                if (entityIndex >= snapshotJson["entities"].size()) break;
+
+                                const nlohmann::json& entityJson = snapshotJson["entities"][entityIndex];
+
+                                if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
+                                    Script& script = registry.get<Script>(entity);
+                                    const nlohmann::json& scriptJson = entityJson["Script"];
+
+                                    if (!script.scriptName.empty() && !script.instance) {
+                                        script.instance = scriptSystem->CreateScript(script.scriptName);
+                                        if (script.instance) {
+                                            script.instance->Initialize(entity, scene);
+
+                                            if (scriptJson.contains("properties")) {
+                                                const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                                if (typeInfo) {
+                                                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                                        if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                            void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                            Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                entityIndex++;
                             }
                         }
-                    });
+                    } catch (const nlohmann::json::exception& e) {
+                        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+                    }
                 }
 
                 TraceLog(LOG_INFO, "Scene restored from memory snapshot - edit mode");
@@ -2279,20 +2319,7 @@ void EditorLayer::LoadScene() {
     if (serializer.Deserialize(m_CurrentScenePath)) {
         m_SelectedEntity = entt::null;
         m_CommandHistory.Clear();
-
-        if (m_Engine && m_Engine->GetScriptSystem()) {
-            entt::registry& registry = scene->GetRegistry();
-            ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-
-            registry.view<Script>().each([&](entt::entity entity, Script& script) {
-                if (!script.scriptName.empty() && !script.instance) {
-                    script.instance = scriptSystem->CreateScript(script.scriptName);
-                    if (script.instance) {
-                        script.instance->Initialize(entity, scene);
-                    }
-                }
-            });
-        }
+        RestoreScriptPropertiesFromFile(m_CurrentScenePath);
     }
 }
 
@@ -2576,6 +2603,70 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
     }
 
     return changed;
+}
+
+void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
+    if (!m_Engine || !m_Engine->GetActiveScene() || !m_Engine->GetScriptSystem()) {
+        return;
+    }
+
+    Scene* scene = m_Engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
+
+    try {
+        std::ifstream file{filepath};
+        if (!file.is_open()) {
+            return;
+        }
+
+        nlohmann::json sceneJson{};
+        file >> sceneJson;
+        file.close();
+
+        if (!sceneJson.contains("entities") || !sceneJson["entities"].is_array()) {
+            return;
+        }
+
+        size_t entityIndex = 0;
+        const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+
+        for (entt::entity entity : entityOrder) {
+            if (entityIndex >= sceneJson["entities"].size()) break;
+
+            const nlohmann::json& entityJson = sceneJson["entities"][entityIndex];
+
+            if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
+                Script& script = registry.get<Script>(entity);
+                const nlohmann::json& scriptJson = entityJson["Script"];
+
+                if (!script.scriptName.empty() && !script.instance) {
+                    script.instance = scriptSystem->CreateScript(script.scriptName);
+                    if (script.instance) {
+                        script.instance->Initialize(entity, scene);
+                    }
+                }
+
+                if (script.instance && scriptJson.contains("properties")) {
+                    const nlohmann::json& propertiesJson = scriptJson["properties"];
+                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                    if (typeInfo) {
+                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            entityIndex++;
+        }
+    } catch (const std::exception& e) {
+        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+    }
 }
 
 entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {

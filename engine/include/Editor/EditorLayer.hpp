@@ -88,6 +88,8 @@ private:
 
     bool RenderEntityPicker(const char* label, entt::entity* entity);
 
+    void RestoreScriptPropertiesFromFile(const std::string& filepath);
+
 private:
     Engine* m_Engine;
     RenderTexture2D m_ViewportTexture;
