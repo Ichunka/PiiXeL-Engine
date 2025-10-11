@@ -158,6 +158,7 @@ void Application::Cleanup() {
 
 #ifdef BUILD_WITH_EDITOR
     rlImGuiShutdown();
+    SetTraceLogCallback(nullptr);
 #endif
     CloseWindow();
 
