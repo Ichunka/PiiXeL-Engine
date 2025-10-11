@@ -9,6 +9,7 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/Script.hpp"
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -70,6 +71,38 @@ void Engine::Update(float deltaTime) {
     }
 }
 
+entt::entity Engine::FindPrimaryCamera() {
+    if (!m_ActiveScene) {
+        return entt::null;
+    }
+
+    if (m_PrimaryCameraCached) {
+        entt::registry& registry = m_ActiveScene->GetRegistry();
+        if (registry.valid(m_PrimaryCamera) && registry.all_of<Camera, Transform>(m_PrimaryCamera)) {
+            const Camera& camera = registry.get<Camera>(m_PrimaryCamera);
+            if (camera.isPrimary) {
+                return m_PrimaryCamera;
+            }
+        }
+        m_PrimaryCameraCached = false;
+    }
+
+    entt::registry& registry = m_ActiveScene->GetRegistry();
+    m_PrimaryCamera = entt::null;
+
+    auto view = registry.view<Camera, Transform>();
+    for (auto entity : view) {
+        const Camera& camera = view.get<Camera>(entity);
+        if (camera.isPrimary) {
+            m_PrimaryCamera = entity;
+            m_PrimaryCameraCached = true;
+            break;
+        }
+    }
+
+    return m_PrimaryCamera;
+}
+
 void Engine::Render() {
     if (m_ActiveScene) {
         m_ActiveScene->OnRender();
@@ -80,22 +113,17 @@ void Engine::Render() {
         m_RenderSystem->Render(m_ActiveScene->GetRegistry());
 #else
         entt::registry& registry = m_ActiveScene->GetRegistry();
-        entt::entity primaryCamera = entt::null;
+        entt::entity primaryCamera = FindPrimaryCamera();
 
-        registry.view<Camera, Transform>().each([&](entt::entity entity, const Camera& camera, const Transform&) {
-            if (camera.isPrimary) {
-                primaryCamera = entity;
-            }
-        });
-
-        if (primaryCamera != entt::null && registry.all_of<Camera, Transform>(primaryCamera)) {
+        if (primaryCamera != entt::null) {
             const Camera& cameraComp = registry.get<Camera>(primaryCamera);
             const Transform& transform = registry.get<Transform>(primaryCamera);
 
-            Camera2D raylibCamera = cameraComp.ToRaylib(transform.position);
-            int screenWidth = GetScreenWidth();
-            int screenHeight = GetScreenHeight();
-            raylibCamera.offset = Vector2{static_cast<float>(screenWidth) / 2.0f, static_cast<float>(screenHeight) / 2.0f};
+            Camera2D raylibCamera{};
+            raylibCamera.target = transform.position;
+            raylibCamera.offset = Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
+            raylibCamera.rotation = cameraComp.rotation;
+            raylibCamera.zoom = cameraComp.zoom;
 
             m_RenderSystem->RenderWithCamera(registry, raylibCamera);
         } else {
@@ -159,8 +187,21 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
         return false;
     }
 
-    m_ActiveScene = m_PackageLoader->LoadScene(sceneName);
-    return m_ActiveScene != nullptr;
+    m_ActiveScene = m_PackageLoader->LoadScene(sceneName, m_ScriptSystem.get());
+    m_PrimaryCameraCached = false;
+
+    if (m_ActiveScene) {
+        entt::registry& registry = m_ActiveScene->GetRegistry();
+        size_t entityCount = registry.storage<entt::entity>().size();
+        size_t scriptCount = registry.view<Script>().size();
+        size_t cameraCount = registry.view<Camera>().size();
+
+        TraceLog(LOG_INFO, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
+
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace PiiXeL

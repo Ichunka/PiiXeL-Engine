@@ -65,6 +65,7 @@ void Application::Initialize() {
 
     m_Engine->CreatePhysicsBodies();
     m_Engine->SetPhysicsEnabled(true);
+    m_Engine->SetScriptsEnabled(true);
 #endif
 
     m_Initialized = true;

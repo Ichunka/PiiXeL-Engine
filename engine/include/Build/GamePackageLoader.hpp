@@ -9,6 +9,7 @@
 namespace PiiXeL {
 
 class Scene;
+class ScriptSystem;
 
 class GamePackageLoader {
 public:
@@ -16,7 +17,7 @@ public:
     ~GamePackageLoader();
 
     bool LoadPackage(const std::string& filepath);
-    std::unique_ptr<Scene> LoadScene(const std::string& sceneName);
+    std::unique_ptr<Scene> LoadScene(const std::string& sceneName, ScriptSystem* scriptSystem = nullptr);
     Texture2D LoadTexture(const std::string& assetPath);
     void UnloadAllTextures();
 
