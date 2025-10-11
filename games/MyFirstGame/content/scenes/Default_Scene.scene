@@ -1,91 +1,19 @@
 {
     "entities": [
         {
-            "Camera": {
-                "isPrimary": true,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "rotation": 0.0,
-                "zoom": 1.0
-            },
-            "Script": {
-                "enabled": true,
-                "scriptName": "FollowCamera"
-            },
-            "Tag": {
-                "name": "Camera"
-            },
-            "Transform": {
-                "position": [
-                    0.0,
-                    0.0
-                ],
-                "rotation": 0.0,
-                "scale": [
-                    1.0,
-                    1.0
-                ]
-            },
-            "id": 1048580,
-            "uuid": 11279402372160765396
+            "uuid": 16700463653371367486
         },
         {
-            "BoxCollider2D": {
-                "isTrigger": false,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "size": [
-                    64.0,
-                    64.0
-                ]
-            },
-            "RigidBody2D": {
-                "fixedRotation": false,
-                "friction": 0.30000001192092896,
-                "mass": 10.0,
-                "restitution": 0.0,
-                "type": 0
-            },
-            "Sprite": {
-                "layer": 0,
-                "origin": [
-                    0.5,
-                    0.5
-                ],
-                "sourceRect": [
-                    0.0,
-                    0.0,
-                    64.0,
-                    64.0
-                ],
-                "texturePath": "",
-                "tint": [
-                    217,
-                    37,
-                    37,
-                    255
-                ]
-            },
-            "Tag": {
-                "name": "New Entity"
-            },
-            "Transform": {
-                "position": [
-                    0.0,
-                    0.0
-                ],
-                "rotation": 0.0,
-                "scale": [
-                    1.0,
-                    1.0
-                ]
-            },
-            "id": 1048579,
-            "uuid": 353330194628373244
+            "uuid": 7279614293104963882
+        },
+        {
+            "uuid": 9125998863283431671
+        },
+        {
+            "uuid": 1293869200549624036
+        },
+        {
+            "uuid": 8936981619653733226
         },
         {
             "BoxCollider2D": {
@@ -131,8 +59,8 @@
             },
             "Transform": {
                 "position": [
-                    -32.0,
-                    -237.0
+                    -47.0,
+                    -275.0
                 ],
                 "rotation": 0.0,
                 "scale": [
@@ -140,46 +68,7 @@
                     4.0
                 ]
             },
-            "id": 1048578,
-            "uuid": 1352452303247818808
-        },
-        {
-            "Sprite": {
-                "layer": 0,
-                "origin": [
-                    0.5,
-                    0.5
-                ],
-                "sourceRect": [
-                    0.0,
-                    0.0,
-                    16.0,
-                    16.0
-                ],
-                "texturePath": "content/assets/dirt.png",
-                "tint": [
-                    255,
-                    255,
-                    255,
-                    255
-                ]
-            },
-            "Tag": {
-                "name": "dirt"
-            },
-            "Transform": {
-                "position": [
-                    -222.5,
-                    -1.5
-                ],
-                "rotation": 0.0,
-                "scale": [
-                    1.0,
-                    1.0
-                ]
-            },
-            "id": 1048577,
-            "uuid": 11059747708502972211
+            "uuid": 2743804717711246141
         },
         {
             "BoxCollider2D": {
@@ -198,7 +87,91 @@
                 "friction": 0.30000001192092896,
                 "mass": 10.0,
                 "restitution": 0.0,
-                "type": 2
+                "type": 0
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    64.0,
+                    64.0
+                ],
+                "texturePath": "",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity (Copy)"
+            },
+            "Transform": {
+                "position": [
+                    -1.0,
+                    -7.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 2749938299147135401
+        },
+        {
+            "Camera": {
+                "isPrimary": true,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "zoom": 1.0
+            },
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "offset": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "smoothSpeed": 5.0,
+                    "target": 2743804717711246141
+                },
+                "scriptName": "FollowCamera"
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 18192462657191418153
+        },
+        {
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "amplitude": 100.0,
+                    "frequency": 1.0,
+                    "rotationSpeed": 90.0
+                },
+                "scriptName": "RotatingPlatform"
             },
             "Sprite": {
                 "layer": 0,
@@ -212,7 +185,7 @@
                     16.0,
                     16.0
                 ],
-                "texturePath": "content/assets/dirt.png",
+                "texturePath": "content/assets/grass_side.png",
                 "tint": [
                     255,
                     255,
@@ -221,12 +194,12 @@
                 ]
             },
             "Tag": {
-                "name": "New Entity (Copy)"
+                "name": "New Entity (Copy) (Copy)"
             },
             "Transform": {
                 "position": [
-                    53.0,
-                    -237.0
+                    -320.0,
+                    -7.0
                 ],
                 "rotation": 0.0,
                 "scale": [
@@ -234,8 +207,7 @@
                     4.0
                 ]
             },
-            "id": 1048576,
-            "uuid": 14487251396898569856
+            "uuid": 10375025575426431521
         }
     ],
     "scene": "Default Scene"

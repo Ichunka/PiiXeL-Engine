@@ -23,7 +23,9 @@
 #include <imgui_internal.h>
 #include <rlImGui.h>
 #include <entt/entt.hpp>
+#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <fstream>
 #include <algorithm>
 
 namespace PiiXeL {
@@ -68,6 +70,7 @@ EditorLayer::EditorLayer(Engine* engine)
         SceneSerializer serializer{scene};
         if (serializer.Deserialize(defaultScenePath)) {
             m_CurrentScenePath = defaultScenePath;
+            RestoreScriptPropertiesFromFile(defaultScenePath);
             TraceLog(LOG_INFO, "Loaded default scene: %s", defaultScenePath.c_str());
         }
     }
@@ -285,9 +288,8 @@ void EditorLayer::RenderMenuBar() {
             if (ImGui::MenuItem("Create Empty")) {
                 Scene* scene = m_Engine->GetActiveScene();
                 if (m_Engine && scene) {
-                    entt::registry& registry = scene->GetRegistry();
                     m_CommandHistory.ExecuteCommand(
-                        std::make_unique<CreateEntityCommand>(&registry, "Entity")
+                        std::make_unique<CreateEntityCommand>(scene, "Entity")
                     );
                 }
             }
@@ -549,13 +551,23 @@ void EditorLayer::RenderHierarchy() {
 
         if (ImGui::Button("+ Create Entity")) {
             m_CommandHistory.ExecuteCommand(
-                std::make_unique<CreateEntityCommand>(&registry, "New Entity")
+                std::make_unique<CreateEntityCommand>(scene, "New Entity")
             );
         }
 
         ImGui::Separator();
 
-        registry.view<Tag>().each([this, &registry](entt::entity entity, Tag& tag) {
+        std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+
+        for (size_t i = 0; i < entityOrder.size(); ++i) {
+            entt::entity entity = entityOrder[i];
+
+            if (!registry.valid(entity) || !registry.all_of<Tag>(entity)) {
+                continue;
+            }
+
+            Tag& tag = registry.get<Tag>(entity);
+
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
             if (m_SelectedEntity == entity) {
                 flags |= ImGuiTreeNodeFlags_Selected;
@@ -572,9 +584,29 @@ void EditorLayer::RenderHierarchy() {
 
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 m_IsDraggingEntity = true;
-                ImGui::SetDragDropPayload("ENTITY_REFERENCE", &entity, sizeof(entt::entity));
+                size_t draggedIndex = i;
+                ImGui::SetDragDropPayload("ENTITY_REORDER", &draggedIndex, sizeof(size_t));
                 ImGui::Text("%s", tag.name.c_str());
                 ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_REORDER")) {
+                    if (payload->DataSize == sizeof(size_t)) {
+                        size_t draggedIndex = *static_cast<size_t*>(payload->Data);
+                        size_t targetIndex = i;
+
+                        if (draggedIndex != targetIndex && draggedIndex < entityOrder.size()) {
+                            entt::entity draggedEntity = entityOrder[draggedIndex];
+                            entityOrder.erase(entityOrder.begin() + draggedIndex);
+                            if (draggedIndex < targetIndex) {
+                                targetIndex--;
+                            }
+                            entityOrder.insert(entityOrder.begin() + targetIndex, draggedEntity);
+                        }
+                    }
+                }
+                ImGui::EndDragDropTarget();
             }
 
             if (itemHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !m_IsDraggingEntity) {
@@ -597,12 +629,12 @@ void EditorLayer::RenderHierarchy() {
                     if (m_SelectedEntity == entity) {
                         m_SelectedEntity = entt::null;
                     }
-                    registry.destroy(entity);
+                    scene->DestroyEntity(entity);
                 }
 
                 ImGui::EndPopup();
             }
-        });
+        }
     }
 
     ImGui::End();
@@ -1077,14 +1109,15 @@ void EditorLayer::RenderContentBrowser() {
 
         ImGui::Columns(columnCount, nullptr, false);
 
-        for (const std::string& dirPath : directories) {
+        for (size_t dirIdx = 0; dirIdx < directories.size(); ++dirIdx) {
+            const std::string& dirPath = directories[dirIdx];
             std::string dirName = dirPath;
             size_t lastSlash = dirPath.find_last_of('/');
             if (lastSlash != std::string::npos) {
                 dirName = dirPath.substr(lastSlash + 1);
             }
 
-            ImGui::PushID(dirPath.c_str());
+            ImGui::PushID(static_cast<int>(dirIdx));
             ImGui::BeginGroup();
 
             ImVec4 folderColor{1.0f, 0.9f, 0.4f, 1.0f};
@@ -1136,8 +1169,9 @@ void EditorLayer::RenderContentBrowser() {
             ImGui::PopID();
         }
 
-        for (AssetInfo& asset : files) {
-            ImGui::PushID(asset.path.c_str());
+        for (size_t fileIdx = 0; fileIdx < files.size(); ++fileIdx) {
+            AssetInfo& asset = files[fileIdx];
+            ImGui::PushID(static_cast<int>(directories.size() + fileIdx));
             ImGui::BeginGroup();
 
             bool isScene = asset.extension == ".scene";
@@ -1159,7 +1193,7 @@ void EditorLayer::RenderContentBrowser() {
                     ImVec2 imageSize{displayWidth, displayHeight};
                     ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(tex.id));
 
-                    ImGui::Image(texId, imageSize);
+                    ImGui::ImageButton("##texture", texId, imageSize);
 
                     if (ImGui::BeginPopupContextItem()) {
                         rightClickedItem = asset.path;
@@ -1223,6 +1257,7 @@ void EditorLayer::RenderContentBrowser() {
                             m_CurrentScenePath = asset.path;
                             m_SelectedEntity = entt::null;
                             m_CommandHistory.Clear();
+                            RestoreScriptPropertiesFromFile(asset.path);
                             TraceLog(LOG_INFO, "Loaded scene: %s", asset.path.c_str());
                         }
                     }
@@ -2161,6 +2196,56 @@ void EditorLayer::OnStopButtonPressed() {
                 m_CommandHistory.Clear();
                 m_SelectedEntity = entt::null;
 
+                if (m_Engine->GetScriptSystem()) {
+                    entt::registry& registry = scene->GetRegistry();
+                    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
+
+                    try {
+                        nlohmann::json snapshotJson = nlohmann::json::parse(m_PlayModeSnapshot);
+
+                        if (snapshotJson.contains("entities") && snapshotJson["entities"].is_array()) {
+                            size_t entityIndex = 0;
+                            const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+
+                            for (entt::entity entity : entityOrder) {
+                                if (entityIndex >= snapshotJson["entities"].size()) break;
+
+                                const nlohmann::json& entityJson = snapshotJson["entities"][entityIndex];
+
+                                if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
+                                    Script& script = registry.get<Script>(entity);
+                                    const nlohmann::json& scriptJson = entityJson["Script"];
+
+                                    if (!script.scriptName.empty() && !script.instance) {
+                                        script.instance = scriptSystem->CreateScript(script.scriptName);
+                                        if (script.instance) {
+                                            script.instance->Initialize(entity, scene);
+
+                                            if (scriptJson.contains("properties")) {
+                                                const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                                if (typeInfo) {
+                                                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                                        if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                            void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                            Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                entityIndex++;
+                            }
+                        }
+                    } catch (const nlohmann::json::exception& e) {
+                        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+                    }
+                }
+
                 TraceLog(LOG_INFO, "Scene restored from memory snapshot - edit mode");
             }
         } else {
@@ -2234,20 +2319,7 @@ void EditorLayer::LoadScene() {
     if (serializer.Deserialize(m_CurrentScenePath)) {
         m_SelectedEntity = entt::null;
         m_CommandHistory.Clear();
-
-        if (m_Engine && m_Engine->GetScriptSystem()) {
-            entt::registry& registry = scene->GetRegistry();
-            ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-
-            registry.view<Script>().each([&](entt::entity entity, Script& script) {
-                if (!script.scriptName.empty() && !script.instance) {
-                    script.instance = scriptSystem->CreateScript(script.scriptName);
-                    if (script.instance) {
-                        script.instance->Initialize(entity, scene);
-                    }
-                }
-            });
-        }
+        RestoreScriptPropertiesFromFile(m_CurrentScenePath);
     }
 }
 
@@ -2514,12 +2586,16 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
     }
 
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_REFERENCE")) {
-            if (payload->DataSize == sizeof(entt::entity)) {
-                entt::entity draggedEntity = *static_cast<entt::entity*>(payload->Data);
-                if (registry.valid(draggedEntity)) {
-                    *entity = draggedEntity;
-                    changed = true;
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_REORDER")) {
+            if (payload->DataSize == sizeof(size_t)) {
+                size_t draggedIndex = *static_cast<size_t*>(payload->Data);
+                const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+                if (draggedIndex < entityOrder.size()) {
+                    entt::entity draggedEntity = entityOrder[draggedIndex];
+                    if (registry.valid(draggedEntity)) {
+                        *entity = draggedEntity;
+                        changed = true;
+                    }
                 }
             }
         }
@@ -2527,6 +2603,70 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
     }
 
     return changed;
+}
+
+void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
+    if (!m_Engine || !m_Engine->GetActiveScene() || !m_Engine->GetScriptSystem()) {
+        return;
+    }
+
+    Scene* scene = m_Engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
+
+    try {
+        std::ifstream file{filepath};
+        if (!file.is_open()) {
+            return;
+        }
+
+        nlohmann::json sceneJson{};
+        file >> sceneJson;
+        file.close();
+
+        if (!sceneJson.contains("entities") || !sceneJson["entities"].is_array()) {
+            return;
+        }
+
+        size_t entityIndex = 0;
+        const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
+
+        for (entt::entity entity : entityOrder) {
+            if (entityIndex >= sceneJson["entities"].size()) break;
+
+            const nlohmann::json& entityJson = sceneJson["entities"][entityIndex];
+
+            if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
+                Script& script = registry.get<Script>(entity);
+                const nlohmann::json& scriptJson = entityJson["Script"];
+
+                if (!script.scriptName.empty() && !script.instance) {
+                    script.instance = scriptSystem->CreateScript(script.scriptName);
+                    if (script.instance) {
+                        script.instance->Initialize(entity, scene);
+                    }
+                }
+
+                if (script.instance && scriptJson.contains("properties")) {
+                    const nlohmann::json& propertiesJson = scriptJson["properties"];
+                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                    if (typeInfo) {
+                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            entityIndex++;
+        }
+    } catch (const std::exception& e) {
+        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+    }
 }
 
 entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
@@ -2541,23 +2681,20 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         return entt::null;
     }
 
-    entt::entity newEntity = registry.create();
-
+    std::string newName = "Entity (Copy)";
     if (registry.all_of<Tag>(entity)) {
         const Tag& originalTag = registry.get<Tag>(entity);
-        Tag newTag;
-        newTag.name = originalTag.name + " (Copy)";
-        registry.emplace<Tag>(newEntity, newTag);
+        newName = originalTag.name + " (Copy)";
     }
+
+    entt::entity newEntity = scene->CreateEntity(newName);
 
     if (registry.all_of<Transform>(entity)) {
         const Transform& originalTransform = registry.get<Transform>(entity);
-        Transform newTransform;
-        newTransform.position.x = originalTransform.position.x + 20.0f;
-        newTransform.position.y = originalTransform.position.y + 20.0f;
+        Transform& newTransform = registry.get<Transform>(newEntity);
+        newTransform.position = originalTransform.position;
         newTransform.rotation = originalTransform.rotation;
         newTransform.scale = originalTransform.scale;
-        registry.emplace<Transform>(newEntity, newTransform);
     }
 
     if (registry.all_of<Sprite>(entity)) {
@@ -2610,6 +2747,13 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         newCollider.offset = originalCollider.offset;
         newCollider.isTrigger = originalCollider.isTrigger;
         registry.emplace<BoxCollider2D>(newEntity, newCollider);
+    }
+
+    if (registry.all_of<Script>(entity)) {
+        const Script& originalScript = registry.get<Script>(entity);
+        Script newScript;
+        newScript.scriptName = originalScript.scriptName;
+        registry.emplace<Script>(newEntity, newScript);
     }
 
     TraceLog(LOG_INFO, "Entity duplicated with all components");

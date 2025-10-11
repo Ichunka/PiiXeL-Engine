@@ -23,7 +23,7 @@ private:
     Scene* m_Scene;
 
     nlohmann::json SerializeEntity(entt::entity entity);
-    void DeserializeEntity(const nlohmann::json& entityJson);
+    entt::entity DeserializeEntity(const nlohmann::json& entityJson);
 };
 
 } // namespace PiiXeL

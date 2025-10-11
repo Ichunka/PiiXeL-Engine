@@ -15,10 +15,12 @@ ConsoleLogger& ConsoleLogger::Instance() {
 void ConsoleLogger::AddLog(const std::string& message, LogLevel level, LogSource source) {
     std::lock_guard<std::mutex> lock(m_Mutex);
 
-    float timestamp = static_cast<float>(GetTime());
+    float timestamp = 0.0f;
+    if (IsWindowReady()) {
+        timestamp = static_cast<float>(GetTime());
+    }
     m_Logs.emplace_back(message, level, source, timestamp);
 
-    // Limiter le nombre de logs pour éviter la surcharge mémoire
     if (m_Logs.size() > 10000) {
         m_Logs.erase(m_Logs.begin(), m_Logs.begin() + 1000);
     }
@@ -47,14 +49,11 @@ void ConsoleLogger::RaylibLogCallback(int logLevel, const char* text, va_list ar
     std::string message(buffer);
     LogLevel level = ConvertRaylibLogLevel(logLevel);
 
-    // Déterminer si c'est un log engine ou game
-    // Les logs du game commencent généralement par "[GAME]" ou peuvent être détectés autrement
     LogSource source = LogSource::Engine;
     if (message.find("[GAME]") != std::string::npos ||
         message.find("[Game]") != std::string::npos ||
         message.find("[SCRIPT]") != std::string::npos) {
         source = LogSource::Game;
-        // Retirer le préfixe [GAME] du message
         size_t pos = message.find("]");
         if (pos != std::string::npos) {
             message = message.substr(pos + 2);
@@ -63,7 +62,6 @@ void ConsoleLogger::RaylibLogCallback(int logLevel, const char* text, va_list ar
 
     ConsoleLogger::Instance().AddLog(message, level, source);
 
-    // Afficher aussi dans la console système pour debug
     #ifdef _DEBUG
     printf("[%s] %s\n", source == LogSource::Engine ? "ENGINE" : "GAME", buffer);
     #endif

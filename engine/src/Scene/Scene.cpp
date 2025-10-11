@@ -37,6 +37,8 @@ entt::entity Scene::CreateEntity(const std::string& name) {
     m_Registry.emplace<Tag>(entity, name);
     m_Registry.emplace<Transform>(entity);
 
+    m_EntityOrder.push_back(entity);
+
     return entity;
 }
 
@@ -45,6 +47,12 @@ void Scene::DestroyEntity(entt::entity entity) {
         UUID uuid = m_Registry.get<UUID>(entity);
         EntityRegistry::Instance().UnregisterEntity(uuid);
     }
+
+    auto it = std::find(m_EntityOrder.begin(), m_EntityOrder.end(), entity);
+    if (it != m_EntityOrder.end()) {
+        m_EntityOrder.erase(it);
+    }
+
     m_Registry.destroy(entity);
 }
 

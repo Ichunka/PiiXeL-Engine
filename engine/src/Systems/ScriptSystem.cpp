@@ -36,6 +36,13 @@ void ScriptSystem::OnUpdate(Scene* scene, float deltaTime) {
     for (auto entity : view) {
         Script& script = view.get<Script>(entity);
 
+        if (!script.instance && !script.scriptName.empty()) {
+            script.instance = CreateScript(script.scriptName);
+            if (script.instance) {
+                script.instance->Initialize(entity, scene);
+            }
+        }
+
         if (script.instance) {
             if (!script.instance->GetScene()) {
                 script.instance->Initialize(entity, scene);
@@ -54,6 +61,13 @@ void ScriptSystem::OnFixedUpdate(Scene* scene, float fixedDeltaTime) {
     auto view = registry.view<Script>();
     for (auto entity : view) {
         Script& script = view.get<Script>(entity);
+
+        if (!script.instance && !script.scriptName.empty()) {
+            script.instance = CreateScript(script.scriptName);
+            if (script.instance) {
+                script.instance->Initialize(entity, scene);
+            }
+        }
 
         if (script.instance && script.instance->GetScene()) {
             script.instance->ExecuteFixedUpdate(fixedDeltaTime);
