@@ -2,6 +2,7 @@
 #include "Core/Engine.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Project/ProjectSettings.hpp"
+#include "Debug/Profiler.hpp"
 #include <raylib.h>
 
 #ifdef BUILD_WITH_EDITOR
@@ -78,6 +79,8 @@ void Application::Run() {
     float lastTime{static_cast<float>(GetTime())};
 
     while (m_Running && !WindowShouldClose()) {
+        Profiler::Instance().BeginFrame();
+
         float currentTime{static_cast<float>(GetTime())};
         float deltaTime{currentTime - lastTime};
         lastTime = currentTime;
@@ -90,6 +93,8 @@ void Application::Run() {
         Render();
 
         EndDrawing();
+
+        Profiler::Instance().EndFrame();
     }
 
     Shutdown();

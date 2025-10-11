@@ -4,6 +4,7 @@
 #include "Components/Tag.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Debug/DebugDraw.hpp"
+#include "Debug/Profiler.hpp"
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -59,6 +60,8 @@ void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& ca
 }
 
 void RenderSystem::RenderSprites(entt::registry& registry) {
+    PROFILE_FUNCTION();
+
     struct SpriteEntity {
         entt::entity entity;
         const Sprite* sprite;
@@ -67,40 +70,49 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
 
     std::vector<SpriteEntity> sprites;
 
-    registry.view<Sprite, Transform>().each([&](entt::entity entity, const Sprite& sprite, const Transform& transform) {
-        if (sprite.IsValid()) {
-            sprites.push_back({entity, &sprite, &transform});
+    {
+        PROFILE_SCOPE("RenderSprites::Collect");
+        registry.view<Sprite, Transform>().each([&](entt::entity entity, const Sprite& sprite, const Transform& transform) {
+            if (sprite.IsValid()) {
+                sprites.push_back({entity, &sprite, &transform});
+            }
+        });
+    }
+
+    {
+        PROFILE_SCOPE("RenderSprites::Sort");
+        std::sort(sprites.begin(), sprites.end(), [](const SpriteEntity& a, const SpriteEntity& b) {
+            return a.sprite->layer < b.sprite->layer;
+        });
+    }
+
+    {
+        PROFILE_SCOPE("RenderSprites::Draw");
+        for (const SpriteEntity& spriteEntity : sprites) {
+            const Sprite* sprite{spriteEntity.sprite};
+            const Transform* transform{spriteEntity.transform};
+
+            Vector2 originPixels{
+                sprite->sourceRect.width * sprite->origin.x * transform->scale.x,
+                sprite->sourceRect.height * sprite->origin.y * transform->scale.y
+            };
+
+            Rectangle destRect{
+                transform->position.x,
+                transform->position.y,
+                sprite->sourceRect.width * transform->scale.x,
+                sprite->sourceRect.height * transform->scale.y
+            };
+
+            DrawTexturePro(
+                sprite->texture,
+                sprite->sourceRect,
+                destRect,
+                originPixels,
+                transform->rotation,
+                sprite->tint
+            );
         }
-    });
-
-    std::sort(sprites.begin(), sprites.end(), [](const SpriteEntity& a, const SpriteEntity& b) {
-        return a.sprite->layer < b.sprite->layer;
-    });
-
-    for (const SpriteEntity& spriteEntity : sprites) {
-        const Sprite* sprite{spriteEntity.sprite};
-        const Transform* transform{spriteEntity.transform};
-
-        Vector2 originPixels{
-            sprite->sourceRect.width * sprite->origin.x * transform->scale.x,
-            sprite->sourceRect.height * sprite->origin.y * transform->scale.y
-        };
-
-        Rectangle destRect{
-            transform->position.x,
-            transform->position.y,
-            sprite->sourceRect.width * transform->scale.x,
-            sprite->sourceRect.height * transform->scale.y
-        };
-
-        DrawTexturePro(
-            sprite->texture,
-            sprite->sourceRect,
-            destRect,
-            originPixels,
-            transform->rotation,
-            sprite->tint
-        );
     }
 }
 

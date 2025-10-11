@@ -10,6 +10,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Debug/Profiler.hpp"
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -53,20 +54,43 @@ void Engine::Initialize() {
 }
 
 void Engine::Update(float deltaTime) {
-    if (m_ActiveScene) {
-        m_ActiveScene->OnUpdate(deltaTime);
+    PROFILE_FUNCTION();
+
+    {
+        PROFILE_SCOPE("Scene::OnUpdate");
+        if (m_ActiveScene) {
+            m_ActiveScene->OnUpdate(deltaTime);
+        }
     }
 
-    if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
-        m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+    {
+        PROFILE_SCOPE("ScriptSystem::OnUpdate");
+        if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
+            m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+        }
     }
 
-    if (m_PhysicsEnabled && m_PhysicsSystem && m_ActiveScene) {
-        m_PhysicsSystem->SetScene(m_ActiveScene.get());
-        m_PhysicsSystem->Update(deltaTime, m_ActiveScene->GetRegistry());
-        m_PhysicsSystem->ProcessCollisionEvents(m_ActiveScene->GetRegistry());
-        if (m_ScriptsEnabled && m_ScriptSystem) {
-            m_ScriptSystem->OnFixedUpdate(m_ActiveScene.get(), deltaTime);
+    {
+        PROFILE_SCOPE("Physics");
+        if (m_PhysicsEnabled && m_PhysicsSystem && m_ActiveScene) {
+            m_PhysicsSystem->SetScene(m_ActiveScene.get());
+
+            {
+                PROFILE_SCOPE("PhysicsSystem::Update");
+                m_PhysicsSystem->Update(deltaTime, m_ActiveScene->GetRegistry());
+            }
+
+            {
+                PROFILE_SCOPE("PhysicsSystem::ProcessCollisionEvents");
+                m_PhysicsSystem->ProcessCollisionEvents(m_ActiveScene->GetRegistry());
+            }
+
+            {
+                PROFILE_SCOPE("ScriptSystem::OnFixedUpdate");
+                if (m_ScriptsEnabled && m_ScriptSystem) {
+                    m_ScriptSystem->OnFixedUpdate(m_ActiveScene.get(), deltaTime);
+                }
+            }
         }
     }
 }
@@ -104,32 +128,40 @@ entt::entity Engine::FindPrimaryCamera() {
 }
 
 void Engine::Render() {
-    if (m_ActiveScene) {
-        m_ActiveScene->OnRender();
+    PROFILE_FUNCTION();
+
+    {
+        PROFILE_SCOPE("Scene::OnRender");
+        if (m_ActiveScene) {
+            m_ActiveScene->OnRender();
+        }
     }
 
-    if (m_RenderSystem && m_ActiveScene) {
+    {
+        PROFILE_SCOPE("RenderSystem");
+        if (m_RenderSystem && m_ActiveScene) {
 #ifdef BUILD_WITH_EDITOR
-        m_RenderSystem->Render(m_ActiveScene->GetRegistry());
+            m_RenderSystem->Render(m_ActiveScene->GetRegistry());
 #else
-        entt::registry& registry = m_ActiveScene->GetRegistry();
-        entt::entity primaryCamera = FindPrimaryCamera();
+            entt::registry& registry = m_ActiveScene->GetRegistry();
+            entt::entity primaryCamera = FindPrimaryCamera();
 
-        if (primaryCamera != entt::null) {
-            const Camera& cameraComp = registry.get<Camera>(primaryCamera);
-            const Transform& transform = registry.get<Transform>(primaryCamera);
+            if (primaryCamera != entt::null) {
+                const Camera& cameraComp = registry.get<Camera>(primaryCamera);
+                const Transform& transform = registry.get<Transform>(primaryCamera);
 
-            Camera2D raylibCamera{};
-            raylibCamera.target = transform.position;
-            raylibCamera.offset = Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
-            raylibCamera.rotation = cameraComp.rotation;
-            raylibCamera.zoom = cameraComp.zoom;
+                Camera2D raylibCamera{};
+                raylibCamera.target = transform.position;
+                raylibCamera.offset = Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
+                raylibCamera.rotation = cameraComp.rotation;
+                raylibCamera.zoom = cameraComp.zoom;
 
-            m_RenderSystem->RenderWithCamera(registry, raylibCamera);
-        } else {
-            m_RenderSystem->Render(registry);
-        }
+                m_RenderSystem->RenderWithCamera(registry, raylibCamera);
+            } else {
+                m_RenderSystem->Render(registry);
+            }
 #endif
+        }
     }
 }
 

@@ -66,6 +66,7 @@ private:
     void RenderContentBrowser();
     void RenderConsole();
     void RenderProjectSettings();
+    void RenderProfiler();
 
     Vector2 ScreenToWorld(Vector2 screenPos, const Camera2D& camera);
     void HandleGizmoInteraction();

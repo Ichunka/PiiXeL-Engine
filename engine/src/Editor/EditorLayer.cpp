@@ -20,6 +20,7 @@
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/Reflection.hpp"
 #include "Debug/DebugDraw.hpp"
+#include "Debug/Profiler.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <rlImGui.h>
@@ -190,6 +191,7 @@ void EditorLayer::OnImGuiRender() {
     RenderContentBrowser();
     RenderConsole();
     RenderProjectSettings();
+    RenderProfiler();
 
     EndDockspace();
 }
@@ -246,6 +248,7 @@ void EditorLayer::SetupDockingLayout() {
     ImGui::DockBuilderDockWindow("Game", dockspace_id);
     ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
+    ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
 
     ImGui::DockBuilderFinish(dockspace_id);
 }
@@ -2805,6 +2808,57 @@ void EditorLayer::PasteEntity() {
     m_SelectedEntity = newEntity;
 
     TraceLog(LOG_INFO, "Entity pasted");
+}
+
+void EditorLayer::RenderProfiler() {
+    ImGui::Begin("Profiler");
+
+    Profiler& profiler = Profiler::Instance();
+
+    bool enabled = profiler.IsEnabled();
+    if (ImGui::Checkbox("Enable Profiler", &enabled)) {
+        profiler.SetEnabled(enabled);
+    }
+
+    if (!profiler.IsEnabled()) {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::Separator();
+
+    ImGui::Text("Frame Time: %.3f ms", profiler.GetFrameTime());
+    ImGui::Text("FPS: %.1f", profiler.GetFPS());
+
+    ImGui::Separator();
+    ImGui::Text("Scope Timings:");
+
+    const std::vector<ProfileResult>& results = profiler.GetResults();
+
+    if (ImGui::BeginTable("ProfilerTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+        ImGui::TableSetupColumn("Scope", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+        ImGui::TableSetupColumn("Calls", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+        ImGui::TableHeadersRow();
+
+        for (const ProfileResult& result : results) {
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", result.name.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+            float percentage = (result.duration / profiler.GetFrameTime()) * 100.0f;
+            ImGui::Text("%.3f (%.1f%%)", result.duration, percentage);
+
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%zu", result.callCount);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
 }
 
 } // namespace PiiXeL
