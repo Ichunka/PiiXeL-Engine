@@ -56,8 +56,10 @@ public:
     [[nodiscard]] std::optional<typename ComponentHandle<Component>::Type> GetHandle();
 
     virtual void OnCollisionEnter(entt::entity other) { (void)other; }
+    virtual void OnCollisionStay(entt::entity other) { (void)other; }
     virtual void OnCollisionExit(entt::entity other) { (void)other; }
     virtual void OnTriggerEnter(entt::entity other) { (void)other; }
+    virtual void OnTriggerStay(entt::entity other) { (void)other; }
     virtual void OnTriggerExit(entt::entity other) { (void)other; }
 
     entt::entity m_Entity{entt::null};

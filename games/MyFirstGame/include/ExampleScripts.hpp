@@ -47,9 +47,32 @@ protected:
         }
     }
 
+    void OnCollisionEnter(entt::entity other) override {
+        (void)other;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Enter!");
+    }
+
+    void OnCollisionStay(entt::entity other) override {
+        (void)other;
+    }
+
+    void OnCollisionExit(entt::entity other) override {
+        (void)other;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Exit!");
+    }
+
     void OnTriggerEnter(entt::entity other) override {
         (void)other;
         TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Enter - Collected item!");
+    }
+
+    void OnTriggerStay(entt::entity other) override {
+        (void)other;
+    }
+
+    void OnTriggerExit(entt::entity other) override {
+        (void)other;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Exit!");
     }
 };
 

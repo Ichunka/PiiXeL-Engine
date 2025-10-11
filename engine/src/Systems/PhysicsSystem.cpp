@@ -109,6 +109,7 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
         shapeDef.material.restitution = rb.restitution;
         shapeDef.isSensor = collider.isTrigger;
         shapeDef.enableSensorEvents = true;
+        shapeDef.enableContactEvents = true;
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
     }
@@ -185,6 +186,9 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
+                auto pair = std::minmax(entityA, entityB);
+                m_ActiveCollisions.insert(pair);
+
                 if (registry.all_of<Script>(entityA)) {
                     Script& script = registry.get<Script>(entityA);
                     if (script.instance) {
@@ -216,6 +220,9 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
+                auto pair = std::minmax(entityA, entityB);
+                m_ActiveCollisions.erase(pair);
+
                 if (registry.all_of<Script>(entityA)) {
                     Script& script = registry.get<Script>(entityA);
                     if (script.instance) {
@@ -228,6 +235,24 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
                     if (script.instance) {
                         script.instance->OnCollisionExit(entityA);
                     }
+                }
+            }
+        }
+    }
+
+    for (const auto& [entityA, entityB] : m_ActiveCollisions) {
+        if (registry.valid(entityA) && registry.valid(entityB)) {
+            if (registry.all_of<Script>(entityA)) {
+                Script& script = registry.get<Script>(entityA);
+                if (script.instance) {
+                    script.instance->OnCollisionStay(entityB);
+                }
+            }
+
+            if (registry.all_of<Script>(entityB)) {
+                Script& script = registry.get<Script>(entityB);
+                if (script.instance) {
+                    script.instance->OnCollisionStay(entityA);
                 }
             }
         }
@@ -249,6 +274,9 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
 
             if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+                auto pair = std::minmax(visitorEntity, sensorEntity);
+                m_ActiveTriggers.insert(pair);
+
                 if (registry.all_of<Script>(sensorEntity)) {
                     Script& script = registry.get<Script>(sensorEntity);
                     if (script.instance) {
@@ -280,6 +308,9 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
 
             if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+                auto pair = std::minmax(visitorEntity, sensorEntity);
+                m_ActiveTriggers.erase(pair);
+
                 if (registry.all_of<Script>(sensorEntity)) {
                     Script& script = registry.get<Script>(sensorEntity);
                     if (script.instance) {
@@ -292,6 +323,24 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
                     if (script.instance) {
                         script.instance->OnTriggerExit(sensorEntity);
                     }
+                }
+            }
+        }
+    }
+
+    for (const auto& [entityA, entityB] : m_ActiveTriggers) {
+        if (registry.valid(entityA) && registry.valid(entityB)) {
+            if (registry.all_of<Script>(entityA)) {
+                Script& script = registry.get<Script>(entityA);
+                if (script.instance) {
+                    script.instance->OnTriggerStay(entityB);
+                }
+            }
+
+            if (registry.all_of<Script>(entityB)) {
+                Script& script = registry.get<Script>(entityB);
+                if (script.instance) {
+                    script.instance->OnTriggerStay(entityA);
                 }
             }
         }

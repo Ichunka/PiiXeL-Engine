@@ -5,6 +5,8 @@
 #include <box2d/box2d.h>
 #include <raylib.h>
 #include <functional>
+#include <set>
+#include <utility>
 
 namespace PiiXeL {
 
@@ -40,6 +42,9 @@ private:
     const float m_FixedTimeStep{1.0f / 60.0f};
     const int m_SubStepCount{8};
     const float m_PixelsToMeters{100.0f};
+
+    std::set<std::pair<entt::entity, entt::entity>> m_ActiveCollisions;
+    std::set<std::pair<entt::entity, entt::entity>> m_ActiveTriggers;
 };
 
 } // namespace PiiXeL
