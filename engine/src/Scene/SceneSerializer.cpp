@@ -43,12 +43,11 @@ bool SceneSerializer::Serialize(const std::string& filepath) {
     sceneJson["scene"] = m_Scene->GetName();
     sceneJson["entities"] = nlohmann::json::array();
 
-    entt::registry& registry = m_Scene->GetRegistry();
-
-    registry.view<Tag>().each([&](entt::entity entity, const Tag&) {
+    const std::vector<entt::entity>& entityOrder = m_Scene->GetEntityOrder();
+    for (entt::entity entity : entityOrder) {
         nlohmann::json entityJson = SerializeEntity(entity);
         sceneJson["entities"].push_back(entityJson);
-    });
+    }
 
     std::ofstream file{filepath};
     if (!file.is_open()) {
@@ -86,6 +85,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
     entt::registry& registry = m_Scene->GetRegistry();
     registry.clear();
     EntityRegistry::Instance().Clear();
+    m_Scene->GetEntityOrder().clear();
 
     if (sceneJson.contains("scene")) {
         m_Scene->SetName(sceneJson["scene"].get<std::string>());
@@ -93,7 +93,10 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
 
     if (sceneJson.contains("entities") && sceneJson["entities"].is_array()) {
         for (const nlohmann::json& entityJson : sceneJson["entities"]) {
-            DeserializeEntity(entityJson);
+            entt::entity entity = DeserializeEntity(entityJson);
+            if (entity != entt::null) {
+                m_Scene->GetEntityOrder().push_back(entity);
+            }
         }
     }
 
@@ -104,8 +107,6 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
 nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     entt::registry& registry = m_Scene->GetRegistry();
     nlohmann::json entityJson{};
-
-    entityJson["id"] = static_cast<uint32_t>(entity);
 
     if (registry.all_of<UUID>(entity)) {
         UUID uuid = registry.get<UUID>(entity);
@@ -180,7 +181,7 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     return entityJson;
 }
 
-void SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson) {
+entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson) {
     entt::registry& registry = m_Scene->GetRegistry();
     entt::entity entity = registry.create();
 
@@ -310,6 +311,8 @@ void SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson) {
         script.scriptName = scriptJson.value("scriptName", "");
         registry.emplace<Script>(entity, script);
     }
+
+    return entity;
 }
 
 std::string SceneSerializer::SerializeToString() {
@@ -321,12 +324,11 @@ std::string SceneSerializer::SerializeToString() {
     sceneJson["scene"] = m_Scene->GetName();
     sceneJson["entities"] = nlohmann::json::array();
 
-    entt::registry& registry = m_Scene->GetRegistry();
-
-    registry.view<Tag>().each([&](entt::entity entity, const Tag&) {
+    const std::vector<entt::entity>& entityOrder = m_Scene->GetEntityOrder();
+    for (entt::entity entity : entityOrder) {
         nlohmann::json entityJson = SerializeEntity(entity);
         sceneJson["entities"].push_back(entityJson);
-    });
+    }
 
     return sceneJson.dump();
 }
@@ -347,6 +349,7 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
     entt::registry& registry = m_Scene->GetRegistry();
     registry.clear();
     EntityRegistry::Instance().Clear();
+    m_Scene->GetEntityOrder().clear();
 
     if (sceneJson.contains("scene")) {
         m_Scene->SetName(sceneJson["scene"].get<std::string>());
@@ -354,7 +357,10 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
 
     if (sceneJson.contains("entities") && sceneJson["entities"].is_array()) {
         for (const nlohmann::json& entityJson : sceneJson["entities"]) {
-            DeserializeEntity(entityJson);
+            entt::entity entity = DeserializeEntity(entityJson);
+            if (entity != entt::null) {
+                m_Scene->GetEntityOrder().push_back(entity);
+            }
         }
     }
 

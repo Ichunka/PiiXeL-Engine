@@ -15,6 +15,8 @@
 
 namespace PiiXeL {
 
+class Scene;
+
 class ModifyTransformCommand : public Command {
 public:
     ModifyTransformCommand(entt::registry* registry, entt::entity entity, const Transform& oldValue, const Transform& newValue)
@@ -163,23 +165,21 @@ private:
 
 class CreateEntityCommand : public Command {
 public:
-    CreateEntityCommand(entt::registry* registry, const std::string& name)
-        : m_Registry{registry}
+    CreateEntityCommand(Scene* scene, const std::string& name)
+        : m_Scene{scene}
         , m_Name{name}
         , m_Entity{entt::null}
     {}
 
     void Execute() override {
-        if (m_Registry) {
-            m_Entity = m_Registry->create();
-            m_Registry->emplace<Tag>(m_Entity, m_Name);
-            m_Registry->emplace<Transform>(m_Entity);
+        if (m_Scene) {
+            m_Entity = m_Scene->CreateEntity(m_Name);
         }
     }
 
     void Undo() override {
-        if (m_Registry && m_Registry->valid(m_Entity)) {
-            m_Registry->destroy(m_Entity);
+        if (m_Scene && m_Entity != entt::null) {
+            m_Scene->DestroyEntity(m_Entity);
             m_Entity = entt::null;
         }
     }
@@ -191,7 +191,7 @@ public:
     [[nodiscard]] entt::entity GetEntity() const { return m_Entity; }
 
 private:
-    entt::registry* m_Registry;
+    Scene* m_Scene;
     std::string m_Name;
     entt::entity m_Entity;
 };
