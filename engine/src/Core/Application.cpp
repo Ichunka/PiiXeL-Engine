@@ -102,7 +102,7 @@ void Application::Run() {
         }
 
         {
-            PROFILE_SCOPE("EndDrawing");
+            PROFILE_SCOPE("EndDrawing + GPU Wait");
             EndDrawing();
         }
 #else
