@@ -1,0 +1,49 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 23, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "BUILD_SHARED_LIBS": "OFF",
+        "GAME_PROJECT": "MyFirstGame"
+      }
+    },
+    {
+      "name": "editor",
+      "displayName": "Editor (Debug)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_EDITOR": "ON"
+      }
+    },
+    {
+      "name": "game",
+      "displayName": "Game (Release)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_EDITOR": "OFF"
+      }
+    },
+    {
+      "name": "editor-release",
+      "displayName": "Editor (Release)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_EDITOR": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "editor", "displayName": "Build Editor", "configurePreset": "editor" },
+    { "name": "game", "displayName": "Build Game", "configurePreset": "game" },
+    { "name": "editor-release", "displayName": "Build Editor Release", "configurePreset": "editor-release" }
+  ]
+}

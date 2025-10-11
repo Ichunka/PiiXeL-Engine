@@ -1,0 +1,32 @@
+{
+    "build": {
+        "assets": [
+            "content/assets"
+        ],
+        "assetsMode": "auto",
+        "scenes": [
+            "content/scenes/Default_Scene.scene"
+        ]
+    },
+    "company": "PiiXeL",
+    "physics": {
+        "gravity": [
+            0.0,
+            9.800000190734863
+        ],
+        "positionIterations": 3,
+        "timeStep": 0.016666000708937645,
+        "velocityIterations": 8
+    },
+    "projectName": "My First Game",
+    "startScene": "content/scenes/Default_Scene.scene",
+    "version": "1.0.0",
+    "window": {
+        "fullscreen": false,
+        "height": 720,
+        "resizable": true,
+        "targetFPS": 60,
+        "vsync": true,
+        "width": 1280
+    }
+}

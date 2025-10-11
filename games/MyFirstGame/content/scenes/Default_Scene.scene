@@ -1,0 +1,237 @@
+{
+    "entities": [
+        {
+            "Camera": {
+                "isPrimary": true,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "zoom": 1.0
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "id": 4
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    64.0,
+                    64.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 0
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    64.0,
+                    64.0
+                ],
+                "texturePath": "",
+                "tint": [
+                    217,
+                    37,
+                    37,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "id": 3
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    64.0,
+                    64.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 1
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    2.0,
+                    2.0
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "texturePath": "content/assets/dirt.png",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    -32.0,
+                    -237.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "id": 2
+        },
+        {
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "texturePath": "content/assets/dirt.png",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "dirt"
+            },
+            "Transform": {
+                "position": [
+                    -222.5,
+                    -1.5
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "id": 1
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    64.0,
+                    64.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 2
+            },
+            "Script": {
+                "enabled": true,
+                "scriptName": "FollowCamera"
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    2.0,
+                    2.0
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "texturePath": "content/assets/dirt.png",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity (Copy)"
+            },
+            "Transform": {
+                "position": [
+                    53.0,
+                    -237.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "id": 0
+        }
+    ],
+    "scene": "Default Scene"
+}
