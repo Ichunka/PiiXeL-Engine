@@ -87,7 +87,14 @@ void Application::Run() {
         float deltaTime{currentTime - lastTime};
         lastTime = currentTime;
 
+#ifdef BUILD_WITH_EDITOR
+        {
+            PROFILE_SCOPE("Update");
+            Update(deltaTime);
+        }
+#else
         Update(deltaTime);
+#endif
 
 #ifdef BUILD_WITH_EDITOR
         {

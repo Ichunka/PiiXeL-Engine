@@ -11,7 +11,7 @@ int main() {
         config.title = "PiiXeL Engine - Editor";
         config.windowWidth = 1280;
         config.windowHeight = 720;
-        config.targetFPS = 0;
+        config.targetFPS = 1000;
         config.vsync = false;
         config.resizable = true;
         config.fullscreen = false;
