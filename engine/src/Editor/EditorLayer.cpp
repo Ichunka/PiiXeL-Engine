@@ -2192,6 +2192,20 @@ void EditorLayer::OnStopButtonPressed() {
                 m_CommandHistory.Clear();
                 m_SelectedEntity = entt::null;
 
+                if (m_Engine->GetScriptSystem()) {
+                    entt::registry& registry = scene->GetRegistry();
+                    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
+
+                    registry.view<Script>().each([&](entt::entity entity, Script& script) {
+                        if (!script.scriptName.empty() && !script.instance) {
+                            script.instance = scriptSystem->CreateScript(script.scriptName);
+                            if (script.instance) {
+                                script.instance->Initialize(entity, scene);
+                            }
+                        }
+                    });
+                }
+
                 TraceLog(LOG_INFO, "Scene restored from memory snapshot - edit mode");
             }
         } else {

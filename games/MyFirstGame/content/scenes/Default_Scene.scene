@@ -37,16 +37,16 @@
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    0.5,
-                    0.5
+                    2.0,
+                    2.0
                 ],
                 "sourceRect": [
                     0.0,
                     0.0,
-                    64.0,
-                    64.0
+                    16.0,
+                    16.0
                 ],
-                "texturePath": "",
+                "texturePath": "content/assets/dirt.png",
                 "tint": [
                     255,
                     255,
@@ -59,13 +59,13 @@
             },
             "Transform": {
                 "position": [
-                    -18.0,
+                    -47.0,
                     -275.0
                 ],
                 "rotation": 0.0,
                 "scale": [
-                    1.0,
-                    1.0
+                    4.0,
+                    4.0
                 ]
             },
             "uuid": 2743804717711246141
@@ -137,7 +137,7 @@
             },
             "Script": {
                 "enabled": true,
-                "scriptName": "RotatingPlatform"
+                "scriptName": "FollowCamera"
             },
             "Tag": {
                 "name": "New Entity"
