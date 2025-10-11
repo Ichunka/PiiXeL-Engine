@@ -7,6 +7,8 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/UUID.hpp"
+#include "Scene/EntityRegistry.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Resources/AssetManager.hpp"
 #include <fstream>
@@ -83,6 +85,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
 
     entt::registry& registry = m_Scene->GetRegistry();
     registry.clear();
+    EntityRegistry::Instance().Clear();
 
     if (sceneJson.contains("scene")) {
         m_Scene->SetName(sceneJson["scene"].get<std::string>());
@@ -103,6 +106,11 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     nlohmann::json entityJson{};
 
     entityJson["id"] = static_cast<uint32_t>(entity);
+
+    if (registry.all_of<UUID>(entity)) {
+        UUID uuid = registry.get<UUID>(entity);
+        entityJson["uuid"] = uuid.Get();
+    }
 
     if (registry.all_of<Tag>(entity)) {
         const Tag& tag = registry.get<Tag>(entity);
@@ -175,6 +183,13 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
 void SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson) {
     entt::registry& registry = m_Scene->GetRegistry();
     entt::entity entity = registry.create();
+
+    UUID uuid;
+    if (entityJson.contains("uuid")) {
+        uuid = UUID(entityJson["uuid"].get<uint64_t>());
+    }
+    registry.emplace<UUID>(entity, uuid);
+    EntityRegistry::Instance().RegisterEntity(uuid, entity);
 
     if (entityJson.contains("Tag")) {
         const nlohmann::json& tagJson = entityJson["Tag"];
@@ -331,6 +346,7 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
 
     entt::registry& registry = m_Scene->GetRegistry();
     registry.clear();
+    EntityRegistry::Instance().Clear();
 
     if (sceneJson.contains("scene")) {
         m_Scene->SetName(sceneJson["scene"].get<std::string>());

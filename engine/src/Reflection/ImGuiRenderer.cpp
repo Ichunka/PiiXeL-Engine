@@ -93,10 +93,15 @@ bool ImGuiRenderer::RenderField(const FieldInfo& field, void* fieldPtr, EntityPi
         case FieldType::EntityRef: {
             if (entityPicker && (field.flags & FieldFlags::EntityPicker)) {
                 EntityRef* value = static_cast<EntityRef*>(fieldPtr);
-                modified = entityPicker(field.name.c_str(), &value->m_Entity);
+                entt::entity entity = value->Get();
+                if (entityPicker(field.name.c_str(), &entity)) {
+                    value->Set(entity);
+                    modified = true;
+                }
             } else {
                 EntityRef* value = static_cast<EntityRef*>(fieldPtr);
-                uint32_t entityId = static_cast<uint32_t>(value->m_Entity);
+                entt::entity entity = value->Get();
+                uint32_t entityId = static_cast<uint32_t>(entity);
                 ImGui::Text("%s: Entity(%u)", field.name.c_str(), entityId);
             }
             break;

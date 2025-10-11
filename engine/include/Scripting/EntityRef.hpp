@@ -1,6 +1,7 @@
 #ifndef PIIXELENGINE_ENTITYREF_HPP
 #define PIIXELENGINE_ENTITYREF_HPP
 
+#include "Components/UUID.hpp"
 #include <entt/entt.hpp>
 
 namespace PiiXeL {
@@ -8,21 +9,22 @@ namespace PiiXeL {
 class EntityRef {
 public:
     EntityRef() = default;
-    explicit EntityRef(entt::entity entity) : m_Entity{entity} {}
+    explicit EntityRef(UUID uuid) : m_UUID{uuid} {}
+    explicit EntityRef(entt::entity entity);
 
-    [[nodiscard]] entt::entity Get() const { return m_Entity; }
-    void Set(entt::entity entity) { m_Entity = entity; }
+    [[nodiscard]] entt::entity Get() const;
+    void Set(entt::entity entity);
+    void SetUUID(UUID uuid) { m_UUID = uuid; }
+    [[nodiscard]] UUID GetUUID() const { return m_UUID; }
 
-    [[nodiscard]] bool IsValid() const { return m_Entity != entt::null; }
+    [[nodiscard]] bool IsValid() const;
 
-    operator entt::entity() const { return m_Entity; }
+    operator entt::entity() const { return Get(); }
 
-    bool operator==(const EntityRef& other) const { return m_Entity == other.m_Entity; }
-    bool operator!=(const EntityRef& other) const { return m_Entity != other.m_Entity; }
-    bool operator==(entt::entity entity) const { return m_Entity == entity; }
-    bool operator!=(entt::entity entity) const { return m_Entity != entity; }
+    bool operator==(const EntityRef& other) const { return m_UUID == other.m_UUID; }
+    bool operator!=(const EntityRef& other) const { return m_UUID != other.m_UUID; }
 
-    entt::entity m_Entity{entt::null};
+    UUID m_UUID{0};
 };
 
 }

@@ -34,7 +34,7 @@ nlohmann::json JsonSerializer::SerializeField(const FieldInfo& field, const void
 
         case FieldType::EntityRef: {
             const EntityRef& ref = *static_cast<const EntityRef*>(fieldPtr);
-            return static_cast<uint32_t>(ref.m_Entity);
+            return ref.GetUUID().Get();
         }
 
         case FieldType::Custom:
@@ -84,9 +84,9 @@ void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::js
         }
 
         case FieldType::EntityRef: {
-            uint32_t entityId = j.get<uint32_t>();
+            uint64_t uuidValue = j.get<uint64_t>();
             EntityRef& ref = *static_cast<EntityRef*>(fieldPtr);
-            ref.m_Entity = static_cast<entt::entity>(entityId);
+            ref.SetUUID(UUID(uuidValue));
             break;
         }
 
