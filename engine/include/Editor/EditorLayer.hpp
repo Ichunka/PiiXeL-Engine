@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include "Components/Transform.hpp"
 #include "CommandHistory.hpp"
+#include "Debug/Profiler.hpp"
 
 namespace PiiXeL {
 
@@ -145,6 +146,13 @@ private:
     int m_ConsoleLastClickedLine{-1};
 
     entt::entity m_CopiedEntity{entt::null};
+
+    bool m_ProfilerPaused{false};
+    FrameSnapshot m_ProfilerPausedSnapshot{};
+    int m_ProfilerSelectedFrame{-1};
+    FrameSnapshot m_ProfilerSelectedFrameSnapshot{};
+    float m_ProfilerFlameGraphZoom{1.0f};
+    float m_ProfilerFlameGraphScroll{0.0f};
 };
 
 } // namespace PiiXeL

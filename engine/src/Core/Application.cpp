@@ -79,7 +79,9 @@ void Application::Run() {
     float lastTime{static_cast<float>(GetTime())};
 
     while (m_Running && !WindowShouldClose()) {
+#ifdef BUILD_WITH_EDITOR
         Profiler::Instance().BeginFrame();
+#endif
 
         float currentTime{static_cast<float>(GetTime())};
         float deltaTime{currentTime - lastTime};
@@ -87,14 +89,32 @@ void Application::Run() {
 
         Update(deltaTime);
 
+#ifdef BUILD_WITH_EDITOR
+        {
+            PROFILE_SCOPE("BeginDrawing");
+            BeginDrawing();
+            ClearBackground(Color{30, 30, 30, 255});
+        }
+
+        {
+            PROFILE_SCOPE("Render");
+            Render();
+        }
+
+        {
+            PROFILE_SCOPE("EndDrawing");
+            EndDrawing();
+        }
+#else
         BeginDrawing();
         ClearBackground(Color{30, 30, 30, 255});
-
         Render();
-
         EndDrawing();
+#endif
 
+#ifdef BUILD_WITH_EDITOR
         Profiler::Instance().EndFrame();
+#endif
     }
 
     Shutdown();
@@ -123,13 +143,19 @@ void Application::Update(float deltaTime) {
 
 void Application::Render() {
 #ifdef BUILD_WITH_EDITOR
-    rlImGuiBegin();
+    {
+        PROFILE_SCOPE("rlImGuiBegin");
+        rlImGuiBegin();
+    }
 
     if (m_EditorLayer) {
         m_EditorLayer->OnImGuiRender();
     }
 
-    rlImGuiEnd();
+    {
+        PROFILE_SCOPE("rlImGuiEnd");
+        rlImGuiEnd();
+    }
 #else
     if (m_Engine) {
         m_Engine->Render();
