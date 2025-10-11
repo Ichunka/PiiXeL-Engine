@@ -3,6 +3,7 @@
 #include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Debug/DebugDraw.hpp"
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -32,6 +33,9 @@ void RenderSystem::Render(entt::registry& registry) {
     if (m_ShowDebug) {
         RenderDebug(registry);
     }
+
+    DebugDraw::Instance().Render();
+    DebugDraw::Instance().Clear();
 }
 
 void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& camera) {
@@ -47,7 +51,11 @@ void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& ca
         RenderDebug(registry);
     }
 
+    DebugDraw::Instance().Render();
+
     EndMode2D();
+
+    DebugDraw::Instance().Clear();
 }
 
 void RenderSystem::RenderSprites(entt::registry& registry) {

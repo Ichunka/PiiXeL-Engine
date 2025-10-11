@@ -3,6 +3,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/Transform.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Debug/DebugDraw.hpp"
 #include <box2d/box2d.h>
 #include <raylib.h>
 
@@ -148,9 +149,9 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
     }
 
     b2Vec2 position = b2Body_GetPosition(rb.box2dBodyId);
-    float startOffset = 0.02f;
-    b2Vec2 startPoint{position.x, position.y + colliderHalfHeight + startOffset};
-    b2Vec2 endPoint{position.x, position.y + colliderHalfHeight + startOffset + (checkDistance / PIXELS_TO_METERS)};
+    float startOffset = 0.001f;
+    b2Vec2 startPoint{position.x, position.y + colliderHalfHeight - startOffset};
+    b2Vec2 endPoint{position.x, position.y + colliderHalfHeight + (checkDistance / PIXELS_TO_METERS)};
 
     b2WorldId worldId = b2Body_GetWorld(rb.box2dBodyId);
     if (B2_IS_NULL(worldId)) return false;
@@ -160,15 +161,23 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
 
     b2RayResult result = b2World_CastRayClosest(worldId, startPoint, endPoint, filter);
 
+    Vector2 startPixels{startPoint.x * PIXELS_TO_METERS, startPoint.y * PIXELS_TO_METERS};
+    Vector2 endPixels{endPoint.x * PIXELS_TO_METERS, endPoint.y * PIXELS_TO_METERS};
+
+    bool hitValid = false;
+    Vector2 hitPixels{0.0f, 0.0f};
+
     if (result.hit) {
         b2BodyId hitBodyId = b2Shape_GetBody(result.shapeId);
-        if (B2_ID_EQUALS(hitBodyId, rb.box2dBodyId)) {
-            return false;
+        if (!B2_ID_EQUALS(hitBodyId, rb.box2dBodyId)) {
+            hitValid = true;
+            hitPixels = Vector2{result.point.x * PIXELS_TO_METERS, result.point.y * PIXELS_TO_METERS};
         }
-        return true;
     }
 
-    return false;
+    DebugDraw::Instance().DrawRay(startPixels, endPixels, hitValid ? GREEN : YELLOW, hitValid, hitPixels);
+
+    return hitValid;
 }
 
 } // namespace PiiXeL

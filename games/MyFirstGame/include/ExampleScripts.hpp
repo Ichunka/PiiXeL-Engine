@@ -71,17 +71,26 @@ protected:
     void OnUpdate(float deltaTime) override {
         m_Time += deltaTime;
 
-        Vector2 pos = GetPosition();
-        float offset = sinf(m_Time * frequency) * amplitude;
-        SetPosition({pos.x, m_StartY + offset});
+        auto rb = GetHandle<PiiXeL::RigidBody2D>();
+        if (rb) {
+            float offset = sinf(m_Time * frequency) * amplitude;
+            rb->SetKinematicTarget({m_StartX, m_StartY + offset});
+        } else {
+            Vector2 pos = GetPosition();
+            float offset = sinf(m_Time * frequency) * amplitude;
+            SetPosition({pos.x, m_StartY + offset});
+        }
     }
 
     void OnAwake() override {
-        m_StartY = GetPosition().y;
+        Vector2 startPos = GetPosition();
+        m_StartX = startPos.x;
+        m_StartY = startPos.y;
     }
 
 private:
     float m_Time{0.0f};
+    float m_StartX{0.0f};
     float m_StartY{0.0f};
 };
 

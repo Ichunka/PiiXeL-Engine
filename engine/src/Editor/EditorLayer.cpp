@@ -19,6 +19,7 @@
 #include "Editor/EditorCommands.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/Reflection.hpp"
+#include "Debug/DebugDraw.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <rlImGui.h>
@@ -362,6 +363,12 @@ void EditorLayer::RenderToolbar() {
         bool showDebug = renderSystem->GetShowDebug();
         if (ImGui::Checkbox("Show Debug", &showDebug)) {
             renderSystem->SetShowDebug(showDebug);
+        }
+
+        ImGui::SameLine();
+        bool showDebugRays = DebugDraw::Instance().IsEnabled();
+        if (ImGui::Checkbox("Show Rays", &showDebugRays)) {
+            DebugDraw::Instance().SetEnabled(showDebugRays);
         }
     }
 
