@@ -45,7 +45,11 @@ void Physics2D::AddForce(Scene* scene, entt::entity entity, Vector2 force) {
     RigidBody2D& rb = registry.get<RigidBody2D>(entity);
     if (B2_IS_NULL(rb.box2dBodyId)) return;
 
-    b2Vec2 forceVec{force.x / PIXELS_TO_METERS, force.y / PIXELS_TO_METERS};
+    float mass = b2Body_GetMass(rb.box2dBodyId);
+    b2Vec2 forceVec{
+        (force.x / PIXELS_TO_METERS) * mass,
+        (force.y / PIXELS_TO_METERS) * mass
+    };
     b2Vec2 center = b2Body_GetWorldCenterOfMass(rb.box2dBodyId);
     b2Body_ApplyForce(rb.box2dBodyId, forceVec, center, true);
 }
@@ -59,7 +63,11 @@ void Physics2D::AddImpulse(Scene* scene, entt::entity entity, Vector2 impulse) {
     RigidBody2D& rb = registry.get<RigidBody2D>(entity);
     if (B2_IS_NULL(rb.box2dBodyId)) return;
 
-    b2Vec2 impulseVec{impulse.x / PIXELS_TO_METERS, impulse.y / PIXELS_TO_METERS};
+    float mass = b2Body_GetMass(rb.box2dBodyId);
+    b2Vec2 impulseVec{
+        (impulse.x / PIXELS_TO_METERS) * mass,
+        (impulse.y / PIXELS_TO_METERS) * mass
+    };
     b2Vec2 center = b2Body_GetWorldCenterOfMass(rb.box2dBodyId);
     b2Body_ApplyLinearImpulse(rb.box2dBodyId, impulseVec, center, true);
 }
@@ -132,15 +140,27 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
 
     Transform& transform = registry.get<Transform>(entity);
 
-    b2Vec2 startPoint{transform.position.x / PIXELS_TO_METERS, transform.position.y / PIXELS_TO_METERS};
-    b2Vec2 endPoint{transform.position.x / PIXELS_TO_METERS, (transform.position.y + checkDistance) / PIXELS_TO_METERS};
+    b2Vec2 position = b2Body_GetPosition(rb.box2dBodyId);
+    b2Vec2 startPoint{position.x, position.y};
+    b2Vec2 endPoint{position.x, position.y + (checkDistance / PIXELS_TO_METERS)};
 
     b2WorldId worldId = b2Body_GetWorld(rb.box2dBodyId);
     if (B2_IS_NULL(worldId)) return false;
 
-    b2RayResult result = b2World_CastRayClosest(worldId, startPoint, endPoint, b2DefaultQueryFilter());
+    b2QueryFilter filter = b2DefaultQueryFilter();
+    filter.maskBits = 0xFFFF;
 
-    return result.hit;
+    b2RayResult result = b2World_CastRayClosest(worldId, startPoint, endPoint, filter);
+
+    if (result.hit) {
+        b2BodyId hitBodyId = b2Shape_GetBody(result.shapeId);
+        if (B2_ID_EQUALS(hitBodyId, rb.box2dBodyId)) {
+            return false;
+        }
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace PiiXeL

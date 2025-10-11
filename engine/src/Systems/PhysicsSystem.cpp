@@ -66,6 +66,7 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.position = b2Vec2{transform.position.x / m_PixelsToMeters, transform.position.y / m_PixelsToMeters};
     bodyDef.rotation = b2MakeRot(transform.rotation * DEG2RAD);
+    bodyDef.fixedRotation = rb.fixedRotation;
     bodyDef.enableSleep = true;
     bodyDef.sleepThreshold = 0.05f;
     bodyDef.isAwake = true;

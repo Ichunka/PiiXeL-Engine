@@ -334,6 +334,61 @@
                 ]
             },
             "uuid": 16008428460662544570
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": true,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    64.0,
+                    64.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 0
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    64.0,
+                    64.0
+                ],
+                "texturePath": "",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity (Copy) (Copy)"
+            },
+            "Transform": {
+                "position": [
+                    519.0,
+                    73.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 3130055565495595910
         }
     ],
     "scene": "Default Scene"

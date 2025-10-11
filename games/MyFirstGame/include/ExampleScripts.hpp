@@ -40,11 +40,11 @@ protected:
             vel.x = 0.0f;
         }
 
+        rb->SetVelocity(vel);
+
         if (rb->IsGrounded() && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
             rb->AddImpulse({0.0f, -jumpForce});
         }
-
-        rb->SetVelocity(vel);
     }
 
     void OnTriggerEnter(entt::entity other) override {
