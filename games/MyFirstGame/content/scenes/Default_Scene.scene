@@ -23,8 +23,8 @@
                     0.0
                 ],
                 "size": [
-                    64.0,
-                    64.0
+                    16.0,
+                    16.0
                 ]
             },
             "RigidBody2D": {
@@ -37,8 +37,8 @@
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    2.0,
-                    2.0
+                    0.5,
+                    0.5
                 ],
                 "sourceRect": [
                     0.0,
@@ -164,6 +164,17 @@
             "uuid": 18192462657191418153
         },
         {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    16.0,
+                    16.0
+                ]
+            },
             "RigidBody2D": {
                 "fixedRotation": false,
                 "friction": 0.30000001192092896,
@@ -183,8 +194,8 @@
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    2.0,
-                    2.0
+                    0.5,
+                    0.5
                 ],
                 "sourceRect": [
                     0.0,
@@ -225,7 +236,7 @@
                 ],
                 "size": [
                     64.0,
-                    128.0
+                    64.0
                 ]
             },
             "RigidBody2D": {
@@ -248,7 +259,7 @@
                 "layer": 0,
                 "origin": [
                     0.5,
-                    1.0
+                    0.5
                 ],
                 "sourceRect": [
                     0.0,
@@ -288,7 +299,7 @@
                     0.0
                 ],
                 "size": [
-                    640.0,
+                    64.0,
                     64.0
                 ]
             },
@@ -302,7 +313,7 @@
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    5.0,
+                    0.5,
                     0.5
                 ],
                 "sourceRect": [

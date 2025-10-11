@@ -21,7 +21,7 @@ public:
 
 protected:
     void OnAwake() override {
-        TraceLog(LOG_INFO, "PlayerController: Awake!");
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Awake!");
     }
 
     void OnUpdate(float deltaTime) override {
@@ -49,7 +49,7 @@ protected:
 
     void OnTriggerEnter(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "PlayerController: Trigger Enter - Collected item!");
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Enter - Collected item!");
     }
 };
 

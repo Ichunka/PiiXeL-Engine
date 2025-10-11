@@ -92,19 +92,23 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
     if (registry.all_of<BoxCollider2D>(entity)) {
         BoxCollider2D& collider = registry.get<BoxCollider2D>(entity);
 
-        float halfWidth = (collider.size.x * 0.5f) / m_PixelsToMeters;
-        float halfHeight = (collider.size.y * 0.5f) / m_PixelsToMeters;
+        float scaledWidth = collider.size.x * transform.scale.x;
+        float scaledHeight = collider.size.y * transform.scale.y;
+
+        float halfWidth = (scaledWidth * 0.5f) / m_PixelsToMeters;
+        float halfHeight = (scaledHeight * 0.5f) / m_PixelsToMeters;
         b2Polygon box = b2MakeBox(halfWidth, halfHeight);
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
-        float areaPixels = collider.size.x * collider.size.y;
+        float areaPixels = scaledWidth * scaledHeight;
         float areaMeters = areaPixels / (m_PixelsToMeters * m_PixelsToMeters);
         shapeDef.density = areaMeters > 0.0f ? (rb.mass / areaMeters) : 1.0f;
 
         shapeDef.material.friction = rb.friction;
         shapeDef.material.restitution = rb.restitution;
         shapeDef.isSensor = collider.isTrigger;
+        shapeDef.enableSensorEvents = true;
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
     }
@@ -181,36 +185,17 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
-                bool isTriggerA = registry.all_of<BoxCollider2D>(entityA) && registry.get<BoxCollider2D>(entityA).isTrigger;
-                bool isTriggerB = registry.all_of<BoxCollider2D>(entityB) && registry.get<BoxCollider2D>(entityB).isTrigger;
-
-                if (isTriggerA || isTriggerB) {
-                    if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnTriggerEnter(entityB);
-                        }
+                if (registry.all_of<Script>(entityA)) {
+                    Script& script = registry.get<Script>(entityA);
+                    if (script.instance) {
+                        script.instance->OnCollisionEnter(entityB);
                     }
+                }
 
-                    if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnTriggerEnter(entityA);
-                        }
-                    }
-                } else {
-                    if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnCollisionEnter(entityB);
-                        }
-                    }
-
-                    if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnCollisionEnter(entityA);
-                        }
+                if (registry.all_of<Script>(entityB)) {
+                    Script& script = registry.get<Script>(entityB);
+                    if (script.instance) {
+                        script.instance->OnCollisionEnter(entityA);
                     }
                 }
             }
@@ -231,36 +216,81 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
-                bool isTriggerA = registry.all_of<BoxCollider2D>(entityA) && registry.get<BoxCollider2D>(entityA).isTrigger;
-                bool isTriggerB = registry.all_of<BoxCollider2D>(entityB) && registry.get<BoxCollider2D>(entityB).isTrigger;
-
-                if (isTriggerA || isTriggerB) {
-                    if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnTriggerExit(entityB);
-                        }
+                if (registry.all_of<Script>(entityA)) {
+                    Script& script = registry.get<Script>(entityA);
+                    if (script.instance) {
+                        script.instance->OnCollisionExit(entityB);
                     }
+                }
 
-                    if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnTriggerExit(entityA);
-                        }
+                if (registry.all_of<Script>(entityB)) {
+                    Script& script = registry.get<Script>(entityB);
+                    if (script.instance) {
+                        script.instance->OnCollisionExit(entityA);
                     }
-                } else {
-                    if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnCollisionExit(entityB);
-                        }
-                    }
+                }
+            }
+        }
+    }
 
-                    if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnCollisionExit(entityA);
-                        }
+    b2SensorEvents sensorEvents = b2World_GetSensorEvents(m_WorldId);
+
+    for (int i = 0; i < sensorEvents.beginCount; ++i) {
+        b2SensorBeginTouchEvent* beginEvent = sensorEvents.beginEvents + i;
+
+        b2BodyId visitorBodyId = b2Shape_GetBody(beginEvent->visitorShapeId);
+        b2BodyId sensorBodyId = b2Shape_GetBody(beginEvent->sensorShapeId);
+
+        void* visitorData = b2Body_GetUserData(visitorBodyId);
+        void* sensorData = b2Body_GetUserData(sensorBodyId);
+
+        if (visitorData && sensorData) {
+            entt::entity visitorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(visitorData));
+            entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
+
+            if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+                if (registry.all_of<Script>(sensorEntity)) {
+                    Script& script = registry.get<Script>(sensorEntity);
+                    if (script.instance) {
+                        script.instance->OnTriggerEnter(visitorEntity);
+                    }
+                }
+
+                if (registry.all_of<Script>(visitorEntity)) {
+                    Script& script = registry.get<Script>(visitorEntity);
+                    if (script.instance) {
+                        script.instance->OnTriggerEnter(sensorEntity);
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < sensorEvents.endCount; ++i) {
+        b2SensorEndTouchEvent* endEvent = sensorEvents.endEvents + i;
+
+        b2BodyId visitorBodyId = b2Shape_GetBody(endEvent->visitorShapeId);
+        b2BodyId sensorBodyId = b2Shape_GetBody(endEvent->sensorShapeId);
+
+        void* visitorData = b2Body_GetUserData(visitorBodyId);
+        void* sensorData = b2Body_GetUserData(sensorBodyId);
+
+        if (visitorData && sensorData) {
+            entt::entity visitorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(visitorData));
+            entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
+
+            if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+                if (registry.all_of<Script>(sensorEntity)) {
+                    Script& script = registry.get<Script>(sensorEntity);
+                    if (script.instance) {
+                        script.instance->OnTriggerExit(visitorEntity);
+                    }
+                }
+
+                if (registry.all_of<Script>(visitorEntity)) {
+                    Script& script = registry.get<Script>(visitorEntity);
+                    if (script.instance) {
+                        script.instance->OnTriggerExit(sensorEntity);
                     }
                 }
             }

@@ -74,8 +74,8 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
         const Transform* transform{spriteEntity.transform};
 
         Vector2 originPixels{
-            sprite->sourceRect.width * sprite->origin.x,
-            sprite->sourceRect.height * sprite->origin.y
+            sprite->sourceRect.width * sprite->origin.x * transform->scale.x,
+            sprite->sourceRect.height * sprite->origin.y * transform->scale.y
         };
 
         Rectangle destRect{
@@ -156,14 +156,16 @@ void RenderSystem::RenderDebug(entt::registry& registry) {
 
 void RenderSystem::RenderColliders(entt::registry& registry) {
     registry.view<Transform, BoxCollider2D>().each([](const Transform& transform, const BoxCollider2D& collider) {
-        float halfW = collider.size.x * 0.5f;
-        float halfH = collider.size.y * 0.5f;
+        float scaledWidth = collider.size.x * transform.scale.x;
+        float scaledHeight = collider.size.y * transform.scale.y;
+        float halfW = scaledWidth * 0.5f;
+        float halfH = scaledHeight * 0.5f;
         float cosR = std::cos(transform.rotation * DEG2RAD);
         float sinR = std::sin(transform.rotation * DEG2RAD);
 
         Vector2 centerPos{
-            transform.position.x + collider.offset.x,
-            transform.position.y + collider.offset.y
+            transform.position.x + collider.offset.x * transform.scale.x,
+            transform.position.y + collider.offset.y * transform.scale.y
         };
 
         Vector2 corners[4];
