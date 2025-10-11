@@ -2,28 +2,12 @@
 #include "Scene/Scene.hpp"
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
+#include "Scripting/ScriptRegistry.hpp"
 #include <raylib.h>
 
 namespace PiiXeL {
 
-std::vector<ScriptRegistration>& ScriptSystem::GetPendingRegistrations() {
-    static std::vector<ScriptRegistration> pendingRegistrations;
-    return pendingRegistrations;
-}
-
-void ScriptSystem::ProcessPendingRegistrations() {
-    for (const ScriptRegistration& reg : GetPendingRegistrations()) {
-        m_ScriptFactories[reg.first] = reg.second;
-    }
-}
-
-ScriptRegistrar::ScriptRegistrar(const std::string& name, ScriptFactory factory) {
-    ScriptSystem::GetPendingRegistrations().emplace_back(name, factory);
-}
-
-ScriptSystem::ScriptSystem() {
-    ProcessPendingRegistrations();
-}
+ScriptSystem::ScriptSystem() = default;
 
 ScriptSystem::~ScriptSystem() = default;
 
@@ -76,13 +60,7 @@ void ScriptSystem::OnFixedUpdate(Scene* scene, float fixedDeltaTime) {
 }
 
 std::shared_ptr<ScriptComponent> ScriptSystem::CreateScript(const std::string& name) {
-    auto it = m_ScriptFactories.find(name);
-    if (it != m_ScriptFactories.end()) {
-        return it->second();
-    }
-
-    TraceLog(LOG_WARNING, "Script not found: %s", name.c_str());
-    return nullptr;
+    return ScriptRegistry::Instance().CreateScript(name);
 }
 
 } // namespace PiiXeL

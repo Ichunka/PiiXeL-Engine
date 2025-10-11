@@ -16,6 +16,7 @@
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/ScriptSystem.hpp"
+#include "Scripting/ScriptRegistry.hpp"
 #include "Editor/EditorCommands.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/Reflection.hpp"
@@ -943,7 +944,7 @@ void EditorLayer::RenderInspector() {
 
                         if (m_Engine && m_Engine->GetScriptSystem()) {
                             ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-                            const auto& registeredScripts = scriptSystem->GetRegisteredScripts();
+                            const auto& registeredScripts = ScriptRegistry::Instance().GetAllScripts();
 
                             if (ImGui::BeginCombo("##SelectScript", "Select Script...")) {
                                 for (const auto& [name, factory] : registeredScripts) {

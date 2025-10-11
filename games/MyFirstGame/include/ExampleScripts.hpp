@@ -7,7 +7,6 @@
 #include "Scripting/EntityRef.hpp"
 #include "Components/Transform.hpp"
 #include "Components/RigidBody2D.hpp"
-#include "Systems/ScriptSystem.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
 
@@ -158,9 +157,5 @@ BEGIN_REFLECT(FollowCamera)
     FIELD_RANGE(smoothSpeed, 0.0f, 20.0f, 0.1f)
     FIELD(offset)
 END_REFLECT(FollowCamera)
-
-REGISTER_SCRIPT(PlayerController, "PlayerController")
-REGISTER_SCRIPT(RotatingPlatform, "RotatingPlatform")
-REGISTER_SCRIPT(FollowCamera, "FollowCamera")
 
 #endif

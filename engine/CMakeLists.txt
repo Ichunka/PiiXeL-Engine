@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS src/*.cpp include/*.hpp)
+list(FILTER ENGINE_SRC EXCLUDE REGEX ".*editor_main\\.cpp$")
 if(ENGINE_SRC)
     add_library(piixel_engine STATIC ${ENGINE_SRC})
 else()

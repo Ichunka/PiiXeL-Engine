@@ -1,10 +1,12 @@
 #include "Core/Application.hpp"
 #include "Project/ProjectSettings.hpp"
-#include "../include/ExampleScripts.hpp"
+#include "Reflection/ReflectionInit.hpp"
 #include <iostream>
 
 int main() {
     try {
+        PiiXeL::Reflection::InitializeReflection();
+
         // Load project settings from game.config.json
         PiiXeL::ProjectSettings& settings = PiiXeL::ProjectSettings::Instance();
         settings.Load("game.config.json");

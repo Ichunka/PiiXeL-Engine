@@ -1,3 +1,5 @@
+#ifdef BUILD_WITH_EDITOR
+
 #include "Debug/Profiler.hpp"
 #include <raylib.h>
 #include <sstream>
@@ -116,3 +118,5 @@ void Profiler::CopyFrameToClipboard() const {
 }
 
 } // namespace PiiXeL
+
+#endif
