@@ -67,6 +67,30 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
     return true;
 }
 
+bool AssetPackage::LoadMetadataOnly(const std::string& path, AssetMetadata& outMetadata) {
+    std::ifstream file{path, std::ios::binary};
+    if (!file.is_open()) {
+        return false;
+    }
+
+    Header header{};
+    if (!ReadHeader(file, header)) return false;
+
+    if (header.magic != MAGIC_NUMBER || header.version > VERSION) {
+        return false;
+    }
+
+    outMetadata.type = static_cast<AssetType>(header.assetType);
+    outMetadata.uuid = UUID{header.uuid};
+    outMetadata.importTimestamp = header.importTimestamp;
+    outMetadata.sourceTimestamp = header.sourceTimestamp;
+
+    if (!ReadMetadata(file, outMetadata, header.metadataSize)) return false;
+
+    file.close();
+    return true;
+}
+
 std::string AssetPackage::GetPackagePath(const std::string& sourcePath) {
     std::filesystem::path path{sourcePath};
     path.replace_extension(".pxa");

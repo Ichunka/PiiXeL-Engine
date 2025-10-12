@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <functional>
 
 namespace PiiXeL {
 
@@ -32,6 +33,9 @@ public:
     void ImportDirectory(const std::string& directory);
     void ReimportAsset(const std::string& sourcePath);
     void RegisterExtractedAssets();
+
+    using ProgressCallback = std::function<void(size_t current, size_t total, const std::string& path)>;
+    void ScanAllPxaFiles(const std::string& rootPath, ProgressCallback callback = nullptr);
 
     [[nodiscard]] bool IsAssetLoaded(UUID uuid) const;
     [[nodiscard]] UUID GetUUIDFromPath(const std::string& path) const;

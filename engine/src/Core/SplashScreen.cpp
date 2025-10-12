@@ -1,142 +1,67 @@
 #include "Core/SplashScreen.hpp"
-#include "Resources/EmbeddedAssetLoader.hpp"
-#include <cmath>
-#include <algorithm>
+#include <raylib.h>
 
 namespace PiiXeL {
 
-SplashScreen::SplashScreen()
-    : m_SplashTexture{0}
+SplashScreen::SplashScreen(int width, int height, const std::string& title)
+    : m_Width{width}
+    , m_Height{height}
 {
+    InitWindow(width, height, title.c_str());
+    SetTargetFPS(60);
 }
 
 SplashScreen::~SplashScreen() {
-    if (m_IsShowing && m_SplashTexture.id != 0) {
-        UnloadTexture(m_SplashTexture);
+    if (m_IsOpen) {
+        Close();
     }
 }
 
-void SplashScreen::Show(const std::string& imagePath, float minDurationSeconds) {
-    m_SplashTexture = LoadTexture(imagePath.c_str());
-
-    if (m_SplashTexture.id == 0) {
-        TraceLog(LOG_WARNING, ("Failed to load splash screen: " + imagePath).c_str());
-        m_Finished = true;
-        return;
-    }
-
-    m_MinDuration = minDurationSeconds;
-    m_ElapsedTime = 0.0f;
-    m_FadeAlpha = 0.0f;
-    m_IsShowing = true;
-    m_LoadingComplete = false;
-    m_Finished = false;
-    m_FadingOut = false;
-
-    TraceLog(LOG_INFO, "Splash screen initialized");
-}
-
-void SplashScreen::ShowEmbedded(std::string_view assetName, float minDurationSeconds) {
-    m_SplashTexture = EmbeddedAssetLoader::LoadTextureFromEmbedded(assetName);
-
-    if (m_SplashTexture.id == 0) {
-        TraceLog(LOG_WARNING, "Failed to load embedded splash screen: %.*s",
-                 static_cast<int>(assetName.size()), assetName.data());
-        m_Finished = true;
-        return;
-    }
-
-    m_MinDuration = minDurationSeconds;
-    m_ElapsedTime = 0.0f;
-    m_FadeAlpha = 0.0f;
-    m_IsShowing = true;
-    m_LoadingComplete = false;
-    m_Finished = false;
-    m_FadingOut = false;
-
-    TraceLog(LOG_INFO, "Splash screen initialized from embedded asset");
-}
-
-void SplashScreen::Update(float deltaTime) {
-    if (m_Finished || !m_IsShowing) {
-        return;
-    }
-
-    m_ElapsedTime += deltaTime;
-
-    if (!m_FadingOut) {
-        if (m_ElapsedTime < FADE_IN_DURATION) {
-            m_FadeAlpha = m_ElapsedTime / FADE_IN_DURATION;
-        } else {
-            m_FadeAlpha = 1.0f;
-        }
-
-        bool timerExpired = m_ElapsedTime >= m_MinDuration;
-        if (m_LoadingComplete && timerExpired) {
-            m_FadingOut = true;
-            m_ElapsedTime = 0.0f;
-        }
-    } else {
-        m_FadeAlpha = 1.0f - (m_ElapsedTime / FADE_OUT_DURATION);
-
-        if (m_ElapsedTime >= FADE_OUT_DURATION) {
-            m_Finished = true;
-            m_IsShowing = false;
-
-            if (m_SplashTexture.id != 0) {
-                UnloadTexture(m_SplashTexture);
-                m_SplashTexture = {0};
-            }
-        }
-    }
+void SplashScreen::UpdateProgress(float progress, const std::string& message) {
+    m_Progress = progress;
+    m_Message = message;
 }
 
 void SplashScreen::Render() {
-    if (m_Finished || !m_IsShowing || m_SplashTexture.id == 0) {
-        return;
+    BeginDrawing();
+    ClearBackground(Color{20, 20, 25, 255});
+
+    const char* title = "PiiXeL Engine";
+    int titleFontSize = 48;
+    int titleWidth = MeasureText(title, titleFontSize);
+    DrawText(title, (m_Width - titleWidth) / 2, m_Height / 3, titleFontSize, WHITE);
+
+    int barWidth = m_Width - 200;
+    int barHeight = 30;
+    int barX = (m_Width - barWidth) / 2;
+    int barY = m_Height / 2;
+
+    DrawRectangle(barX, barY, barWidth, barHeight, Color{40, 40, 45, 255});
+    DrawRectangle(barX, barY, static_cast<int>(barWidth * m_Progress), barHeight, Color{100, 150, 255, 255});
+    DrawRectangleLines(barX, barY, barWidth, barHeight, Color{80, 80, 85, 255});
+
+    int percentage = static_cast<int>(m_Progress * 100.0f);
+    std::string percentText = std::to_string(percentage) + "%";
+    int percentFontSize = 20;
+    int percentWidth = MeasureText(percentText.c_str(), percentFontSize);
+    DrawText(percentText.c_str(), (m_Width - percentWidth) / 2, barY + barHeight + 20, percentFontSize, LIGHTGRAY);
+
+    if (!m_Message.empty()) {
+        int messageFontSize = 16;
+        int messageWidth = MeasureText(m_Message.c_str(), messageFontSize);
+        DrawText(m_Message.c_str(), (m_Width - messageWidth) / 2, barY + barHeight + 60, messageFontSize, GRAY);
     }
 
-    int screenWidth = GetScreenWidth();
-    int screenHeight = GetScreenHeight();
+    EndDrawing();
+}
 
-    float targetSize = std::min(screenWidth, screenHeight) * 0.5f;
-    float scale = targetSize / static_cast<float>(m_SplashTexture.width);
+void SplashScreen::Close() {
+    CloseWindow();
+    m_IsOpen = false;
+}
 
-    float scaledWidth = static_cast<float>(m_SplashTexture.width) * scale;
-    float scaledHeight = static_cast<float>(m_SplashTexture.height) * scale;
-
-    float posX = (static_cast<float>(screenWidth) - scaledWidth) * 0.5f;
-    float posY = (static_cast<float>(screenHeight) - scaledHeight) * 0.5f;
-
-    Rectangle sourceRec{0.0f, 0.0f, static_cast<float>(m_SplashTexture.width), static_cast<float>(m_SplashTexture.height)};
-    Rectangle destRec{posX, posY, scaledWidth, scaledHeight};
-    Vector2 origin{0.0f, 0.0f};
-
-    unsigned char alpha = static_cast<unsigned char>(m_FadeAlpha * 255.0f);
-    Color tint{255, 255, 255, alpha};
-
-    DrawTexturePro(m_SplashTexture, sourceRec, destRec, origin, 0.0f, tint);
-
-    if (!m_FadingOut) {
-        float spinnerRadius = 30.0f;
-        float spinnerX = static_cast<float>(screenWidth) * 0.5f;
-        float spinnerY = posY + scaledHeight + 80.0f;
-
-        float rotationSpeed = 2.0f;
-        float rotation = m_ElapsedTime * rotationSpeed;
-
-        int dotCount = 8;
-        for (int i = 0; i < dotCount; ++i) {
-            float angle = (static_cast<float>(i) / static_cast<float>(dotCount)) * 2.0f * PI + rotation;
-            float dotX = spinnerX + std::cos(angle) * spinnerRadius;
-            float dotY = spinnerY + std::sin(angle) * spinnerRadius;
-
-            float dotAlpha = (1.0f - (static_cast<float>(i) / static_cast<float>(dotCount))) * 0.8f + 0.2f;
-            unsigned char dotAlphaInt = static_cast<unsigned char>(dotAlpha * m_FadeAlpha * 255.0f);
-
-            DrawCircle(static_cast<int>(dotX), static_cast<int>(dotY), 4.0f, Color{200, 200, 200, dotAlphaInt});
-        }
-    }
+bool SplashScreen::ShouldClose() const {
+    return WindowShouldClose();
 }
 
 } // namespace PiiXeL

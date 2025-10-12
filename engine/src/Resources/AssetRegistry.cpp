@@ -166,6 +166,43 @@ void AssetRegistry::RegisterExtractedAssets() {
     TraceLog(LOG_INFO, "Registered %zu assets from UUID cache", registeredCount);
 }
 
+void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallback callback) {
+    namespace fs = std::filesystem;
+
+    std::vector<fs::path> pxaFiles{};
+
+    try {
+        for (const auto& entry : fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
+                pxaFiles.push_back(entry.path());
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        TraceLog(LOG_ERROR, "Filesystem error during scan: %s", e.what());
+        return;
+    }
+
+    size_t total = pxaFiles.size();
+    size_t current = 0;
+
+    for (const auto& pxaPath : pxaFiles) {
+        AssetMetadata metadata{};
+
+        AssetPackage package{};
+        if (package.LoadMetadataOnly(pxaPath.string(), metadata)) {
+            m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
+            m_PathToUUID[metadata.sourceFile] = metadata.uuid;
+        }
+
+        current++;
+        if (callback) {
+            callback(current, total, pxaPath.string());
+        }
+    }
+
+    TraceLog(LOG_INFO, "Scanned %zu .pxa files from %s", total, rootPath.c_str());
+}
+
 bool AssetRegistry::IsAssetLoaded(UUID uuid) const {
     auto it = m_Assets.find(uuid);
     return it != m_Assets.end() && it->second->IsLoaded();
