@@ -17,9 +17,9 @@ message(STATUS "Building game: ${GAME_PROJECT}")
 
 include(FetchContent)
 
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(OPT_BUILD_DRM OFF CACHE BOOL "" FORCE)
-set(USE_EXTERNAL_GLFW OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(OPT_BUILD_DRM OFF CACHE INTERNAL "")
+set(USE_EXTERNAL_GLFW OFF CACHE INTERNAL "")
 FetchContent_Declare(raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.5
@@ -27,6 +27,8 @@ FetchContent_Declare(raylib
 )
 FetchContent_MakeAvailable(raylib)
 
+set(ENTT_BUILD_TESTING OFF CACHE INTERNAL "")
+set(ENTT_BUILD_DOCS OFF CACHE INTERNAL "")
 FetchContent_Declare(entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.15.0
@@ -34,6 +36,9 @@ FetchContent_Declare(entt
 )
 FetchContent_MakeAvailable(entt)
 
+set(BOX2D_BUILD_UNIT_TESTS OFF CACHE INTERNAL "")
+set(BOX2D_BUILD_TESTBED OFF CACHE INTERNAL "")
+set(BOX2D_BUILD_DOCS OFF CACHE INTERNAL "")
 FetchContent_Declare(box2d
     GIT_REPOSITORY https://github.com/erincatto/box2d.git
     GIT_TAG v3.1.1
@@ -41,6 +46,9 @@ FetchContent_Declare(box2d
 )
 FetchContent_MakeAvailable(box2d)
 
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(JSON_Install OFF CACHE INTERNAL "")
+set(JSON_MultipleHeaders OFF CACHE INTERNAL "")
 FetchContent_Declare(json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG v3.11.3

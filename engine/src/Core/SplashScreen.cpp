@@ -1,4 +1,5 @@
 #include "Core/SplashScreen.hpp"
+#include "Resources/EmbeddedAssetLoader.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -33,6 +34,27 @@ void SplashScreen::Show(const std::string& imagePath, float minDurationSeconds) 
     m_FadingOut = false;
 
     TraceLog(LOG_INFO, "Splash screen initialized");
+}
+
+void SplashScreen::ShowEmbedded(std::string_view assetName, float minDurationSeconds) {
+    m_SplashTexture = EmbeddedAssetLoader::LoadTextureFromEmbedded(assetName);
+
+    if (m_SplashTexture.id == 0) {
+        TraceLog(LOG_WARNING, "Failed to load embedded splash screen: %.*s",
+                 static_cast<int>(assetName.size()), assetName.data());
+        m_Finished = true;
+        return;
+    }
+
+    m_MinDuration = minDurationSeconds;
+    m_ElapsedTime = 0.0f;
+    m_FadeAlpha = 0.0f;
+    m_IsShowing = true;
+    m_LoadingComplete = false;
+    m_Finished = false;
+    m_FadingOut = false;
+
+    TraceLog(LOG_INFO, "Splash screen initialized from embedded asset");
 }
 
 void SplashScreen::Update(float deltaTime) {

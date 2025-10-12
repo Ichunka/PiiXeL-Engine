@@ -53,8 +53,7 @@ void Application::Initialize() {
 
 #ifndef BUILD_WITH_EDITOR
     SplashScreen splashScreen{};
-    std::string splashPath = PathManager::Instance().GetEngineAssetsPath("ui/splashscreen.png");
-    splashScreen.Show(splashPath, 3.0f);
+    splashScreen.ShowEmbedded("engine/ui/splashscreen", 3.0f);
 
     float lastTime{static_cast<float>(GetTime())};
 
