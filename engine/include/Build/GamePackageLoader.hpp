@@ -20,6 +20,7 @@ public:
     std::unique_ptr<Scene> LoadScene(const std::string& sceneName, ScriptSystem* scriptSystem = nullptr);
     Texture2D LoadTexture(const std::string& assetPath);
     void UnloadAllTextures();
+    void InitializeAssetRegistry();
 
     [[nodiscard]] const GamePackage& GetPackage() const { return m_Package; }
     [[nodiscard]] bool IsLoaded() const { return m_IsLoaded; }

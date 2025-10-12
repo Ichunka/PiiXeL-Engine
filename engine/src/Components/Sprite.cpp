@@ -3,6 +3,7 @@
 #include "Resources/TextureAsset.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
+#include <cinttypes>
 
 namespace PiiXeL {
 
@@ -55,11 +56,11 @@ void Sprite::SetTexture(UUID assetUUID) {
     if (tex.id != 0) {
         if (sourceRect.width == 0.0f && sourceRect.height == 0.0f) {
             sourceRect = {0.0f, 0.0f, static_cast<float>(tex.width), static_cast<float>(tex.height)};
-            TraceLog(LOG_INFO, "Sprite texture set: %llu, size: %dx%d, sourceRect: %.0fx%.0f",
+            TraceLog(LOG_INFO, "Sprite texture set: %" PRIu64 ", size: %dx%d, sourceRect: %.0fx%.0f",
                      assetUUID.Get(), tex.width, tex.height, sourceRect.width, sourceRect.height);
         }
     } else {
-        TraceLog(LOG_WARNING, "Sprite SetTexture: texture not loaded for UUID %llu", assetUUID.Get());
+        TraceLog(LOG_WARNING, "Sprite SetTexture: texture not loaded for UUID %" PRIu64, assetUUID.Get());
     }
 }
 

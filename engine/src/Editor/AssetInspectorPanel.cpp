@@ -6,6 +6,7 @@
 #include "Resources/AudioAsset.hpp"
 #include <imgui.h>
 #include <rlImGui.h>
+#include <cinttypes>
 
 namespace PiiXeL {
 
@@ -30,7 +31,7 @@ void AssetInspectorPanel::Render() {
     ImGui::Text("Name: %s", metadata.name.c_str());
     ImGui::Separator();
 
-    ImGui::Text("UUID: %llu", metadata.uuid.Get());
+    ImGui::Text("UUID: %" PRIu64, metadata.uuid.Get());
     ImGui::Text("Type: %d", static_cast<int>(metadata.type));
     ImGui::Text("Version: %u", metadata.version);
     ImGui::Text("Source: %s", metadata.sourceFile.c_str());

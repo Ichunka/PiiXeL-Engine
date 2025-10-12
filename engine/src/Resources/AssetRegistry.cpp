@@ -2,6 +2,7 @@
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
 #include <raylib.h>
+#include <cinttypes>
 
 namespace PiiXeL {
 
@@ -44,7 +45,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
 
     auto pathIt = m_UUIDToPath.find(uuid);
     if (pathIt == m_UUIDToPath.end()) {
-        TraceLog(LOG_WARNING, "Asset not found in registry: %llu", uuid.Get());
+        TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, uuid.Get());
         return nullptr;
     }
 
@@ -213,7 +214,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
     m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
     m_PathToUUID[metadata.sourceFile] = metadata.uuid;
 
-    TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %llu)", metadata.name.c_str(), metadata.uuid.Get());
+    TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
     return asset;
 }
 

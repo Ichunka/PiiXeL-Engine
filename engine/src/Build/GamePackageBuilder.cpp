@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <unordered_set>
+#include <cinttypes>
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -117,6 +118,16 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
     }
 
     package.SetConfig(config);
+
+    std::string uuidCachePath = (basePath / "datas" / ".asset_uuid_cache").string();
+    if (std::filesystem::exists(uuidCachePath)) {
+        AssetData cacheAsset = LoadAssetFile(uuidCachePath, "data");
+        if (!cacheAsset.data.empty()) {
+            cacheAsset.path = "datas/.asset_uuid_cache";
+            package.AddAsset(cacheAsset);
+            TraceLog(LOG_INFO, "Added UUID cache to package");
+        }
+    }
 
     if (projectConfig.contains("build") && projectConfig["build"].contains("scenes")) {
         for (const auto& scenePath : projectConfig["build"]["scenes"]) {
@@ -259,7 +270,34 @@ void GamePackageBuilder::ScanAssets(const std::string& assetsPath, GamePackage& 
 }
 
 void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std::filesystem::path& basePath) {
-    std::unordered_set<std::string> collectedAssets;
+    std::unordered_set<uint64_t> collectedUUIDs;
+    std::unordered_map<uint64_t, std::string> uuidToPath;
+
+    std::string cachePath = (basePath / "datas" / ".asset_uuid_cache").string();
+    if (std::filesystem::exists(cachePath)) {
+        std::ifstream cacheFile{cachePath, std::ios::binary};
+        if (cacheFile.is_open()) {
+            uint32_t count = 0;
+            cacheFile.read(reinterpret_cast<char*>(&count), sizeof(count));
+
+            for (uint32_t i = 0; i < count; ++i) {
+                uint32_t pathLen = 0;
+                cacheFile.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
+
+                std::string path(pathLen, '\0');
+                cacheFile.read(&path[0], pathLen);
+
+                uint64_t uuidValue = 0;
+                cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
+
+                uuidToPath[uuidValue] = path;
+            }
+            cacheFile.close();
+            TraceLog(LOG_INFO, "Loaded UUID cache with %u entries", count);
+        }
+    } else {
+        TraceLog(LOG_WARNING, "UUID cache not found: %s", cachePath.c_str());
+    }
 
     for (const std::pair<std::string, nlohmann::json>& scenePair : package.GetScenes()) {
         const nlohmann::json& sceneData = scenePair.second;
@@ -268,24 +306,33 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
             for (const nlohmann::json& entity : sceneData["entities"]) {
                 if (entity.contains("Sprite")) {
                     const nlohmann::json& sprite = entity["Sprite"];
-                    if (sprite.contains("texturePath")) {
-                        std::string texturePath = sprite["texturePath"].get<std::string>();
-                        if (!texturePath.empty() && collectedAssets.find(texturePath) == collectedAssets.end()) {
-                            std::string fullPath = (basePath / texturePath).string();
-                            if (std::filesystem::exists(fullPath)) {
-                                AssetData asset = LoadAssetFile(fullPath, "texture");
-                                if (!asset.data.empty()) {
-                                    std::string pathInPackage = texturePath;
-                                    for (char& c : pathInPackage) {
-                                        if (c == '\\') c = '/';
+                    if (sprite.contains("textureAssetUUID")) {
+                        uint64_t uuidValue = sprite["textureAssetUUID"].get<uint64_t>();
+
+                        if (uuidValue != 0 && collectedUUIDs.find(uuidValue) == collectedUUIDs.end()) {
+                            auto it = uuidToPath.find(uuidValue);
+                            if (it != uuidToPath.end()) {
+                                std::string sourcePath = it->second;
+                                std::string pxaPath = sourcePath.substr(0, sourcePath.find_last_of('.')) + ".pxa";
+                                std::string fullPath = (basePath / pxaPath).string();
+
+                                if (std::filesystem::exists(fullPath)) {
+                                    AssetData asset = LoadAssetFile(fullPath, "texture");
+                                    if (!asset.data.empty()) {
+                                        std::string pathInPackage = pxaPath;
+                                        for (char& c : pathInPackage) {
+                                            if (c == '\\') c = '/';
+                                        }
+                                        asset.path = pathInPackage;
+                                        package.AddAsset(asset);
+                                        collectedUUIDs.insert(uuidValue);
+                                        TraceLog(LOG_INFO, "Auto-collected asset: %s (UUID: %" PRIu64 ")", asset.path.c_str(), uuidValue);
                                     }
-                                    asset.path = pathInPackage;
-                                    package.AddAsset(asset);
-                                    collectedAssets.insert(texturePath);
-                                    TraceLog(LOG_INFO, "Auto-collected asset: %s (texture)", asset.path.c_str());
+                                } else {
+                                    TraceLog(LOG_WARNING, "Asset file not found: %s (UUID: %" PRIu64 ")", fullPath.c_str(), uuidValue);
                                 }
                             } else {
-                                TraceLog(LOG_WARNING, "Asset referenced in scene not found: %s", fullPath.c_str());
+                                TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, uuidValue);
                             }
                         }
                     }
@@ -294,7 +341,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         }
     }
 
-    TraceLog(LOG_INFO, "Collected %zu unique assets from scenes", collectedAssets.size());
+    TraceLog(LOG_INFO, "Collected %zu unique assets from scenes", collectedUUIDs.size());
 }
 
 AssetData GamePackageBuilder::LoadAssetFile(const std::string& filepath, const std::string& type) {

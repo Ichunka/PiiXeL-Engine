@@ -2,6 +2,7 @@
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
 #include "Build/GamePackageLoader.hpp"
+#include "Resources/AssetRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Systems/PhysicsSystem.hpp"
 #include "Systems/ScriptSystem.hpp"
@@ -218,6 +219,10 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
     if (!m_PackageLoader->LoadPackage(packagePath)) {
         return false;
     }
+
+    m_PackageLoader->InitializeAssetRegistry();
+    AssetRegistry::Instance().Initialize();
+    AssetRegistry::Instance().ImportDirectory("datas/cache");
 
     m_ActiveScene = m_PackageLoader->LoadScene(sceneName, m_ScriptSystem.get());
     m_PrimaryCameraCached = false;
