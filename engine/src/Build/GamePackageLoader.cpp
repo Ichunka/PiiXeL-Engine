@@ -12,6 +12,8 @@
 #include "Systems/ScriptSystem.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Reflection/Reflection.hpp"
+#include "Resources/AssetRegistry.hpp"
+#include "Resources/AssetPackage.hpp"
 #include <raylib.h>
 #include <filesystem>
 #include <fstream>
@@ -277,35 +279,27 @@ void GamePackageLoader::InitializeAssetRegistry() {
         return;
     }
 
-    std::filesystem::create_directories("datas");
-    std::filesystem::create_directories("datas/cache");
-
     const AssetData* uuidCache = m_Package.GetAsset("datas/.asset_uuid_cache");
     if (uuidCache && !uuidCache->data.empty()) {
-        std::ofstream cacheFile{"datas/.asset_uuid_cache", std::ios::binary};
-        if (cacheFile.is_open()) {
-            cacheFile.write(reinterpret_cast<const char*>(uuidCache->data.data()), uuidCache->data.size());
-            cacheFile.close();
-            TraceLog(LOG_INFO, "Extracted UUID cache from package");
-        }
+        AssetRegistry::Instance().LoadUUIDCacheFromMemory(uuidCache->data.data(), uuidCache->data.size());
+        TraceLog(LOG_INFO, "Loaded UUID cache from package");
     }
 
-    size_t extractedCount = 0;
+    size_t registeredCount = 0;
     for (const AssetData& asset : m_Package.GetAssets()) {
         if (asset.path.ends_with(".pxa")) {
-            std::filesystem::path outputPath = std::filesystem::path{"datas/cache"} / asset.path;
-            std::filesystem::create_directories(outputPath.parent_path());
+            AssetMetadata metadata{};
+            std::vector<uint8_t> assetData{};
 
-            std::ofstream file{outputPath, std::ios::binary};
-            if (file.is_open()) {
-                file.write(reinterpret_cast<const char*>(asset.data.data()), asset.data.size());
-                file.close();
-                extractedCount++;
+            AssetPackage package{};
+            if (package.LoadFromMemory(asset.data.data(), asset.data.size(), metadata, assetData)) {
+                AssetRegistry::Instance().RegisterAssetFromMemory(metadata.uuid, metadata.sourceFile, asset.data);
+                registeredCount++;
             }
         }
     }
 
-    TraceLog(LOG_INFO, "Extracted %zu .pxa assets from package to datas/cache", extractedCount);
+    TraceLog(LOG_INFO, "Registered %zu .pxa assets from package (in-memory)", registeredCount);
 }
 
 } // namespace PiiXeL

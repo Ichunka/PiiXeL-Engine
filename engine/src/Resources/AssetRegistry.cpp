@@ -3,6 +3,7 @@
 #include "Resources/AudioAsset.hpp"
 #include <raylib.h>
 #include <cinttypes>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 
@@ -49,6 +50,24 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
     if (pathIt == m_UUIDToPath.end()) {
         TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, uuid.Get());
         return nullptr;
+    }
+
+    auto cacheIt = m_PackageDataCache.find(uuid);
+    if (cacheIt != m_PackageDataCache.end()) {
+        AssetMetadata metadata{};
+        std::vector<uint8_t> data{};
+
+        AssetPackage package{};
+        if (package.LoadFromMemory(cacheIt->second.data(), cacheIt->second.size(), metadata, data)) {
+            auto asset = CreateAsset(metadata.type, metadata.uuid, metadata.name);
+            if (asset) {
+                asset->SetMetadata(metadata);
+                if (asset->Load(data.data(), data.size())) {
+                    m_Assets[metadata.uuid] = asset;
+                    return asset;
+                }
+            }
+        }
     }
 
     std::string packagePath = AssetPackage::GetPackagePath(pathIt->second);
@@ -292,6 +311,51 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
 
     TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
     return asset;
+}
+
+void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize) {
+    if (!data || dataSize < sizeof(uint32_t)) {
+        return;
+    }
+
+    size_t offset = 0;
+    uint32_t count = 0;
+    std::memcpy(&count, data + offset, sizeof(count));
+    offset += sizeof(count);
+
+    size_t registeredCount = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        if (offset + sizeof(uint32_t) > dataSize) break;
+
+        uint32_t pathLen = 0;
+        std::memcpy(&pathLen, data + offset, sizeof(pathLen));
+        offset += sizeof(pathLen);
+
+        if (offset + pathLen > dataSize) break;
+
+        std::string sourcePath(reinterpret_cast<const char*>(data + offset), pathLen);
+        offset += pathLen;
+
+        if (offset + sizeof(uint64_t) > dataSize) break;
+
+        uint64_t uuidValue = 0;
+        std::memcpy(&uuidValue, data + offset, sizeof(uuidValue));
+        offset += sizeof(uuidValue);
+
+        UUID uuid{uuidValue};
+        m_UUIDToPath[uuid] = sourcePath;
+        m_PathToUUID[sourcePath] = uuid;
+        registeredCount++;
+    }
+
+    TraceLog(LOG_INFO, "Loaded UUID cache from memory: %zu entries", registeredCount);
+}
+
+void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,
+                                              const std::vector<uint8_t>& packageData) {
+    m_PackageDataCache[uuid] = packageData;
+    m_UUIDToPath[uuid] = sourcePath;
+    m_PathToUUID[sourcePath] = uuid;
 }
 
 } // namespace PiiXeL

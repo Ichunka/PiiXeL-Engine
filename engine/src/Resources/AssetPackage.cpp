@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <cstring>
 #include <algorithm>
+#include <sstream>
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -75,6 +76,59 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
 
     file.close();
     TraceLog(LOG_INFO, "Asset package loaded: %s", path.c_str());
+    return true;
+}
+
+bool AssetPackage::LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata,
+                                    std::vector<uint8_t>& outData) {
+    if (!data || dataSize < sizeof(Header)) {
+        return false;
+    }
+
+    size_t offset = 0;
+
+    Header header{};
+    std::memcpy(&header, data + offset, sizeof(Header));
+    offset += sizeof(Header);
+
+    if (header.magic != MAGIC_NUMBER) {
+        return false;
+    }
+
+    if (header.version > VERSION) {
+        return false;
+    }
+
+    outMetadata.type = static_cast<AssetType>(header.assetType);
+    outMetadata.uuid = UUID{header.uuid};
+    outMetadata.importTimestamp = header.importTimestamp;
+    outMetadata.sourceTimestamp = header.sourceTimestamp;
+
+    if (offset + header.metadataSize > dataSize) {
+        return false;
+    }
+
+    std::string metadataStr(reinterpret_cast<const char*>(data + offset), header.metadataSize);
+    offset += header.metadataSize;
+
+    size_t pos1 = metadataStr.find('|');
+    size_t pos2 = metadataStr.find('|', pos1 + 1);
+
+    if (pos1 == std::string::npos || pos2 == std::string::npos) {
+        return false;
+    }
+
+    outMetadata.name = metadataStr.substr(0, pos1);
+    outMetadata.sourceFile = NormalizePath(metadataStr.substr(pos1 + 1, pos2 - pos1 - 1));
+    outMetadata.version = std::stoul(metadataStr.substr(pos2 + 1));
+
+    if (offset + header.dataSize > dataSize) {
+        return false;
+    }
+
+    outData.resize(header.dataSize);
+    std::memcpy(outData.data(), data + offset, header.dataSize);
+
     return true;
 }
 
@@ -155,7 +209,7 @@ bool AssetPackage::ReadMetadata(std::ifstream& stream, AssetMetadata& metadata, 
     if (pos1 == std::string::npos || pos2 == std::string::npos) return false;
 
     metadata.name = metadataStr.substr(0, pos1);
-    metadata.sourceFile = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
+    metadata.sourceFile = NormalizePath(metadataStr.substr(pos1 + 1, pos2 - pos1 - 1));
     metadata.version = std::stoul(metadataStr.substr(pos2 + 1));
 
     return true;

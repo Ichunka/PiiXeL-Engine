@@ -34,6 +34,9 @@ public:
     bool LoadFromFile(const std::string& path, AssetMetadata& outMetadata,
                       std::vector<uint8_t>& outData);
 
+    bool LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata,
+                        std::vector<uint8_t>& outData);
+
     bool LoadMetadataOnly(const std::string& path, AssetMetadata& outMetadata);
 
     [[nodiscard]] static std::string GetPackagePath(const std::string& sourcePath);
