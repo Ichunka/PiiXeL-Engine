@@ -3,6 +3,9 @@
 #include "Editor/EditorLayer.hpp"
 #include "Editor/ConsoleLogger.hpp"
 #include "Editor/BuildPanel.hpp"
+#include "Resources/AssetRegistry.hpp"
+#include "Resources/TextureAsset.hpp"
+#include "Resources/AudioAsset.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
@@ -54,6 +57,9 @@ EditorLayer::EditorLayer(Engine* engine)
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
     m_BuildPanel = std::make_unique<BuildPanel>();
     SetupDarkTheme();
+
+    AssetRegistry::Instance().Initialize();
+    AssetRegistry::Instance().ImportDirectory("content/assets");
 
     m_Engine->SetScriptsEnabled(false);
 
@@ -637,6 +643,8 @@ void EditorLayer::RenderHierarchy() {
             if (itemHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !m_IsDraggingEntity) {
                 if (!m_InspectorLocked) {
                     m_SelectedEntity = entity;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedAssetPath.clear();
                 }
             }
 
@@ -644,6 +652,8 @@ void EditorLayer::RenderHierarchy() {
                 if (ImGui::MenuItem("Duplicate", "Ctrl+D")) {
                     entt::entity newEntity = DuplicateEntity(entity);
                     m_SelectedEntity = newEntity;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedAssetPath.clear();
                 }
 
                 if (ImGui::MenuItem("Copy", "Ctrl+C")) {
@@ -668,6 +678,94 @@ void EditorLayer::RenderHierarchy() {
 void EditorLayer::RenderInspector() {
     PROFILE_FUNCTION();
     ImGui::Begin("Inspector");
+
+    if (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty()) {
+        ImGui::TextColored(ImVec4{0.4f, 0.8f, 1.0f, 1.0f}, "Asset");
+        ImGui::Separator();
+
+        std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
+
+        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty()) {
+            auto result = AssetRegistry::Instance().LoadAssetFromPath(m_SelectedAssetPath);
+            if (result) {
+                asset = result;
+                m_SelectedAssetUUID = asset->GetUUID();
+            }
+        }
+
+        if (asset) {
+            const AssetMetadata& metadata = asset->GetMetadata();
+
+            ImGui::Text("Name: %s", metadata.name.c_str());
+            ImGui::Text("UUID: %llu", metadata.uuid.Get());
+            ImGui::Text("Type: %s", metadata.type == AssetType::Texture ? "Texture" :
+                                     metadata.type == AssetType::Audio ? "Audio" : "Unknown");
+            ImGui::Text("Source: %s", metadata.sourceFile.c_str());
+            ImGui::Text("Memory: %zu bytes", asset->GetMemoryUsage());
+            ImGui::Text("Loaded: %s", asset->IsLoaded() ? "Yes" : "No");
+
+            ImGui::Separator();
+
+            if (metadata.type == AssetType::Texture) {
+                TextureAsset* texAsset = dynamic_cast<TextureAsset*>(asset.get());
+                if (texAsset) {
+                    ImGui::Text("Dimensions: %dx%d", texAsset->GetWidth(), texAsset->GetHeight());
+                    ImGui::Text("Mipmaps: %d", texAsset->GetMipmaps());
+                    ImGui::Text("Format: %d", texAsset->GetFormat());
+
+                    ImGui::Separator();
+                    ImGui::Text("Preview:");
+
+                    Texture2D texture = texAsset->GetTexture();
+                    if (texture.id != 0) {
+                        float maxWidth = ImGui::GetContentRegionAvail().x - 20.0f;
+                        float maxHeight = 256.0f;
+
+                        float aspectRatio = static_cast<float>(texture.width) / static_cast<float>(texture.height);
+                        float displayWidth = maxWidth;
+                        float displayHeight = displayWidth / aspectRatio;
+
+                        if (displayHeight > maxHeight) {
+                            displayHeight = maxHeight;
+                            displayWidth = displayHeight * aspectRatio;
+                        }
+
+                        rlImGuiImageSize(&texture, static_cast<int>(displayWidth), static_cast<int>(displayHeight));
+                    }
+                }
+            } else if (metadata.type == AssetType::Audio) {
+                AudioAsset* audioAsset = dynamic_cast<AudioAsset*>(asset.get());
+                if (audioAsset) {
+                    ImGui::Text("Frames: %u", audioAsset->GetFrameCount());
+
+                    ImGui::Separator();
+
+                    Sound sound = audioAsset->GetSound();
+                    if (sound.frameCount > 0) {
+                        if (ImGui::Button("Play")) {
+                            PlaySound(sound);
+                        }
+                        ImGui::SameLine();
+                        if (ImGui::Button("Stop")) {
+                            StopSound(sound);
+                        }
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Reimport")) {
+                AssetRegistry::Instance().ReimportAsset(metadata.sourceFile);
+            }
+        } else {
+            ImGui::Text("Path: %s", m_SelectedAssetPath.c_str());
+            ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "Scene file (not an importable asset)");
+        }
+
+        ImGui::End();
+        return;
+    }
 
     if (ImGui::Button(m_InspectorLocked ? "Unlock" : "Lock")) {
         m_InspectorLocked = !m_InspectorLocked;
@@ -1076,6 +1174,10 @@ void EditorLayer::RenderContentBrowser() {
                     info.extension = entry.path().extension().string();
                     info.fileSize = std::filesystem::file_size(entry.path());
 
+                    if (info.extension == ".pxa" || info.extension == ".package") {
+                        continue;
+                    }
+
                     if (info.extension == ".png" || info.extension == ".jpg" || info.extension == ".jpeg" || info.extension == ".bmp" || info.extension == ".tga") {
                         info.type = "texture";
                         Image img = LoadImage(info.path.c_str());
@@ -1084,6 +1186,8 @@ void EditorLayer::RenderContentBrowser() {
                             info.height = img.height;
                             UnloadImage(img);
                         }
+                    } else if (info.extension == ".wav" || info.extension == ".ogg" || info.extension == ".mp3") {
+                        info.type = "audio";
                     } else if (info.extension == ".scene") {
                         info.type = "scene";
                     } else {
@@ -1220,7 +1324,25 @@ void EditorLayer::RenderContentBrowser() {
                     ImVec2 imageSize{displayWidth, displayHeight};
                     ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(tex.id));
 
-                    ImGui::ImageButton("##texture", texId, imageSize);
+                    if (ImGui::ImageButton("##texture", texId, imageSize)) {
+                        m_SelectedAssetPath = asset.path;
+
+                        UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                        std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                            ? AssetRegistry::Instance().GetAsset(existingUUID)
+                            : nullptr;
+
+                        if (!existingAsset) {
+                            std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                            if (loadedAsset) {
+                                m_SelectedAssetUUID = loadedAsset->GetUUID();
+                            }
+                        } else {
+                            m_SelectedAssetUUID = existingUUID;
+                        }
+
+                        m_SelectedEntity = entt::null;
+                    }
 
                     if (ImGui::BeginPopupContextItem()) {
                         rightClickedItem = asset.path;
@@ -1274,7 +1396,11 @@ void EditorLayer::RenderContentBrowser() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.5f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_Text, sceneColor);
 
-                ImGui::Button("SCENE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)});
+                if (ImGui::Button("SCENE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedEntity = entt::null;
+                }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (m_Engine && m_Engine->GetActiveScene()) {
@@ -1321,7 +1447,31 @@ void EditorLayer::RenderContentBrowser() {
 
                 ImGui::PopStyleColor(3);
             } else {
-                ImGui::Button("FILE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)});
+                ImVec4 fileColor = asset.type == "audio" ? ImVec4{0.8f, 0.4f, 0.8f, 1.0f} : ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
+                ImGui::PushStyleColor(ImGuiCol_Text, fileColor);
+
+                std::string buttonLabel = asset.type == "audio" ? "AUDIO" : "FILE";
+                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+
+                    UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                        ? AssetRegistry::Instance().GetAsset(existingUUID)
+                        : nullptr;
+
+                    if (!existingAsset) {
+                        std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                        if (loadedAsset) {
+                            m_SelectedAssetUUID = loadedAsset->GetUUID();
+                        }
+                    } else {
+                        m_SelectedAssetUUID = existingUUID;
+                    }
+
+                    m_SelectedEntity = entt::null;
+                }
+
+                ImGui::PopStyleColor();
 
                 if (ImGui::BeginPopupContextItem()) {
                     rightClickedItem = asset.path;
@@ -2017,6 +2167,8 @@ void EditorLayer::HandleEntitySelection() {
 
     if (clickedEntity != entt::null) {
         m_SelectedEntity = clickedEntity;
+        m_SelectedAssetUUID = UUID{0};
+        m_SelectedAssetPath.clear();
     }
 }
 

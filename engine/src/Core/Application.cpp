@@ -46,6 +46,7 @@ void Application::Initialize() {
 
     InitWindow(m_Config.windowWidth, m_Config.windowHeight, m_Config.title.c_str());
     SetTargetFPS(m_Config.targetFPS);
+    SetExitKey(0);
 
     if (m_Config.fullscreen) {
         ToggleFullscreen();

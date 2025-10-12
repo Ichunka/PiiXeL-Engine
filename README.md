@@ -396,9 +396,46 @@ PiiXeL Engine intelligently handles icons with automatic fallback:
 
 ## Understanding the Asset Systems
 
-PiiXeL Engine uses two complementary asset systems:
+PiiXeL Engine uses three complementary asset systems:
 
-### 1. Game Package System
+### 1. PiiXeL Asset System (.pxa)
+
+**Purpose:** Individual asset management with UUID-based references and fast loading
+
+**What it includes:**
+- Binary asset packages (`.pxa` files) generated automatically
+- UUID-based asset identification
+- Asset metadata (import time, source file, version)
+- Compressed/optimized asset data embedded directly
+
+**How it works:**
+- Place source assets (PNG, WAV, etc.) in your project
+- AssetImporter automatically generates `.pxa` files alongside sources
+- Same filename as source (e.g., `player.png` → `player.pxa`)
+- Binary format - not human-readable, optimized for loading
+- All asset data embedded in `.pxa` file (no external paths)
+- Assets tracked by UUID for cross-scene references
+- Automatic reimport when source files change
+
+**Supported asset types:**
+- **Textures:** PNG, JPG, JPEG, BMP, TGA, GIF
+- **Audio:** WAV, OGG, MP3, FLAC
+- **Scenes:** Scene files with cross-references
+
+**Usage in Editor:**
+- **Asset Browser:** Browse and select assets
+- **Asset Inspector:** View asset properties, preview, and reimport
+- **Drag & Drop:** Drag assets from browser into inspector fields
+- **Component References:** Reference specific components on other entities
+
+**Asset References:**
+```cpp
+AssetRef<Texture2D> m_Texture;      // Reference to texture asset
+AssetRef<Sound> m_Sound;             // Reference to audio asset
+ComponentRef<Transform> m_Target;    // Reference to component on entity
+```
+
+### 2. Game Package System
 
 **Purpose:** Bundle all game assets and scenes for distribution
 
@@ -417,7 +454,7 @@ PiiXeL Engine uses two complementary asset systems:
 - Development: Assets loaded directly from files
 - Distribution: Assets loaded from `game.package`
 
-### 2. Embedded Asset System
+### 3. Embedded Asset System
 
 **Purpose:** Compile critical engine assets directly into the executable
 
@@ -434,28 +471,38 @@ PiiXeL Engine uses two complementary asset systems:
 
 **Key differences:**
 
-| Feature | Game Package | Embedded Assets |
-|---------|--------------|-----------------|
-| **When processed** | Distribution time | Compile time |
-| **Size** | Unlimited | Keep small (increases exe size) |
-| **Use case** | Game content | Engine critical assets |
-| **Modifiable** | Yes (replace package file) | No (recompile needed) |
-| **Access speed** | Disk I/O | Memory (instant) |
+| Feature | .pxa Assets | Game Package | Embedded Assets |
+|---------|-------------|--------------|-----------------|
+| **When processed** | Import time | Distribution time | Compile time |
+| **Format** | Binary per-asset | Single binary bundle | C++ constexpr arrays |
+| **Size** | Individual files | Unlimited | Keep small (exe size) |
+| **Use case** | Development assets | Distribution bundle | Engine critical assets |
+| **Modifiable** | Yes (update source) | Yes (rebuild package) | No (recompile needed) |
+| **Access speed** | Fast (cached by UUID) | Disk I/O | Memory (instant) |
+| **References** | UUID-based | Path-based | Direct embedding |
 
 ### Workflow Summary
 
 1. **During Development:**
-   - Edit assets in `games/MyFirstGame/assets/`
-   - Engine assets in `engine/assets/` (embedded at compile time)
-   - Assets loaded from files for quick iteration
+   - Place assets in `games/MyFirstGame/assets/`
+   - `.pxa` files generated automatically on import
+   - Assets referenced by UUID in scenes and components
+   - Fast iteration - just update source files
+   - Editor auto-detects changes and reimports
 
-2. **Building for Distribution:**
-   - Run "Build Game Package" from editor or `build_and_run.sh`
+2. **Asset Import:**
+   - Editor imports assets on first use
+   - Generates `.pxa` next to source file
+   - UUID assigned and cached
+   - Subsequent loads use fast `.pxa` format
+
+3. **Building for Distribution:**
+   - Run "Build Game Package" from editor
    - Creates `game.package` with all game assets
    - Build game executable (Release, no editor)
    - Export combines exe + package + dependencies
 
-3. **Distribution:**
+4. **Distribution:**
    - Users receive: `game.exe` + `datas/game.package` + DLLs
    - Game loads assets from package
    - Engine assets already embedded in exe

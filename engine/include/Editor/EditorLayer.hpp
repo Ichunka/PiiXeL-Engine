@@ -9,6 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include "Components/Transform.hpp"
+#include "Components/UUID.hpp"
 #include "CommandHistory.hpp"
 #include "Debug/Profiler.hpp"
 
@@ -157,6 +158,9 @@ private:
     float m_ProfilerFlameGraphScroll{0.0f};
 
     std::unique_ptr<BuildPanel> m_BuildPanel;
+
+    UUID m_SelectedAssetUUID{0};
+    std::string m_SelectedAssetPath;
 };
 
 } // namespace PiiXeL
