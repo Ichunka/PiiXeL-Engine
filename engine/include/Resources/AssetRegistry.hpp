@@ -31,6 +31,7 @@ public:
 
     void ImportDirectory(const std::string& directory);
     void ReimportAsset(const std::string& sourcePath);
+    void RegisterExtractedAssets();
 
     [[nodiscard]] bool IsAssetLoaded(UUID uuid) const;
     [[nodiscard]] UUID GetUUIDFromPath(const std::string& path) const;

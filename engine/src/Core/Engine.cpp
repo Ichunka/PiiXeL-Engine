@@ -222,7 +222,7 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
 
     m_PackageLoader->InitializeAssetRegistry();
     AssetRegistry::Instance().Initialize();
-    AssetRegistry::Instance().ImportDirectory("datas/cache");
+    AssetRegistry::Instance().RegisterExtractedAssets();
 
     m_ActiveScene = m_PackageLoader->LoadScene(sceneName, m_ScriptSystem.get());
     m_PrimaryCameraCached = false;

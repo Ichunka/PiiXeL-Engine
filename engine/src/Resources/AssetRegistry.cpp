@@ -3,6 +3,8 @@
 #include "Resources/AudioAsset.hpp"
 #include <raylib.h>
 #include <cinttypes>
+#include <filesystem>
+#include <fstream>
 
 namespace PiiXeL {
 
@@ -125,6 +127,43 @@ void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
 
         TraceLog(LOG_INFO, "Reimported asset: %s", sourcePath.c_str());
     }
+}
+
+void AssetRegistry::RegisterExtractedAssets() {
+    std::string cachePath = "datas/.asset_uuid_cache";
+    if (!std::filesystem::exists(cachePath)) {
+        TraceLog(LOG_WARNING, "UUID cache not found at: %s", cachePath.c_str());
+        return;
+    }
+
+    std::ifstream cacheFile{cachePath, std::ios::binary};
+    if (!cacheFile.is_open()) {
+        TraceLog(LOG_ERROR, "Failed to open UUID cache: %s", cachePath.c_str());
+        return;
+    }
+
+    uint32_t count = 0;
+    cacheFile.read(reinterpret_cast<char*>(&count), sizeof(count));
+
+    size_t registeredCount = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        uint32_t pathLen = 0;
+        cacheFile.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
+
+        std::string sourcePath(pathLen, '\0');
+        cacheFile.read(&sourcePath[0], pathLen);
+
+        uint64_t uuidValue = 0;
+        cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
+
+        UUID uuid{uuidValue};
+        m_UUIDToPath[uuid] = sourcePath;
+        m_PathToUUID[sourcePath] = uuid;
+        registeredCount++;
+    }
+
+    cacheFile.close();
+    TraceLog(LOG_INFO, "Registered %zu assets from UUID cache", registeredCount);
 }
 
 bool AssetRegistry::IsAssetLoaded(UUID uuid) const {

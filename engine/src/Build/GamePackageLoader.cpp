@@ -290,6 +290,7 @@ void GamePackageLoader::InitializeAssetRegistry() {
         }
     }
 
+    size_t extractedCount = 0;
     for (const AssetData& asset : m_Package.GetAssets()) {
         if (asset.path.ends_with(".pxa")) {
             std::filesystem::path outputPath = std::filesystem::path{"datas/cache"} / asset.path;
@@ -299,11 +300,12 @@ void GamePackageLoader::InitializeAssetRegistry() {
             if (file.is_open()) {
                 file.write(reinterpret_cast<const char*>(asset.data.data()), asset.data.size());
                 file.close();
+                extractedCount++;
             }
         }
     }
 
-    TraceLog(LOG_INFO, "Extracted assets from package to datas/cache");
+    TraceLog(LOG_INFO, "Extracted %zu .pxa assets from package to datas/cache", extractedCount);
 }
 
 } // namespace PiiXeL
