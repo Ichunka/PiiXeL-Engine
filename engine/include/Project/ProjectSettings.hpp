@@ -14,6 +14,7 @@ struct WindowSettings {
     bool vsync{true};
     bool fullscreen{false};
     int targetFPS{60};
+    std::string icon{};
 };
 
 struct PhysicsSettings {

@@ -9,6 +9,8 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/Script.hpp"
+#include "Debug/Profiler.hpp"
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -52,56 +54,114 @@ void Engine::Initialize() {
 }
 
 void Engine::Update(float deltaTime) {
-    if (m_ActiveScene) {
-        m_ActiveScene->OnUpdate(deltaTime);
+    PROFILE_FUNCTION();
+
+    {
+        PROFILE_SCOPE("Scene::OnUpdate");
+        if (m_ActiveScene) {
+            m_ActiveScene->OnUpdate(deltaTime);
+        }
     }
 
-    if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
-        m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+    {
+        PROFILE_SCOPE("ScriptSystem::OnUpdate");
+        if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
+            m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+        }
     }
 
-    if (m_PhysicsEnabled && m_PhysicsSystem && m_ActiveScene) {
-        m_PhysicsSystem->SetScene(m_ActiveScene.get());
-        m_PhysicsSystem->Update(deltaTime, m_ActiveScene->GetRegistry());
-        m_PhysicsSystem->ProcessCollisionEvents(m_ActiveScene->GetRegistry());
-        if (m_ScriptsEnabled && m_ScriptSystem) {
-            m_ScriptSystem->OnFixedUpdate(m_ActiveScene.get(), deltaTime);
+    {
+        PROFILE_SCOPE("Physics");
+        if (m_PhysicsEnabled && m_PhysicsSystem && m_ActiveScene) {
+            m_PhysicsSystem->SetScene(m_ActiveScene.get());
+
+            {
+                PROFILE_SCOPE("PhysicsSystem::Update");
+                m_PhysicsSystem->Update(deltaTime, m_ActiveScene->GetRegistry());
+            }
+
+            {
+                PROFILE_SCOPE("PhysicsSystem::ProcessCollisionEvents");
+                m_PhysicsSystem->ProcessCollisionEvents(m_ActiveScene->GetRegistry());
+            }
+
+            {
+                PROFILE_SCOPE("ScriptSystem::OnFixedUpdate");
+                if (m_ScriptsEnabled && m_ScriptSystem) {
+                    m_ScriptSystem->OnFixedUpdate(m_ActiveScene.get(), deltaTime);
+                }
+            }
         }
     }
 }
 
-void Engine::Render() {
-    if (m_ActiveScene) {
-        m_ActiveScene->OnRender();
+entt::entity Engine::FindPrimaryCamera() {
+    if (!m_ActiveScene) {
+        return entt::null;
     }
 
-    if (m_RenderSystem && m_ActiveScene) {
-#ifdef BUILD_WITH_EDITOR
-        m_RenderSystem->Render(m_ActiveScene->GetRegistry());
-#else
+    if (m_PrimaryCameraCached) {
         entt::registry& registry = m_ActiveScene->GetRegistry();
-        entt::entity primaryCamera = entt::null;
-
-        registry.view<Camera, Transform>().each([&](entt::entity entity, const Camera& camera, const Transform&) {
+        if (registry.valid(m_PrimaryCamera) && registry.all_of<Camera, Transform>(m_PrimaryCamera)) {
+            const Camera& camera = registry.get<Camera>(m_PrimaryCamera);
             if (camera.isPrimary) {
-                primaryCamera = entity;
+                return m_PrimaryCamera;
             }
-        });
-
-        if (primaryCamera != entt::null && registry.all_of<Camera, Transform>(primaryCamera)) {
-            const Camera& cameraComp = registry.get<Camera>(primaryCamera);
-            const Transform& transform = registry.get<Transform>(primaryCamera);
-
-            Camera2D raylibCamera = cameraComp.ToRaylib(transform.position);
-            int screenWidth = GetScreenWidth();
-            int screenHeight = GetScreenHeight();
-            raylibCamera.offset = Vector2{static_cast<float>(screenWidth) / 2.0f, static_cast<float>(screenHeight) / 2.0f};
-
-            m_RenderSystem->RenderWithCamera(registry, raylibCamera);
-        } else {
-            m_RenderSystem->Render(registry);
         }
+        m_PrimaryCameraCached = false;
+    }
+
+    entt::registry& registry = m_ActiveScene->GetRegistry();
+    m_PrimaryCamera = entt::null;
+
+    auto view = registry.view<Camera, Transform>();
+    for (auto entity : view) {
+        const Camera& camera = view.get<Camera>(entity);
+        if (camera.isPrimary) {
+            m_PrimaryCamera = entity;
+            m_PrimaryCameraCached = true;
+            break;
+        }
+    }
+
+    return m_PrimaryCamera;
+}
+
+void Engine::Render() {
+    PROFILE_FUNCTION();
+
+    {
+        PROFILE_SCOPE("Scene::OnRender");
+        if (m_ActiveScene) {
+            m_ActiveScene->OnRender();
+        }
+    }
+
+    {
+        PROFILE_SCOPE("RenderSystem");
+        if (m_RenderSystem && m_ActiveScene) {
+#ifdef BUILD_WITH_EDITOR
+            m_RenderSystem->Render(m_ActiveScene->GetRegistry());
+#else
+            entt::registry& registry = m_ActiveScene->GetRegistry();
+            entt::entity primaryCamera = FindPrimaryCamera();
+
+            if (primaryCamera != entt::null) {
+                const Camera& cameraComp = registry.get<Camera>(primaryCamera);
+                const Transform& transform = registry.get<Transform>(primaryCamera);
+
+                Camera2D raylibCamera{};
+                raylibCamera.target = transform.position;
+                raylibCamera.offset = Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
+                raylibCamera.rotation = cameraComp.rotation;
+                raylibCamera.zoom = cameraComp.zoom;
+
+                m_RenderSystem->RenderWithCamera(registry, raylibCamera);
+            } else {
+                m_RenderSystem->Render(registry);
+            }
 #endif
+        }
     }
 }
 
@@ -159,8 +219,21 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
         return false;
     }
 
-    m_ActiveScene = m_PackageLoader->LoadScene(sceneName);
-    return m_ActiveScene != nullptr;
+    m_ActiveScene = m_PackageLoader->LoadScene(sceneName, m_ScriptSystem.get());
+    m_PrimaryCameraCached = false;
+
+    if (m_ActiveScene) {
+        entt::registry& registry = m_ActiveScene->GetRegistry();
+        size_t entityCount = registry.storage<entt::entity>().size();
+        size_t scriptCount = registry.view<Script>().size();
+        size_t cameraCount = registry.view<Camera>().size();
+
+        TraceLog(LOG_INFO, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
+
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace PiiXeL

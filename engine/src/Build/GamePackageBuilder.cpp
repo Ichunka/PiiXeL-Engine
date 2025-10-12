@@ -6,6 +6,48 @@
 
 namespace PiiXeL {
 
+#ifdef _WIN32
+struct IconPixelData {
+    std::vector<unsigned char> pixels;
+    int width;
+    int height;
+};
+
+extern bool ConvertIcoToRawPixels(const std::string& icoPath, IconPixelData& outData);
+
+static AssetData ConvertIcoToPngInMemory(const std::string& icoPath) {
+    AssetData asset{};
+    asset.type = "texture";
+
+    IconPixelData pixelData{};
+
+    if (!ConvertIcoToRawPixels(icoPath, pixelData)) {
+        TraceLog(LOG_ERROR, "Failed to load .ico file: %s", icoPath.c_str());
+        return asset;
+    }
+
+    Image image{};
+    image.data = pixelData.pixels.data();
+    image.width = pixelData.width;
+    image.height = pixelData.height;
+    image.mipmaps = 1;
+    image.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+
+    int fileSize{};
+    unsigned char* pngData = ExportImageToMemory(image, ".png", &fileSize);
+
+    if (pngData && fileSize > 0) {
+        asset.data.assign(pngData, pngData + fileSize);
+        RL_FREE(pngData);
+        TraceLog(LOG_INFO, "Successfully converted %s to PNG in memory (%d bytes)", icoPath.c_str(), fileSize);
+    } else {
+        TraceLog(LOG_ERROR, "Failed to export PNG to memory: %s", icoPath.c_str());
+    }
+
+    return asset;
+}
+#endif
+
 GamePackageBuilder::GamePackageBuilder() = default;
 GamePackageBuilder::~GamePackageBuilder() = default;
 
@@ -21,6 +63,8 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
     if (!std::filesystem::exists(configPath)) {
         configPath = std::filesystem::current_path().string() + "/game.config.json";
     }
+
+    std::filesystem::path basePath = std::filesystem::path(configPath).parent_path();
 
     nlohmann::json projectConfig{};
     std::ifstream configFile{configPath};
@@ -43,9 +87,36 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
     config["targetFPS"] = projectConfig.value("window", nlohmann::json{}).value("targetFPS", 60);
     config["vsync"] = projectConfig.value("window", nlohmann::json{}).value("vsync", true);
     config["mainScene"] = projectConfig.value("startScene", "content/scenes/Default_Scene.scene");
-    package.SetConfig(config);
 
-    std::filesystem::path basePath = std::filesystem::path(configPath).parent_path();
+    std::string iconPath = projectConfig.value("window", nlohmann::json{}).value("icon", "");
+    if (!iconPath.empty()) {
+        std::filesystem::path fullIconPath = basePath / iconPath;
+        if (std::filesystem::exists(fullIconPath)) {
+            std::string extension = fullIconPath.extension().string();
+            if (extension == ".ico") {
+#ifdef _WIN32
+                AssetData iconAsset = ConvertIcoToPngInMemory(fullIconPath.string());
+                if (!iconAsset.data.empty()) {
+                    std::string pngRelativePath = iconPath.substr(0, iconPath.find_last_of('.')) + ".png";
+                    iconAsset.path = pngRelativePath;
+                    config["icon"] = pngRelativePath;
+                    package.AddAsset(iconAsset);
+                    TraceLog(LOG_INFO, "Converted icon from .ico to .png and added to package: %s", pngRelativePath.c_str());
+                } else {
+                    TraceLog(LOG_WARNING, "Failed to convert .ico to .png, icon will not be included");
+                }
+#else
+                TraceLog(LOG_WARNING, "ICO to PNG conversion only supported on Windows, icon will not be included");
+#endif
+            } else {
+                config["icon"] = iconPath;
+            }
+        } else {
+            TraceLog(LOG_WARNING, "Icon file not found: %s", fullIconPath.string().c_str());
+        }
+    }
+
+    package.SetConfig(config);
 
     if (projectConfig.contains("build") && projectConfig["build"].contains("scenes")) {
         for (const auto& scenePath : projectConfig["build"]["scenes"]) {

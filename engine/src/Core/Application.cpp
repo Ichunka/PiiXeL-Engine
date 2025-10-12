@@ -1,7 +1,12 @@
 #include "Core/Application.hpp"
 #include "Core/Engine.hpp"
+#include "Core/SplashScreen.hpp"
 #include "Resources/AssetManager.hpp"
+#include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
+#include "Debug/Profiler.hpp"
+#include "Build/GamePackageLoader.hpp"
+#include "Build/GamePackage.hpp"
 #include <raylib.h>
 
 #ifdef BUILD_WITH_EDITOR
@@ -41,33 +46,102 @@ void Application::Initialize() {
 
     InitWindow(m_Config.windowWidth, m_Config.windowHeight, m_Config.title.c_str());
     SetTargetFPS(m_Config.targetFPS);
+    SetExitKey(0);
 
     if (m_Config.fullscreen) {
         ToggleFullscreen();
     }
 
-#ifdef BUILD_WITH_EDITOR
+    if (!m_Config.iconPath.empty()) {
+        Image iconImage{};
+
+        if (m_Config.packageLoader) {
+            const GamePackage& package = m_Config.packageLoader->GetPackage();
+            const AssetData* iconAsset = package.GetAsset(m_Config.iconPath);
+
+            if (iconAsset && iconAsset->type == "texture") {
+                iconImage = LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
+                if (iconImage.data != nullptr) {
+                    TraceLog(LOG_INFO, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
+                } else {
+                    TraceLog(LOG_WARNING, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
+                }
+            } else {
+                TraceLog(LOG_WARNING, "Window icon not found in package: %s", m_Config.iconPath.c_str());
+            }
+        } else {
+            if (FileExists(m_Config.iconPath.c_str())) {
+                iconImage = LoadImage(m_Config.iconPath.c_str());
+                if (iconImage.data != nullptr) {
+                    TraceLog(LOG_INFO, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
+                } else {
+                    TraceLog(LOG_WARNING, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+                }
+            } else {
+                TraceLog(LOG_WARNING, "Window icon file not found: %s", m_Config.iconPath.c_str());
+            }
+        }
+
+        if (iconImage.data != nullptr) {
+            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            }
+            SetWindowIcon(iconImage);
+            UnloadImage(iconImage);
+            TraceLog(LOG_INFO, "Window icon set successfully");
+        }
+    }
+
+    PathManager::Instance().Initialize();
+
+#ifndef BUILD_WITH_EDITOR
+    SplashScreen splashScreen{};
+    splashScreen.ShowEmbedded("engine/ui/splashscreen", 3.0f);
+
+    float lastTime{static_cast<float>(GetTime())};
+
+    while (!splashScreen.IsFinished() && !WindowShouldClose()) {
+        float currentTime{static_cast<float>(GetTime())};
+        float deltaTime{currentTime - lastTime};
+        lastTime = currentTime;
+
+        splashScreen.Update(deltaTime);
+
+        BeginDrawing();
+        ClearBackground(Color{0, 0, 0, 255});
+        splashScreen.Render();
+        EndDrawing();
+
+        if (!m_Initialized) {
+            m_Engine = std::make_unique<Engine>();
+            m_Engine->Initialize();
+
+            ProjectSettings& settings = ProjectSettings::Instance();
+            settings.ApplyToPhysics(m_Engine->GetPhysicsSystem());
+
+            m_Engine->CreatePhysicsBodies();
+            m_Engine->SetPhysicsEnabled(true);
+            m_Engine->SetScriptsEnabled(true);
+
+            m_Initialized = true;
+            splashScreen.MarkLoadingComplete();
+        }
+    }
+#else
     rlImGuiSetup(true);
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-#endif
 
     m_Engine = std::make_unique<Engine>();
     m_Engine->Initialize();
 
-#ifdef BUILD_WITH_EDITOR
     m_EditorLayer = std::make_unique<EditorLayer>(m_Engine.get());
-#else
-    ProjectSettings& settings = ProjectSettings::Instance();
-    settings.ApplyToPhysics(m_Engine->GetPhysicsSystem());
-
-    m_Engine->CreatePhysicsBodies();
-    m_Engine->SetPhysicsEnabled(true);
-#endif
 
     m_Initialized = true;
+#endif
+
     m_Running = true;
 }
 
@@ -77,18 +151,49 @@ void Application::Run() {
     float lastTime{static_cast<float>(GetTime())};
 
     while (m_Running && !WindowShouldClose()) {
+#ifdef BUILD_WITH_EDITOR
+        Profiler::Instance().BeginFrame();
+#endif
+
         float currentTime{static_cast<float>(GetTime())};
         float deltaTime{currentTime - lastTime};
         lastTime = currentTime;
 
+#ifdef BUILD_WITH_EDITOR
+        {
+            PROFILE_SCOPE("Update");
+            Update(deltaTime);
+        }
+#else
         Update(deltaTime);
+#endif
 
+#ifdef BUILD_WITH_EDITOR
+        {
+            PROFILE_SCOPE("BeginDrawing");
+            BeginDrawing();
+            ClearBackground(Color{30, 30, 30, 255});
+        }
+
+        {
+            PROFILE_SCOPE("Render");
+            Render();
+        }
+
+        {
+            PROFILE_SCOPE("EndDrawing + GPU Wait");
+            EndDrawing();
+        }
+#else
         BeginDrawing();
         ClearBackground(Color{30, 30, 30, 255});
-
         Render();
-
         EndDrawing();
+#endif
+
+#ifdef BUILD_WITH_EDITOR
+        Profiler::Instance().EndFrame();
+#endif
     }
 
     Shutdown();
@@ -117,13 +222,19 @@ void Application::Update(float deltaTime) {
 
 void Application::Render() {
 #ifdef BUILD_WITH_EDITOR
-    rlImGuiBegin();
+    {
+        PROFILE_SCOPE("rlImGuiBegin");
+        rlImGuiBegin();
+    }
 
     if (m_EditorLayer) {
         m_EditorLayer->OnImGuiRender();
     }
 
-    rlImGuiEnd();
+    {
+        PROFILE_SCOPE("rlImGuiEnd");
+        rlImGuiEnd();
+    }
 #else
     if (m_Engine) {
         m_Engine->Render();

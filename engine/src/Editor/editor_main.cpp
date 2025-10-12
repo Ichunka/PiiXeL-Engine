@@ -1,6 +1,7 @@
+#ifdef BUILD_WITH_EDITOR
+
 #include "Core/Application.hpp"
 #include "Reflection/ReflectionInit.hpp"
-#include "../include/ExampleScripts.hpp"
 #include <iostream>
 
 int main() {
@@ -11,8 +12,8 @@ int main() {
         config.title = "PiiXeL Engine - Editor";
         config.windowWidth = 1280;
         config.windowHeight = 720;
-        config.targetFPS = 60;
-        config.vsync = true;
+        config.targetFPS = 1000;
+        config.vsync = false;
         config.resizable = true;
         config.fullscreen = false;
 
@@ -26,3 +27,5 @@ int main() {
         return 1;
     }
 }
+
+#endif

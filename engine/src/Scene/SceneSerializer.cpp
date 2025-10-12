@@ -133,7 +133,7 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     if (registry.all_of<Sprite>(entity)) {
         const Sprite& sprite = registry.get<Sprite>(entity);
         entityJson["Sprite"] = {
-            {"texturePath", sprite.texturePath},
+            {"textureAssetUUID", sprite.textureAssetUUID.Get()},
             {"sourceRect", {sprite.sourceRect.x, sprite.sourceRect.y, sprite.sourceRect.width, sprite.sourceRect.height}},
             {"tint", {sprite.tint.r, sprite.tint.g, sprite.tint.b, sprite.tint.a}},
             {"layer", sprite.layer},
@@ -240,14 +240,9 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         const nlohmann::json& spriteJson = entityJson["Sprite"];
         Sprite sprite{};
 
-        sprite.texturePath = spriteJson.value("texturePath", "");
-
-        // Only load texture in editor mode - in game mode, GamePackageLoader handles it
-#ifdef BUILD_WITH_EDITOR
-        if (!sprite.texturePath.empty()) {
-            sprite.texture = AssetManager::Instance().LoadTexture(sprite.texturePath);
+        if (spriteJson.contains("textureAssetUUID")) {
+            sprite.textureAssetUUID = UUID{spriteJson["textureAssetUUID"].get<uint64_t>()};
         }
-#endif
 
         if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() && spriteJson["sourceRect"].size() == 4) {
             sprite.sourceRect.x = spriteJson["sourceRect"][0].get<float>();

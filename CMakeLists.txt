@@ -17,9 +17,12 @@ message(STATUS "Building game: ${GAME_PROJECT}")
 
 include(FetchContent)
 
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(OPT_BUILD_DRM OFF CACHE BOOL "" FORCE)
-set(USE_EXTERNAL_GLFW OFF CACHE BOOL "" FORCE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "Skip update step for FetchContent" FORCE)
+set(FETCHCONTENT_QUIET OFF)
+
+set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(OPT_BUILD_DRM OFF CACHE INTERNAL "")
+set(USE_EXTERNAL_GLFW OFF CACHE INTERNAL "")
 FetchContent_Declare(raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.5
@@ -27,6 +30,8 @@ FetchContent_Declare(raylib
 )
 FetchContent_MakeAvailable(raylib)
 
+set(ENTT_BUILD_TESTING OFF CACHE INTERNAL "")
+set(ENTT_BUILD_DOCS OFF CACHE INTERNAL "")
 FetchContent_Declare(entt
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.15.0
@@ -34,6 +39,9 @@ FetchContent_Declare(entt
 )
 FetchContent_MakeAvailable(entt)
 
+set(BOX2D_BUILD_UNIT_TESTS OFF CACHE INTERNAL "")
+set(BOX2D_BUILD_TESTBED OFF CACHE INTERNAL "")
+set(BOX2D_BUILD_DOCS OFF CACHE INTERNAL "")
 FetchContent_Declare(box2d
     GIT_REPOSITORY https://github.com/erincatto/box2d.git
     GIT_TAG v3.1.1
@@ -42,11 +50,17 @@ FetchContent_Declare(box2d
 FetchContent_MakeAvailable(box2d)
 
 FetchContent_Declare(json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    GIT_SHALLOW TRUE
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp
+    DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_MakeAvailable(json)
+
+file(MAKE_DIRECTORY ${json_SOURCE_DIR}/nlohmann)
+file(COPY_FILE ${json_SOURCE_DIR}/json.hpp ${json_SOURCE_DIR}/nlohmann/json.hpp ONLY_IF_DIFFERENT)
+
+add_library(nlohmann_json INTERFACE)
+add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+target_include_directories(nlohmann_json INTERFACE ${json_SOURCE_DIR})
 
 if(BUILD_EDITOR)
     FetchContent_Declare(imgui
@@ -80,6 +94,12 @@ if(BUILD_EDITOR)
     target_include_directories(rlImGui PUBLIC ${rlimgui_SOURCE_DIR})
     target_link_libraries(rlImGui PUBLIC raylib imgui)
 endif()
+
+add_executable(embed_asset_tool tools/EmbedAsset.cpp)
+set_target_properties(embed_asset_tool PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+)
 
 add_subdirectory(engine)
 

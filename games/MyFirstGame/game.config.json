@@ -24,8 +24,9 @@
     "window": {
         "fullscreen": false,
         "height": 720,
+        "icon": "content/assets/stone.ico",
         "resizable": true,
-        "targetFPS": 60,
+        "targetFPS": 1000,
         "vsync": true,
         "width": 1280
     }

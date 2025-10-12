@@ -28,6 +28,7 @@ private:
 private:
     bool m_ShowDebug{false};
     bool m_ShowColliders{false};
+    Texture2D m_DefaultWhiteTexture{};
 };
 
 } // namespace PiiXeL

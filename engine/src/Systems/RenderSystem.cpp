@@ -3,6 +3,8 @@
 #include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Debug/DebugDraw.hpp"
+#include "Debug/Profiler.hpp"
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -13,14 +15,30 @@ RenderSystem::RenderSystem()
 #ifdef BUILD_WITH_EDITOR
     : m_ShowDebug{false}
     , m_ShowColliders{false}
+    , m_DefaultWhiteTexture{}
 #else
     : m_ShowDebug{false}
     , m_ShowColliders{false}
+    , m_DefaultWhiteTexture{}
 #endif
 {
+    Image whiteImage = GenImageColor(64, 64, WHITE);
+    m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
+    UnloadImage(whiteImage);
+
+    if (m_DefaultWhiteTexture.id != 0) {
+        SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
+        TraceLog(LOG_INFO, "RenderSystem: Default white texture created (64x64)");
+    } else {
+        TraceLog(LOG_ERROR, "RenderSystem: Failed to create default white texture");
+    }
 }
 
-RenderSystem::~RenderSystem() = default;
+RenderSystem::~RenderSystem() {
+    if (m_DefaultWhiteTexture.id != 0) {
+        UnloadTexture(m_DefaultWhiteTexture);
+    }
+}
 
 void RenderSystem::Render(entt::registry& registry) {
     RenderSprites(registry);
@@ -32,6 +50,9 @@ void RenderSystem::Render(entt::registry& registry) {
     if (m_ShowDebug) {
         RenderDebug(registry);
     }
+
+    DebugDraw::Instance().Render();
+    DebugDraw::Instance().Clear();
 }
 
 void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& camera) {
@@ -47,10 +68,16 @@ void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& ca
         RenderDebug(registry);
     }
 
+    DebugDraw::Instance().Render();
+
     EndMode2D();
+
+    DebugDraw::Instance().Clear();
 }
 
 void RenderSystem::RenderSprites(entt::registry& registry) {
+    PROFILE_FUNCTION();
+
     struct SpriteEntity {
         entt::entity entity;
         const Sprite* sprite;
@@ -59,40 +86,55 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
 
     std::vector<SpriteEntity> sprites;
 
-    registry.view<Sprite, Transform>().each([&](entt::entity entity, const Sprite& sprite, const Transform& transform) {
-        if (sprite.IsValid()) {
+    {
+        PROFILE_SCOPE("RenderSprites::Collect");
+        registry.view<Sprite, Transform>().each([&](entt::entity entity, const Sprite& sprite, const Transform& transform) {
             sprites.push_back({entity, &sprite, &transform});
+        });
+    }
+
+    {
+        PROFILE_SCOPE("RenderSprites::Sort");
+        std::sort(sprites.begin(), sprites.end(), [](const SpriteEntity& a, const SpriteEntity& b) {
+            return a.sprite->layer < b.sprite->layer;
+        });
+    }
+
+    {
+        PROFILE_SCOPE("RenderSprites::Draw");
+        for (const SpriteEntity& spriteEntity : sprites) {
+            const Sprite* sprite{spriteEntity.sprite};
+            const Transform* transform{spriteEntity.transform};
+
+            Texture2D texture = sprite->GetTexture();
+            Rectangle sourceRect = sprite->sourceRect;
+
+            if (texture.id == 0) {
+                texture = m_DefaultWhiteTexture;
+                sourceRect = {0.0f, 0.0f, 64.0f, 64.0f};
+            }
+
+            Vector2 originPixels{
+                sourceRect.width * sprite->origin.x * transform->scale.x,
+                sourceRect.height * sprite->origin.y * transform->scale.y
+            };
+
+            Rectangle destRect{
+                transform->position.x,
+                transform->position.y,
+                sourceRect.width * transform->scale.x,
+                sourceRect.height * transform->scale.y
+            };
+
+            DrawTexturePro(
+                texture,
+                sourceRect,
+                destRect,
+                originPixels,
+                transform->rotation,
+                sprite->tint
+            );
         }
-    });
-
-    std::sort(sprites.begin(), sprites.end(), [](const SpriteEntity& a, const SpriteEntity& b) {
-        return a.sprite->layer < b.sprite->layer;
-    });
-
-    for (const SpriteEntity& spriteEntity : sprites) {
-        const Sprite* sprite{spriteEntity.sprite};
-        const Transform* transform{spriteEntity.transform};
-
-        Vector2 originPixels{
-            sprite->sourceRect.width * sprite->origin.x,
-            sprite->sourceRect.height * sprite->origin.y
-        };
-
-        Rectangle destRect{
-            transform->position.x,
-            transform->position.y,
-            sprite->sourceRect.width * transform->scale.x,
-            sprite->sourceRect.height * transform->scale.y
-        };
-
-        DrawTexturePro(
-            sprite->texture,
-            sprite->sourceRect,
-            destRect,
-            originPixels,
-            transform->rotation,
-            sprite->tint
-        );
     }
 }
 
@@ -156,14 +198,16 @@ void RenderSystem::RenderDebug(entt::registry& registry) {
 
 void RenderSystem::RenderColliders(entt::registry& registry) {
     registry.view<Transform, BoxCollider2D>().each([](const Transform& transform, const BoxCollider2D& collider) {
-        float halfW = collider.size.x * 0.5f;
-        float halfH = collider.size.y * 0.5f;
+        float scaledWidth = collider.size.x * transform.scale.x;
+        float scaledHeight = collider.size.y * transform.scale.y;
+        float halfW = scaledWidth * 0.5f;
+        float halfH = scaledHeight * 0.5f;
         float cosR = std::cos(transform.rotation * DEG2RAD);
         float sinR = std::sin(transform.rotation * DEG2RAD);
 
         Vector2 centerPos{
-            transform.position.x + collider.offset.x,
-            transform.position.y + collider.offset.y
+            transform.position.x + collider.offset.x * transform.scale.x,
+            transform.position.y + collider.offset.y * transform.scale.y
         };
 
         Vector2 corners[4];

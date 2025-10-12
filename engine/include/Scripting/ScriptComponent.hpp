@@ -3,6 +3,8 @@
 
 #include <entt/entt.hpp>
 #include <raylib.h>
+#include <optional>
+#include "Physics/ComponentHandles.hpp"
 
 namespace PiiXeL {
 
@@ -22,6 +24,10 @@ public:
 
     void ExecuteUpdate(float deltaTime) {
         if (m_Initialized && m_Enabled) {
+            if (!m_Started) {
+                m_Started = true;
+                OnStart();
+            }
             OnUpdate(deltaTime);
         }
     }
@@ -50,9 +56,14 @@ public:
     void SetPosition(Vector2 position);
     void Translate(Vector2 offset);
 
+    template<typename Component>
+    [[nodiscard]] std::optional<typename ComponentHandle<Component>::Type> GetHandle();
+
     virtual void OnCollisionEnter(entt::entity other) { (void)other; }
+    virtual void OnCollisionStay(entt::entity other) { (void)other; }
     virtual void OnCollisionExit(entt::entity other) { (void)other; }
     virtual void OnTriggerEnter(entt::entity other) { (void)other; }
+    virtual void OnTriggerStay(entt::entity other) { (void)other; }
     virtual void OnTriggerExit(entt::entity other) { (void)other; }
 
     entt::entity m_Entity{entt::null};
@@ -61,12 +72,14 @@ public:
 
 protected:
     virtual void OnAwake() {}
+    virtual void OnStart() {}
     virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnFixedUpdate(float fixedDeltaTime) { (void)fixedDeltaTime; }
     virtual void OnDestroy() {}
 
 private:
     bool m_Initialized{false};
+    bool m_Started{false};
 };
 
 } // namespace PiiXeL

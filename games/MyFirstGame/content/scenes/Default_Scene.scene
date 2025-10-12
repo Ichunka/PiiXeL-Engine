@@ -16,6 +16,190 @@
             "uuid": 8936981619653733226
         },
         {
+            "uuid": 10889093918676105667
+        },
+        {
+            "uuid": 9817665427361649564
+        },
+        {
+            "Camera": {
+                "isPrimary": true,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "zoom": 1.0
+            },
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "offset": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "smoothSpeed": 5.0,
+                    "target": 12268626963706819014
+                },
+                "scriptName": "FollowCamera"
+            },
+            "Tag": {
+                "name": "Camera"
+            },
+            "Transform": {
+                "position": [
+                    344.9838562011719,
+                    65.00344848632813
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 18192462657191418153
+        },
+        {
+            "uuid": 3382512573021516425
+        },
+        {
+            "uuid": 16244587903757521876
+        },
+        {
+            "uuid": 1538321209544170737
+        },
+        {
+            "uuid": 2985420007236529062
+        },
+        {
+            "uuid": 14503131825516001993
+        },
+        {
+            "uuid": 8873016880225753771
+        },
+        {
+            "uuid": 7248746674117963046
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": true,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    16.0,
+                    16.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 2
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 13271663038450448162,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "Autre"
+            },
+            "Transform": {
+                "position": [
+                    295.2657470703125,
+                    -24.997940063476563
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "uuid": 4612835490763123557
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    16.0,
+                    16.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 2
+            },
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "amplitude": 100.0,
+                    "frequency": 1.0,
+                    "rotationSpeed": 90.0
+                },
+                "scriptName": "RotatingPlatform"
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 13271663038450448162,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "dirt"
+            },
+            "Transform": {
+                "position": [
+                    -403.5,
+                    61.5
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "uuid": 3523256539642673613
+        },
+        {
             "BoxCollider2D": {
                 "isTrigger": false,
                 "offset": [
@@ -28,47 +212,56 @@
                 ]
             },
             "RigidBody2D": {
-                "fixedRotation": false,
+                "fixedRotation": true,
                 "friction": 0.30000001192092896,
                 "mass": 10.0,
                 "restitution": 0.0,
                 "type": 1
             },
+            "Script": {
+                "enabled": true,
+                "properties": {
+                    "jumpForce": 600.0,
+                    "moveSpeed": 300.0,
+                    "playerTexture": {}
+                },
+                "scriptName": "PlayerController"
+            },
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    2.0,
-                    2.0
+                    0.5,
+                    0.5
                 ],
                 "sourceRect": [
                     0.0,
                     0.0,
-                    16.0,
-                    16.0
+                    0.0,
+                    0.0
                 ],
-                "texturePath": "content/assets/dirt.png",
+                "textureAssetUUID": 0,
                 "tint": [
                     255,
-                    255,
-                    255,
+                    84,
+                    84,
                     255
                 ]
             },
             "Tag": {
-                "name": "New Entity"
+                "name": "Player"
             },
             "Transform": {
                 "position": [
-                    -47.0,
-                    -275.0
+                    0.0,
+                    -97.0
                 ],
                 "rotation": 0.0,
                 "scale": [
-                    4.0,
-                    4.0
+                    1.0,
+                    2.0
                 ]
             },
-            "uuid": 2743804717711246141
+            "uuid": 12268626963706819014
         },
         {
             "BoxCollider2D": {
@@ -98,54 +291,16 @@
                 "sourceRect": [
                     0.0,
                     0.0,
-                    64.0,
-                    64.0
-                ],
-                "texturePath": "",
-                "tint": [
-                    255,
-                    255,
-                    255,
-                    255
-                ]
-            },
-            "Tag": {
-                "name": "New Entity (Copy)"
-            },
-            "Transform": {
-                "position": [
-                    -1.0,
-                    -7.0
-                ],
-                "rotation": 0.0,
-                "scale": [
-                    1.0,
-                    1.0
-                ]
-            },
-            "uuid": 2749938299147135401
-        },
-        {
-            "Camera": {
-                "isPrimary": true,
-                "offset": [
                     0.0,
                     0.0
                 ],
-                "rotation": 0.0,
-                "zoom": 1.0
-            },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "offset": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
-                    "smoothSpeed": 5.0,
-                    "target": 2743804717711246141
-                },
-                "scriptName": "FollowCamera"
+                "textureAssetUUID": 0,
+                "tint": [
+                    0,
+                    255,
+                    0,
+                    255
+                ]
             },
             "Tag": {
                 "name": "New Entity"
@@ -153,31 +308,40 @@
             "Transform": {
                 "position": [
                     0.0,
-                    0.0
+                    57.0
                 ],
                 "rotation": 0.0,
                 "scale": [
-                    1.0,
+                    10.0,
                     1.0
                 ]
             },
-            "uuid": 18192462657191418153
+            "uuid": 5888343418577575954
         },
         {
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "amplitude": 100.0,
-                    "frequency": 1.0,
-                    "rotationSpeed": 90.0
-                },
-                "scriptName": "RotatingPlatform"
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    16.0,
+                    16.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 1
             },
             "Sprite": {
                 "layer": 0,
                 "origin": [
-                    2.0,
-                    2.0
+                    0.5,
+                    0.5
                 ],
                 "sourceRect": [
                     0.0,
@@ -185,7 +349,7 @@
                     16.0,
                     16.0
                 ],
-                "texturePath": "content/assets/grass_side.png",
+                "textureAssetUUID": 18381020861783039198,
                 "tint": [
                     255,
                     255,
@@ -194,12 +358,12 @@
                 ]
             },
             "Tag": {
-                "name": "New Entity (Copy) (Copy)"
+                "name": "New Entity"
             },
             "Transform": {
                 "position": [
-                    -320.0,
-                    -7.0
+                    348.0,
+                    -330.0
                 ],
                 "rotation": 0.0,
                 "scale": [
@@ -207,7 +371,7 @@
                     4.0
                 ]
             },
-            "uuid": 10375025575426431521
+            "uuid": 13873715024828058877
         }
     ],
     "scene": "Default Scene"

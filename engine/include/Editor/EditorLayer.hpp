@@ -9,12 +9,15 @@
 #include <memory>
 #include <unordered_map>
 #include "Components/Transform.hpp"
+#include "Components/UUID.hpp"
 #include "CommandHistory.hpp"
+#include "Debug/Profiler.hpp"
 
 namespace PiiXeL {
 
 class Engine;
 class Scene;
+class BuildPanel;
 
 enum class EditorState {
     Edit,
@@ -66,6 +69,8 @@ private:
     void RenderContentBrowser();
     void RenderConsole();
     void RenderProjectSettings();
+    void RenderProfiler();
+    void RenderBuildPanel();
 
     Vector2 ScreenToWorld(Vector2 screenPos, const Camera2D& camera);
     void HandleGizmoInteraction();
@@ -87,6 +92,7 @@ private:
     void PasteEntity();
 
     bool RenderEntityPicker(const char* label, entt::entity* entity);
+    bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
 
     void RestoreScriptPropertiesFromFile(const std::string& filepath);
 
@@ -94,6 +100,7 @@ private:
     Engine* m_Engine;
     RenderTexture2D m_ViewportTexture;
     RenderTexture2D m_GameViewportTexture;
+    Texture2D m_DefaultWhiteTexture;
     Rectangle m_ViewportBounds{0, 0, 1920, 1080};
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
@@ -144,6 +151,18 @@ private:
     int m_ConsoleLastClickedLine{-1};
 
     entt::entity m_CopiedEntity{entt::null};
+
+    bool m_ProfilerPaused{false};
+    FrameSnapshot m_ProfilerPausedSnapshot{};
+    int m_ProfilerSelectedFrame{-1};
+    FrameSnapshot m_ProfilerSelectedFrameSnapshot{};
+    float m_ProfilerFlameGraphZoom{1.0f};
+    float m_ProfilerFlameGraphScroll{0.0f};
+
+    std::unique_ptr<BuildPanel> m_BuildPanel;
+
+    UUID m_SelectedAssetUUID{0};
+    std::string m_SelectedAssetPath;
 };
 
 } // namespace PiiXeL

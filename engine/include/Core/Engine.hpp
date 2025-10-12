@@ -41,7 +41,11 @@ public:
     bool LoadSceneFromFile(const std::string& filepath);
     bool LoadFromPackage(const std::string& packagePath, const std::string& sceneName);
 
+    void InvalidatePrimaryCameraCache() { m_PrimaryCameraCached = false; }
+
 private:
+    entt::entity FindPrimaryCamera();
+
     entt::registry m_Registry;
     std::unique_ptr<Scene> m_ActiveScene;
     std::unique_ptr<RenderSystem> m_RenderSystem;
@@ -50,6 +54,9 @@ private:
     std::unique_ptr<GamePackageLoader> m_PackageLoader;
     bool m_PhysicsEnabled{false};
     bool m_ScriptsEnabled{true};
+
+    entt::entity m_PrimaryCamera{entt::null};
+    bool m_PrimaryCameraCached{false};
 };
 
 } // namespace PiiXeL

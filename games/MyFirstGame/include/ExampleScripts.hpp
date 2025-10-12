@@ -2,10 +2,11 @@
 #define MYFIRSTGAME_EXAMPLESCRIPT_HPP
 
 #include "Scripting/ScriptComponent.hpp"
+#include "Scripting/ScriptComponentHandles.inl"
 #include "Scripting/AssetRef.hpp"
 #include "Scripting/EntityRef.hpp"
 #include "Components/Transform.hpp"
-#include "Systems/ScriptSystem.hpp"
+#include "Components/RigidBody2D.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
 
@@ -13,46 +14,69 @@ class PlayerController : public PiiXeL::ScriptComponent {
 public:
     PlayerController() = default;
 
-    float moveSpeed{200.0f};
-    float jumpForce{500.0f};
+    float moveSpeed{300.0f};
+    float jumpForce{600.0f};
     PiiXeL::AssetRef<Texture2D> playerTexture;
 
 protected:
     void OnAwake() override {
-        TraceLog(LOG_INFO, "PlayerController: Awake!");
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Awake!");
+    }
+
+    void OnStart() override {
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Start!");
     }
 
     void OnUpdate(float deltaTime) override {
-        Vector2 movement{0.0f, 0.0f};
+        (void)deltaTime;
+
+        auto rb = GetHandle<PiiXeL::RigidBody2D>();
+        if (!rb) return;
+
+        Vector2 vel = rb->GetVelocity();
 
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-            movement.x -= moveSpeed * deltaTime;
-        }
-        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
-            movement.x += moveSpeed * deltaTime;
-        }
-
-        if ((IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) && m_IsGrounded) {
-            movement.y -= jumpForce * deltaTime;
-            m_IsGrounded = false;
+            vel.x = -moveSpeed;
+        } else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+            vel.x = moveSpeed;
+        } else {
+            vel.x = 0.0f;
         }
 
-        Translate(movement);
+        rb->SetVelocity(vel);
+
+        if (rb->IsGrounded() && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
+            rb->AddImpulse({0.0f, -jumpForce});
+        }
     }
 
     void OnCollisionEnter(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "PlayerController: Collision Enter!");
-        m_IsGrounded = true;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Enter!");
+    }
+
+    void OnCollisionStay(entt::entity other) override {
+        (void)other;
+    }
+
+    void OnCollisionExit(entt::entity other) override {
+        (void)other;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Exit!");
     }
 
     void OnTriggerEnter(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "PlayerController: Trigger Enter - Collected item!");
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Enter - Collected item!");
     }
 
-private:
-    bool m_IsGrounded{false};
+    void OnTriggerStay(entt::entity other) override {
+        (void)other;
+    }
+
+    void OnTriggerExit(entt::entity other) override {
+        (void)other;
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Exit!");
+    }
 };
 
 BEGIN_REFLECT(PlayerController)
@@ -73,17 +97,26 @@ protected:
     void OnUpdate(float deltaTime) override {
         m_Time += deltaTime;
 
-        Vector2 pos = GetPosition();
-        float offset = sinf(m_Time * frequency) * amplitude;
-        SetPosition({pos.x, m_StartY + offset});
+        auto rb = GetHandle<PiiXeL::RigidBody2D>();
+        if (rb) {
+            float offset = sinf(m_Time * frequency) * amplitude;
+            rb->SetKinematicTarget({m_StartX, m_StartY + offset});
+        } else {
+            Vector2 pos = GetPosition();
+            float offset = sinf(m_Time * frequency) * amplitude;
+            SetPosition({pos.x, m_StartY + offset});
+        }
     }
 
     void OnAwake() override {
-        m_StartY = GetPosition().y;
+        Vector2 startPos = GetPosition();
+        m_StartX = startPos.x;
+        m_StartY = startPos.y;
     }
 
 private:
     float m_Time{0.0f};
+    float m_StartX{0.0f};
     float m_StartY{0.0f};
 };
 
@@ -128,9 +161,5 @@ BEGIN_REFLECT(FollowCamera)
     FIELD_RANGE(smoothSpeed, 0.0f, 20.0f, 0.1f)
     FIELD(offset)
 END_REFLECT(FollowCamera)
-
-REGISTER_SCRIPT(PlayerController, "PlayerController")
-REGISTER_SCRIPT(RotatingPlatform, "RotatingPlatform")
-REGISTER_SCRIPT(FollowCamera, "FollowCamera")
 
 #endif

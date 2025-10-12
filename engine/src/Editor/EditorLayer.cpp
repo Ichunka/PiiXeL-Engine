@@ -2,9 +2,14 @@
 
 #include "Editor/EditorLayer.hpp"
 #include "Editor/ConsoleLogger.hpp"
+#include "Editor/BuildPanel.hpp"
+#include "Resources/AssetRegistry.hpp"
+#include "Resources/TextureAsset.hpp"
+#include "Resources/AudioAsset.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
+#include "Scene/EntityRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Components/Tag.hpp"
@@ -16,9 +21,12 @@
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/ScriptSystem.hpp"
+#include "Scripting/ScriptRegistry.hpp"
 #include "Editor/EditorCommands.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/Reflection.hpp"
+#include "Debug/DebugDraw.hpp"
+#include "Debug/Profiler.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <rlImGui.h>
@@ -27,6 +35,8 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 namespace PiiXeL {
 
@@ -34,6 +44,7 @@ EditorLayer::EditorLayer(Engine* engine)
     : m_Engine{engine}
     , m_ViewportTexture{}
     , m_GameViewportTexture{}
+    , m_DefaultWhiteTexture{}
     , m_ViewportBounds{0, 0, 1920, 1080}
     , m_ViewportHovered{false}
     , m_ViewportFocused{false}
@@ -46,7 +57,23 @@ EditorLayer::EditorLayer(Engine* engine)
 {
     m_ViewportTexture = LoadRenderTexture(1920, 1080);
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
+
+    Image whiteImage = GenImageColor(64, 64, WHITE);
+    m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
+    UnloadImage(whiteImage);
+
+    if (m_DefaultWhiteTexture.id != 0) {
+        SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
+        TraceLog(LOG_INFO, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
+    } else {
+        TraceLog(LOG_ERROR, "Failed to create default white texture");
+    }
+
+    m_BuildPanel = std::make_unique<BuildPanel>();
     SetupDarkTheme();
+
+    AssetRegistry::Instance().Initialize();
+    AssetRegistry::Instance().ImportDirectory("content/assets");
 
     m_Engine->SetScriptsEnabled(false);
 
@@ -82,6 +109,9 @@ EditorLayer::~EditorLayer() {
     }
     if (m_GameViewportTexture.id != 0) {
         UnloadRenderTexture(m_GameViewportTexture);
+    }
+    if (m_DefaultWhiteTexture.id != 0) {
+        UnloadTexture(m_DefaultWhiteTexture);
     }
 }
 
@@ -136,6 +166,8 @@ void EditorLayer::OnRender() {
 }
 
 void EditorLayer::OnImGuiRender() {
+    PROFILE_FUNCTION();
+
     ImGuiIO& io = ImGui::GetIO();
 
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_W, false)) {
@@ -189,11 +221,14 @@ void EditorLayer::OnImGuiRender() {
     RenderContentBrowser();
     RenderConsole();
     RenderProjectSettings();
+    RenderProfiler();
+    RenderBuildPanel();
 
     EndDockspace();
 }
 
 void EditorLayer::BeginDockspace() {
+    PROFILE_FUNCTION();
     static bool dockspaceOpen = true;
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
@@ -245,15 +280,19 @@ void EditorLayer::SetupDockingLayout() {
     ImGui::DockBuilderDockWindow("Game", dockspace_id);
     ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
+    ImGui::DockBuilderDockWindow("Build & Export", dock_id_bottom);
+    ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
 
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
 void EditorLayer::EndDockspace() {
+    PROFILE_FUNCTION();
     ImGui::End();
 }
 
 void EditorLayer::RenderMenuBar() {
+    PROFILE_FUNCTION();
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
@@ -308,6 +347,7 @@ void EditorLayer::RenderMenuBar() {
 }
 
 void EditorLayer::RenderToolbar() {
+    PROFILE_FUNCTION();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8, 8});
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{8, 4});
 
@@ -363,6 +403,12 @@ void EditorLayer::RenderToolbar() {
         if (ImGui::Checkbox("Show Debug", &showDebug)) {
             renderSystem->SetShowDebug(showDebug);
         }
+
+        ImGui::SameLine();
+        bool showDebugRays = DebugDraw::Instance().IsEnabled();
+        if (ImGui::Checkbox("Show Rays", &showDebugRays)) {
+            DebugDraw::Instance().SetEnabled(showDebugRays);
+        }
     }
 
     ImGui::End();
@@ -370,6 +416,7 @@ void EditorLayer::RenderToolbar() {
 }
 
 void EditorLayer::RenderViewport() {
+    PROFILE_FUNCTION();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
     ImGui::Begin("Scene");
 
@@ -493,9 +540,13 @@ void EditorLayer::RenderViewport() {
 
                     Vector2 worldPos = ScreenToWorld(mouseViewportPos, dropCamera);
 
-                    Texture2D newTexture = AssetManager::Instance().LoadTexture(assetInfo->path);
-                    if (newTexture.id != 0) {
+                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                    if (asset && asset->GetMetadata().type == AssetType::Texture) {
                         entt::entity newEntity = registry.create();
+
+                        UUID uuid{};
+                        registry.emplace<UUID>(newEntity, uuid);
+                        EntityRegistry::Instance().RegisterEntity(uuid, newEntity);
 
                         std::string entityName = assetInfo->filename;
                         size_t dotPos = entityName.find_last_of('.');
@@ -514,16 +565,12 @@ void EditorLayer::RenderViewport() {
                         registry.emplace<Transform>(newEntity, transform);
 
                         Sprite sprite{};
-                        sprite.texture = newTexture;
-                        sprite.texturePath = assetInfo->path;
-                        sprite.sourceRect = Rectangle{
-                            0.0f, 0.0f,
-                            static_cast<float>(newTexture.width),
-                            static_cast<float>(newTexture.height)
-                        };
+                        sprite.SetTexture(asset->GetUUID());
                         sprite.tint = WHITE;
                         sprite.origin = Vector2{0.5f, 0.5f};
                         registry.emplace<Sprite>(newEntity, sprite);
+
+                        scene->GetEntityOrder().push_back(newEntity);
 
                         m_SelectedEntity = newEntity;
 
@@ -541,6 +588,7 @@ void EditorLayer::RenderViewport() {
 }
 
 void EditorLayer::RenderHierarchy() {
+    PROFILE_FUNCTION();
     ImGui::Begin("Hierarchy");
 
     m_IsDraggingEntity = false;
@@ -612,6 +660,8 @@ void EditorLayer::RenderHierarchy() {
             if (itemHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !m_IsDraggingEntity) {
                 if (!m_InspectorLocked) {
                     m_SelectedEntity = entity;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedAssetPath.clear();
                 }
             }
 
@@ -619,6 +669,8 @@ void EditorLayer::RenderHierarchy() {
                 if (ImGui::MenuItem("Duplicate", "Ctrl+D")) {
                     entt::entity newEntity = DuplicateEntity(entity);
                     m_SelectedEntity = newEntity;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedAssetPath.clear();
                 }
 
                 if (ImGui::MenuItem("Copy", "Ctrl+C")) {
@@ -641,7 +693,96 @@ void EditorLayer::RenderHierarchy() {
 }
 
 void EditorLayer::RenderInspector() {
+    PROFILE_FUNCTION();
     ImGui::Begin("Inspector");
+
+    if (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty()) {
+        ImGui::TextColored(ImVec4{0.4f, 0.8f, 1.0f, 1.0f}, "Asset");
+        ImGui::Separator();
+
+        std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
+
+        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty()) {
+            auto result = AssetRegistry::Instance().LoadAssetFromPath(m_SelectedAssetPath);
+            if (result) {
+                asset = result;
+                m_SelectedAssetUUID = asset->GetUUID();
+            }
+        }
+
+        if (asset) {
+            const AssetMetadata& metadata = asset->GetMetadata();
+
+            ImGui::Text("Name: %s", metadata.name.c_str());
+            ImGui::Text("UUID: %llu", metadata.uuid.Get());
+            ImGui::Text("Type: %s", metadata.type == AssetType::Texture ? "Texture" :
+                                     metadata.type == AssetType::Audio ? "Audio" : "Unknown");
+            ImGui::Text("Source: %s", metadata.sourceFile.c_str());
+            ImGui::Text("Memory: %zu bytes", asset->GetMemoryUsage());
+            ImGui::Text("Loaded: %s", asset->IsLoaded() ? "Yes" : "No");
+
+            ImGui::Separator();
+
+            if (metadata.type == AssetType::Texture) {
+                TextureAsset* texAsset = dynamic_cast<TextureAsset*>(asset.get());
+                if (texAsset) {
+                    ImGui::Text("Dimensions: %dx%d", texAsset->GetWidth(), texAsset->GetHeight());
+                    ImGui::Text("Mipmaps: %d", texAsset->GetMipmaps());
+                    ImGui::Text("Format: %d", texAsset->GetFormat());
+
+                    ImGui::Separator();
+                    ImGui::Text("Preview:");
+
+                    Texture2D texture = texAsset->GetTexture();
+                    if (texture.id != 0) {
+                        float maxWidth = ImGui::GetContentRegionAvail().x - 20.0f;
+                        float maxHeight = 256.0f;
+
+                        float aspectRatio = static_cast<float>(texture.width) / static_cast<float>(texture.height);
+                        float displayWidth = maxWidth;
+                        float displayHeight = displayWidth / aspectRatio;
+
+                        if (displayHeight > maxHeight) {
+                            displayHeight = maxHeight;
+                            displayWidth = displayHeight * aspectRatio;
+                        }
+
+                        rlImGuiImageSize(&texture, static_cast<int>(displayWidth), static_cast<int>(displayHeight));
+                    }
+                }
+            } else if (metadata.type == AssetType::Audio) {
+                AudioAsset* audioAsset = dynamic_cast<AudioAsset*>(asset.get());
+                if (audioAsset) {
+                    ImGui::Text("Frames: %u", audioAsset->GetFrameCount());
+
+                    ImGui::Separator();
+
+                    Sound sound = audioAsset->GetSound();
+                    if (sound.frameCount > 0) {
+                        if (ImGui::Button("Play")) {
+                            PlaySound(sound);
+                        }
+                        ImGui::SameLine();
+                        if (ImGui::Button("Stop")) {
+                            StopSound(sound);
+                        }
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Reimport")) {
+                AssetRegistry::Instance().ReimportAsset(metadata.sourceFile);
+            }
+        } else {
+            ImGui::Text("Path: %s", m_SelectedAssetPath.c_str());
+            ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "Scene file (not an importable asset)");
+        }
+
+        ImGui::End();
+        return;
+    }
 
     if (ImGui::Button(m_InspectorLocked ? "Unlock" : "Lock")) {
         m_InspectorLocked = !m_InspectorLocked;
@@ -763,49 +904,64 @@ void EditorLayer::RenderInspector() {
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.2f, 0.2f, 1.0f});
 
+                    Texture2D displayTexture = m_DefaultWhiteTexture;
+                    float previewWidth = 100.0f;
+                    float previewHeight = 100.0f;
+                    bool isDefaultTexture = true;
+
                     if (sprite.IsValid()) {
-                        float aspectRatio = static_cast<float>(sprite.texture.width) / static_cast<float>(sprite.texture.height);
-                        float previewWidth = 100.0f;
-                        float previewHeight = previewWidth / aspectRatio;
+                        Texture2D texture = sprite.GetTexture();
+                        if (texture.id != 0) {
+                            displayTexture = texture;
+                            isDefaultTexture = false;
+                            float aspectRatio = static_cast<float>(texture.width) / static_cast<float>(texture.height);
+                            previewHeight = previewWidth / aspectRatio;
+                        }
+                    }
 
-                        ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(sprite.texture.id));
-
+                    if (displayTexture.id == 0) {
+                        ImGui::TextColored(ImVec4{1.0f, 0.0f, 0.0f, 1.0f}, "ERROR: No texture to display!");
+                    } else {
+                        ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(displayTexture.id));
                         if (ImGui::ImageButton("##TexturePreview", texId, ImVec2{previewWidth, previewHeight})) {
                         }
-                    } else {
-                        if (ImGui::Button("Drop Texture Here", ImVec2{150, 100})) {
+
+                        if (ImGui::BeginDragDropTarget()) {
+                            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
+                                AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
+                                if (assetInfo) {
+                                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                                    if (asset && asset->GetMetadata().type == AssetType::Texture) {
+                                        sprite.SetTexture(asset->GetUUID());
+                                        TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
+                                    }
+                                }
+                            }
+                            ImGui::EndDragDropTarget();
+                        }
+
+                        if (isDefaultTexture) {
+                            ImGui::SameLine();
+                            ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "(None)");
                         }
                     }
 
                     ImGui::PopStyleColor();
 
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
-                            AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
-                            if (assetInfo) {
-                                Texture2D newTexture = AssetManager::Instance().LoadTexture(assetInfo->path);
-                                if (newTexture.id != 0) {
-                                    sprite.texture = newTexture;
-                                    sprite.texturePath = assetInfo->path;
-                                    sprite.sourceRect = Rectangle{
-                                        0.0f, 0.0f,
-                                        static_cast<float>(newTexture.width),
-                                        static_cast<float>(newTexture.height)
-                                    };
-                                    TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
-                                }
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-
                     if (sprite.IsValid()) {
-                        ImGui::Text("%dx%d", sprite.texture.width, sprite.texture.height);
+                        Texture2D texture = sprite.GetTexture();
+                        if (texture.id != 0) {
+                            ImGui::Text("%dx%d", texture.width, texture.height);
+                        }
                     }
 
-                    Reflection::ImGuiRenderer::RenderProperties(sprite, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
+                    Reflection::ImGuiRenderer::RenderProperties(sprite,
+                        [this](const char* label, entt::entity* entity) {
+                            return RenderEntityPicker(label, entity);
+                        },
+                        [this](const char* label, UUID* uuid, const std::string& assetType) {
+                            return RenderAssetPicker(label, uuid, assetType);
+                        });
 
                     ImGui::TreePop();
                 }
@@ -872,7 +1028,8 @@ void EditorLayer::RenderInspector() {
                     if (registry.all_of<Sprite>(inspectedEntity)) {
                         if (ImGui::Button("Fit to Sprite")) {
                             const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
+                            Vector2 spriteSize = sprite.GetSize();
+                            collider.size = spriteSize;
                             collider.offset = Vector2{0.0f, 0.0f};
                         }
                     }
@@ -912,9 +1069,13 @@ void EditorLayer::RenderInspector() {
                             for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                 if (field.flags & Reflection::FieldFlags::ReadOnly) continue;
                                 void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                Reflection::ImGuiRenderer::RenderField(field, fieldPtr, [this](const char* label, entt::entity* entity) {
-                                    return RenderEntityPicker(label, entity);
-                                });
+                                Reflection::ImGuiRenderer::RenderField(field, fieldPtr,
+                                    [this](const char* label, entt::entity* entity) {
+                                        return RenderEntityPicker(label, entity);
+                                    },
+                                    [this](const char* label, UUID* uuid, const std::string& assetType) {
+                                        return RenderAssetPicker(label, uuid, assetType);
+                                    });
                             }
                         }
                     } else {
@@ -922,7 +1083,7 @@ void EditorLayer::RenderInspector() {
 
                         if (m_Engine && m_Engine->GetScriptSystem()) {
                             ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-                            const auto& registeredScripts = scriptSystem->GetRegisteredScripts();
+                            const auto& registeredScripts = ScriptRegistry::Instance().GetAllScripts();
 
                             if (ImGui::BeginCombo("##SelectScript", "Select Script...")) {
                                 for (const auto& [name, factory] : registeredScripts) {
@@ -1012,6 +1173,7 @@ void EditorLayer::RenderInspector() {
 }
 
 void EditorLayer::RenderContentBrowser() {
+    PROFILE_FUNCTION();
     ImGui::Begin("Content Browser");
 
     static std::vector<std::string> directories;
@@ -1049,6 +1211,10 @@ void EditorLayer::RenderContentBrowser() {
                     info.extension = entry.path().extension().string();
                     info.fileSize = std::filesystem::file_size(entry.path());
 
+                    if (info.extension == ".pxa" || info.extension == ".package") {
+                        continue;
+                    }
+
                     if (info.extension == ".png" || info.extension == ".jpg" || info.extension == ".jpeg" || info.extension == ".bmp" || info.extension == ".tga") {
                         info.type = "texture";
                         Image img = LoadImage(info.path.c_str());
@@ -1057,6 +1223,8 @@ void EditorLayer::RenderContentBrowser() {
                             info.height = img.height;
                             UnloadImage(img);
                         }
+                    } else if (info.extension == ".wav" || info.extension == ".ogg" || info.extension == ".mp3") {
+                        info.type = "audio";
                     } else if (info.extension == ".scene") {
                         info.type = "scene";
                     } else {
@@ -1193,7 +1361,25 @@ void EditorLayer::RenderContentBrowser() {
                     ImVec2 imageSize{displayWidth, displayHeight};
                     ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(tex.id));
 
-                    ImGui::ImageButton("##texture", texId, imageSize);
+                    if (ImGui::ImageButton("##texture", texId, imageSize)) {
+                        m_SelectedAssetPath = asset.path;
+
+                        UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                        std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                            ? AssetRegistry::Instance().GetAsset(existingUUID)
+                            : nullptr;
+
+                        if (!existingAsset) {
+                            std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                            if (loadedAsset) {
+                                m_SelectedAssetUUID = loadedAsset->GetUUID();
+                            }
+                        } else {
+                            m_SelectedAssetUUID = existingUUID;
+                        }
+
+                        m_SelectedEntity = entt::null;
+                    }
 
                     if (ImGui::BeginPopupContextItem()) {
                         rightClickedItem = asset.path;
@@ -1247,7 +1433,11 @@ void EditorLayer::RenderContentBrowser() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.5f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_Text, sceneColor);
 
-                ImGui::Button("SCENE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)});
+                if (ImGui::Button("SCENE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedEntity = entt::null;
+                }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (m_Engine && m_Engine->GetActiveScene()) {
@@ -1294,7 +1484,31 @@ void EditorLayer::RenderContentBrowser() {
 
                 ImGui::PopStyleColor(3);
             } else {
-                ImGui::Button("FILE", ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)});
+                ImVec4 fileColor = asset.type == "audio" ? ImVec4{0.8f, 0.4f, 0.8f, 1.0f} : ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
+                ImGui::PushStyleColor(ImGuiCol_Text, fileColor);
+
+                std::string buttonLabel = asset.type == "audio" ? "AUDIO" : "FILE";
+                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+
+                    UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                        ? AssetRegistry::Instance().GetAsset(existingUUID)
+                        : nullptr;
+
+                    if (!existingAsset) {
+                        std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                        if (loadedAsset) {
+                            m_SelectedAssetUUID = loadedAsset->GetUUID();
+                        }
+                    } else {
+                        m_SelectedAssetUUID = existingUUID;
+                    }
+
+                    m_SelectedEntity = entt::null;
+                }
+
+                ImGui::PopStyleColor();
 
                 if (ImGui::BeginPopupContextItem()) {
                     rightClickedItem = asset.path;
@@ -1493,6 +1707,7 @@ void EditorLayer::RenderContentBrowser() {
 }
 
 void EditorLayer::RenderConsole() {
+    PROFILE_FUNCTION();
     if (!ImGui::Begin("Console")) {
         ImGui::End();
         return;
@@ -1989,6 +2204,8 @@ void EditorLayer::HandleEntitySelection() {
 
     if (clickedEntity != entt::null) {
         m_SelectedEntity = clickedEntity;
+        m_SelectedAssetUUID = UUID{0};
+        m_SelectedAssetPath.clear();
     }
 }
 
@@ -2152,6 +2369,14 @@ void EditorLayer::RenderGameViewport() {
                         static_cast<int>(viewportPanelSize.x),
                         static_cast<int>(viewportPanelSize.y),
                         sourceRec);
+    }
+
+    if (m_EditorState == EditorState::Play) {
+        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
+            ImGuiIO& io = ImGui::GetIO();
+            io.WantCaptureMouse = false;
+            io.WantCaptureKeyboard = false;
+        }
     }
 
     ImGui::End();
@@ -2324,6 +2549,7 @@ void EditorLayer::LoadScene() {
 }
 
 void EditorLayer::RenderProjectSettings() {
+    PROFILE_FUNCTION();
     if (!m_ShowProjectSettings) {
         return;
     }
@@ -2385,6 +2611,30 @@ void EditorLayer::RenderProjectSettings() {
                 ImGui::Checkbox("Resizable", &settings.window.resizable);
                 ImGui::Checkbox("VSync", &settings.window.vsync);
                 ImGui::Checkbox("Fullscreen by Default", &settings.window.fullscreen);
+
+                ImGui::SeparatorText("Window Icon");
+                char iconPath[512];
+                std::memcpy(iconPath, settings.window.icon.c_str(),
+                    std::min(settings.window.icon.size(), sizeof(iconPath) - 1));
+                iconPath[std::min(settings.window.icon.size(), sizeof(iconPath) - 1)] = '\0';
+                if (ImGui::InputText("Icon Path", iconPath, sizeof(iconPath))) {
+                    settings.window.icon = std::string(iconPath);
+                }
+                ImGui::SameLine();
+                ImGui::TextDisabled("(?)");
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Path to icon file (relative to game directory)\n\n"
+                                     "Recommended: Use .ico format for both window and exe icon\n\n"
+                                     "How it works:\n"
+                                     "1. Set path to .ico file (e.g., content/assets/icon.ico)\n"
+                                     "2. Engine tries to load .ico for window icon\n"
+                                     "3. If .ico fails, automatically uses .png fallback\n"
+                                     "4. Windows exe icon is embedded via CMake\n\n"
+                                     "Fallback: If .ico doesn't work for window icon,\n"
+                                     "create icon.png in same directory\n\n"
+                                     "Any pixel format works (RGBA, RGB, Grayscale)\n"
+                                     "- Engine auto-converts to required format");
+                }
 
                 ImGui::Spacing();
                 ImGui::TextDisabled("Note: These settings apply to the built game.");
@@ -2605,6 +2855,64 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
     return changed;
 }
 
+bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType) {
+    std::string preview = "None";
+    if (uuid->Get() != 0) {
+        std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*uuid);
+        if (asset) {
+            preview = asset->GetMetadata().name;
+        } else {
+            preview = "Missing [" + uuid->ToString().substr(0, 8) + "]";
+        }
+    }
+
+    bool changed = false;
+    if (ImGui::BeginCombo(label, preview.c_str())) {
+        if (ImGui::Selectable("None", uuid->Get() == 0)) {
+            *uuid = UUID{0};
+            changed = true;
+        }
+
+        const auto& allAssets = AssetRegistry::Instance().GetAllAssets();
+        for (const auto& [assetUUID, asset] : allAssets) {
+            if (asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
+                bool isSelected = (uuid->Get() == assetUUID.Get());
+                std::string itemLabel = asset->GetMetadata().name;
+
+                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                    *uuid = assetUUID;
+                    changed = true;
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            if (payload->DataSize == sizeof(std::string)) {
+                std::string draggedPath = *static_cast<std::string*>(payload->Data);
+                UUID draggedUUID = AssetRegistry::Instance().GetUUIDFromPath(draggedPath);
+                if (draggedUUID.Get() != 0) {
+                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(draggedUUID);
+                    if (asset && asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
+                        *uuid = draggedUUID;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    return changed;
+}
+
 void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
     if (!m_Engine || !m_Engine->GetActiveScene() || !m_Engine->GetScriptSystem()) {
         return;
@@ -2701,13 +3009,7 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         const Sprite& originalSprite = registry.get<Sprite>(entity);
         Sprite newSprite;
 
-        if (!originalSprite.texturePath.empty()) {
-            newSprite.texture = AssetManager::Instance().LoadTexture(originalSprite.texturePath);
-            newSprite.texturePath = originalSprite.texturePath;
-        } else {
-            newSprite.texture = originalSprite.texture;
-        }
-
+        newSprite.textureAssetUUID = originalSprite.textureAssetUUID;
         newSprite.tint = originalSprite.tint;
         newSprite.sourceRect = originalSprite.sourceRect;
         newSprite.origin = originalSprite.origin;
@@ -2798,6 +3100,379 @@ void EditorLayer::PasteEntity() {
     m_SelectedEntity = newEntity;
 
     TraceLog(LOG_INFO, "Entity pasted");
+}
+
+void EditorLayer::RenderProfiler() {
+    PROFILE_FUNCTION();
+    ImGui::Begin("Profiler");
+
+    Profiler& profiler = Profiler::Instance();
+
+    bool enabled = profiler.IsEnabled();
+    if (ImGui::Checkbox("Enable Profiler", &enabled)) {
+        profiler.SetEnabled(enabled);
+    }
+
+    if (!profiler.IsEnabled()) {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::SameLine();
+    bool recording = profiler.IsRecording();
+    if (ImGui::Checkbox("Record", &recording)) {
+        profiler.SetRecording(recording);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button(m_ProfilerPaused ? "Resume" : "Pause")) {
+        m_ProfilerPaused = !m_ProfilerPaused;
+        if (m_ProfilerPaused) {
+            m_ProfilerPausedSnapshot.results = profiler.GetResults();
+            m_ProfilerPausedSnapshot.frameTime = profiler.GetFrameTime();
+            m_ProfilerPausedSnapshot.fps = profiler.GetFPS();
+        }
+    }
+
+    const FrameSnapshot* displaySnapshot = nullptr;
+    if (m_ProfilerSelectedFrame >= 0) {
+        displaySnapshot = &m_ProfilerSelectedFrameSnapshot;
+    } else if (m_ProfilerPaused) {
+        displaySnapshot = &m_ProfilerPausedSnapshot;
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Copy Frame")) {
+        if (displaySnapshot) {
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(3);
+            ss << "Frame Time: " << displaySnapshot->frameTime << " ms\n";
+            ss << "FPS: " << std::setprecision(1) << displaySnapshot->fps << "\n\n";
+            ss << std::setprecision(3);
+            ss << "Scope Timings:\n";
+            ss << "----------------------------------------\n";
+
+            for (const ProfileResult& result : displaySnapshot->results) {
+                float percentage = static_cast<float>(result.duration / displaySnapshot->frameTime) * 100.0f;
+                ss << std::string(result.depth * 2, ' ');
+                ss << result.name << ": " << result.duration << " ms ("
+                   << std::setprecision(1) << percentage << "%) ["
+                   << result.callCount << " calls]\n";
+                ss << std::setprecision(3);
+            }
+
+            SetClipboardText(ss.str().c_str());
+        } else {
+            profiler.CopyFrameToClipboard();
+        }
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Clear History")) {
+        profiler.ClearHistory();
+        m_ProfilerSelectedFrame = -1;
+    }
+
+    ImGui::Separator();
+
+    if (displaySnapshot) {
+        if (m_ProfilerSelectedFrame >= 0) {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Viewing Frame: %d", m_ProfilerSelectedFrame);
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "PAUSED");
+        }
+    }
+
+    if (displaySnapshot) {
+        ImGui::Text("Frame Time: %.3f ms", displaySnapshot->frameTime);
+        ImGui::Text("FPS: %.1f", displaySnapshot->fps);
+    } else {
+        ImGui::Text("Frame Time: %.3f ms", profiler.GetFrameTime());
+        ImGui::Text("FPS: %.1f", profiler.GetFPS());
+    }
+
+    if (profiler.IsRecording()) {
+        ImGui::Text("Recorded: %zu frames", profiler.GetFrameHistory().size());
+    }
+
+    ImGui::Separator();
+
+    const std::vector<ProfileResult>* currentResults = nullptr;
+    double currentFrameTime = 0.0;
+
+    if (displaySnapshot) {
+        currentResults = &displaySnapshot->results;
+        currentFrameTime = displaySnapshot->frameTime;
+    } else {
+        currentResults = &profiler.GetResults();
+        currentFrameTime = profiler.GetFrameTime();
+    }
+
+    if (ImGui::BeginTabBar("ProfilerTabs")) {
+        if (ImGui::BeginTabItem("Current Frame")) {
+            if (ImGui::BeginTable("ProfilerTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+                ImGui::TableSetupColumn("Scope", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+                ImGui::TableSetupColumn("Calls", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableHeadersRow();
+
+                for (const ProfileResult& result : *currentResults) {
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Indent(result.depth * 15.0f);
+                    ImGui::Text("%s", result.name.c_str());
+                    ImGui::Unindent(result.depth * 15.0f);
+
+                    ImGui::TableSetColumnIndex(1);
+                    float percentage = static_cast<float>(result.duration / currentFrameTime) * 100.0f;
+                    ImGui::Text("%.3f (%.1f%%)", result.duration, percentage);
+
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%zu", result.callCount);
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Flame Graph")) {
+            if (m_ProfilerSelectedFrame >= 0) {
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Viewing Frame: %d", m_ProfilerSelectedFrame);
+            } else if (m_ProfilerPaused) {
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "PAUSED");
+            }
+
+            ImGui::Text("Frame Time: %.3f ms", currentFrameTime);
+            ImGui::SameLine();
+            ImGui::Text("Zoom: %.1fx", m_ProfilerFlameGraphZoom);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset Zoom")) {
+                m_ProfilerFlameGraphZoom = 1.0f;
+                m_ProfilerFlameGraphScroll = 0.0f;
+            }
+            ImGui::SameLine();
+            ImGui::Text("Use mouse wheel to zoom, middle-click drag to pan");
+
+            ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+            ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+            canvasSize.y = 450.0f;
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y),
+                                   IM_COL32(20, 20, 20, 255));
+
+            float barHeight = 25.0f;
+            float frameTime = static_cast<float>(currentFrameTime);
+
+            ImVec2 mousePos = ImGui::GetMousePos();
+            bool isHovering = mousePos.x >= canvasPos.x && mousePos.x <= canvasPos.x + canvasSize.x &&
+                             mousePos.y >= canvasPos.y && mousePos.y <= canvasPos.y + canvasSize.y;
+
+            if (isHovering) {
+                float mouseWheel = ImGui::GetIO().MouseWheel;
+                if (mouseWheel != 0.0f) {
+                    float oldZoom = m_ProfilerFlameGraphZoom;
+                    m_ProfilerFlameGraphZoom *= (1.0f + mouseWheel * 0.1f);
+                    m_ProfilerFlameGraphZoom = std::max(1.0f, std::min(m_ProfilerFlameGraphZoom, 500.0f));
+
+                    float mouseRelativeX = (mousePos.x - canvasPos.x) / canvasSize.x;
+                    float worldPosAtMouse = (mouseRelativeX + m_ProfilerFlameGraphScroll) / oldZoom;
+                    m_ProfilerFlameGraphScroll = worldPosAtMouse * m_ProfilerFlameGraphZoom - mouseRelativeX;
+                }
+
+                if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
+                    ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
+                    m_ProfilerFlameGraphScroll -= delta.x / canvasSize.x;
+                    ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
+                }
+            }
+
+            m_ProfilerFlameGraphScroll = std::max(0.0f, std::min(m_ProfilerFlameGraphScroll, m_ProfilerFlameGraphZoom - 1.0f));
+
+            drawList->PushClipRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), true);
+
+            const ProfileResult* hoveredResult = nullptr;
+
+            for (const ProfileResult& result : *currentResults) {
+                float normalizedStart = static_cast<float>(result.startTime / frameTime);
+                float normalizedDuration = static_cast<float>(result.duration / frameTime);
+
+                float xStart = canvasPos.x + (normalizedStart * m_ProfilerFlameGraphZoom - m_ProfilerFlameGraphScroll) * canvasSize.x;
+                float width = normalizedDuration * m_ProfilerFlameGraphZoom * canvasSize.x;
+                float yStart = canvasPos.y + result.depth * barHeight;
+
+                if (xStart + width < canvasPos.x || xStart > canvasPos.x + canvasSize.x) continue;
+                if (width < 0.5f) continue;
+
+                bool isHovered = isHovering &&
+                                mousePos.x >= xStart && mousePos.x <= xStart + width &&
+                                mousePos.y >= yStart && mousePos.y <= yStart + barHeight - 2;
+
+                if (isHovered) {
+                    hoveredResult = &result;
+                }
+
+                ImU32 color = IM_COL32(
+                    100 + (result.depth * 30) % 155,
+                    150 + (result.depth * 40) % 105,
+                    200 - (result.depth * 20) % 100,
+                    isHovered ? 255 : 200
+                );
+
+                drawList->AddRectFilled(
+                    ImVec2(xStart, yStart),
+                    ImVec2(xStart + width, yStart + barHeight - 2),
+                    color
+                );
+
+                drawList->AddRect(
+                    ImVec2(xStart, yStart),
+                    ImVec2(xStart + width, yStart + barHeight - 2),
+                    isHovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 255, 255, 100),
+                    0.0f,
+                    0,
+                    isHovered ? 2.0f : 1.0f
+                );
+
+                if (width > 30.0f) {
+                    drawList->AddText(
+                        ImVec2(xStart + 2, yStart + 4),
+                        IM_COL32(255, 255, 255, 255),
+                        result.name.c_str()
+                    );
+                }
+            }
+
+            drawList->PopClipRect();
+
+            ImGui::Dummy(canvasSize);
+
+            if (hoveredResult) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Scope: %s", hoveredResult->name.c_str());
+                ImGui::Text("Duration: %.3f ms", hoveredResult->duration);
+                ImGui::Text("Percentage: %.1f%%", static_cast<float>(hoveredResult->duration / frameTime) * 100.0f);
+                ImGui::Text("Calls: %zu", hoveredResult->callCount);
+                ImGui::Text("Depth: %d", hoveredResult->depth);
+                ImGui::EndTooltip();
+            }
+
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("History")) {
+            const std::deque<FrameSnapshot>& history = profiler.GetFrameHistory();
+
+            if (history.empty()) {
+                ImGui::Text("No recorded frames. Enable 'Record' to capture frames.");
+            } else {
+                ImGui::Text("Click on a frame to inspect it. Right-click to deselect.");
+
+                ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+                ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+                canvasSize.y = 250.0f;
+
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+                drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y),
+                                       IM_COL32(20, 20, 20, 255));
+
+                float maxFrameTime = 16.67f;
+                for (const auto& snapshot : history) {
+                    if (snapshot.frameTime > maxFrameTime) {
+                        maxFrameTime = static_cast<float>(snapshot.frameTime);
+                    }
+                }
+
+                float barWidth = canvasSize.x / static_cast<float>(history.size());
+
+                ImVec2 mousePos = ImGui::GetMousePos();
+                bool isHovering = mousePos.x >= canvasPos.x && mousePos.x <= canvasPos.x + canvasSize.x &&
+                                 mousePos.y >= canvasPos.y && mousePos.y <= canvasPos.y + canvasSize.y;
+
+                int hoveredFrame = -1;
+
+                for (size_t i = 0; i < history.size(); ++i) {
+                    const FrameSnapshot& snapshot = history[i];
+                    float x = canvasPos.x + i * barWidth;
+                    float height = static_cast<float>(snapshot.frameTime / maxFrameTime) * canvasSize.y;
+                    float y = canvasPos.y + canvasSize.y - height;
+
+                    bool isBarHovered = isHovering &&
+                                       mousePos.x >= x && mousePos.x <= x + barWidth &&
+                                       mousePos.y >= y;
+
+                    if (isBarHovered) {
+                        hoveredFrame = static_cast<int>(i);
+                    }
+
+                    ImU32 color;
+                    if (static_cast<int>(i) == m_ProfilerSelectedFrame) {
+                        color = IM_COL32(255, 255, 0, 255);
+                    } else if (isBarHovered) {
+                        color = snapshot.frameTime > 16.67f ? IM_COL32(255, 150, 150, 255) : IM_COL32(150, 255, 150, 255);
+                    } else {
+                        color = snapshot.frameTime > 16.67f ? IM_COL32(255, 100, 100, 255) : IM_COL32(100, 255, 100, 255);
+                    }
+
+                    drawList->AddRectFilled(
+                        ImVec2(x, y),
+                        ImVec2(x + barWidth - 1, canvasPos.y + canvasSize.y),
+                        color
+                    );
+                }
+
+                drawList->AddLine(
+                    ImVec2(canvasPos.x, canvasPos.y + canvasSize.y - (16.67f / maxFrameTime) * canvasSize.y),
+                    ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y - (16.67f / maxFrameTime) * canvasSize.y),
+                    IM_COL32(255, 255, 0, 200),
+                    2.0f
+                );
+
+                ImGui::Dummy(canvasSize);
+
+                if (hoveredFrame >= 0 && hoveredFrame < static_cast<int>(history.size())) {
+                    const FrameSnapshot& snapshot = history[hoveredFrame];
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Frame: %d", hoveredFrame);
+                    ImGui::Text("Time: %.3f ms", snapshot.frameTime);
+                    ImGui::Text("FPS: %.1f", snapshot.fps);
+                    ImGui::EndTooltip();
+
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        m_ProfilerSelectedFrame = hoveredFrame;
+                        m_ProfilerSelectedFrameSnapshot = snapshot;
+                    }
+                }
+
+                if (isHovering && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    m_ProfilerSelectedFrame = -1;
+                }
+
+                ImGui::Text("Yellow line: 60 FPS target (16.67ms)");
+                if (m_ProfilerSelectedFrame >= 0) {
+                    ImGui::Text("Selected Frame: %d", m_ProfilerSelectedFrame);
+                }
+            }
+
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+
+    ImGui::End();
+}
+
+void EditorLayer::RenderBuildPanel() {
+    if (m_BuildPanel) {
+        m_BuildPanel->Update();
+        m_BuildPanel->Render();
+    }
 }
 
 } // namespace PiiXeL

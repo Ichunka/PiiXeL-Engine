@@ -1,20 +1,822 @@
-# PiiXel Engine
+# PiiXeL Engine
 
-## Building
+A modern 2D game engine with a complete editor, built using C++20.
 
-### Linux
-Dependencies:
-```txt
-cmake raylib libxcursor libxrandr xorg-libxi xorg-libxinerama
+## Features
+
+- **Entity Component System (ECS)** powered by EnTT v3.15.0
+- **2D Physics** using Box2D v3.1.1 (latest version)
+- **Cross-platform rendering** with Raylib 5.5
+- **Full-featured Editor** with ImGui v1.92.2
+- **Custom Reflection System** for component serialization and inspector
+- **Scene Management** with JSON serialization
+- **Dual Asset System** - Game package for content + embedded assets for engine
+- **Build & Export from Editor** - Visual progress tracking and one-click export
+- **Scripting System** with native C++ script components
+- **Built-in Profiler** for performance analysis
+- **Undo/Redo System** in the editor
+
+## Core Technology Stack
+
+- **C++20** - Modern C++ with explicit type declarations
+- **EnTT v3.15.0** - Entity Component System for game architecture
+- **Box2D v3.1.1** - Physics simulation (latest version 3.x)
+- **Raylib 5.5** - Rendering, windowing, and input handling
+- **ImGui v1.92.2** - Immediate mode GUI for the editor
+- **rlImGui** - Integration layer between Raylib and ImGui
+- **nlohmann/json v3.11.3** - JSON serialization
+
+## Dependencies
+
+All dependencies are automatically fetched and built via CMake FetchContent. No manual installation required.
+
+### Required Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| **Raylib** | 5.5 | Graphics, windowing, input, audio |
+| **EnTT** | v3.15.0 | Entity Component System |
+| **Box2D** | v3.1.1 | 2D Physics simulation |
+| **nlohmann/json** | v3.11.3 | JSON serialization |
+| **ImGui** | v1.92.2 (docking) | Editor UI (Editor mode only) |
+| **rlImGui** | main | Raylib-ImGui integration (Editor mode only) |
+
+### Build Requirements
+
+- **CMake** 3.23 or higher
+- **C++20 compatible compiler**:
+  - **Windows**: MSVC 2019/2022 (Visual Studio 16.0+)
+  - **Linux**: GCC 10+ or Clang 12+
+  - **macOS**: AppleClang 13+ (Xcode 13+)
+
+## Compiler Compatibility
+
+PiiXeL Engine is designed to be fully compatible with both **GCC** and **MSVC** compilers:
+
+### MSVC (Windows)
+- Warning level: `/W4 /permissive-`
+- Strict C++20 conformance
+- Full support for Visual Studio 2019/2022
+
+### GCC/Clang (Linux/macOS)
+- Warning flags: `-Wall -Wextra -Wpedantic`
+- Full C++20 support (concepts, ranges, etc.)
+- Tested with GCC 10+ and Clang 12+
+
+The codebase follows strict C++20 standards and compiles without warnings on both platforms.
+
+## Quick Start
+
+### Prerequisites
+
+**Windows:**
+- Visual Studio 2019/2022 with C++ Desktop Development workload
+- CMake 3.23+
+- Git
+
+**Linux:**
+- GCC 10+ or Clang 12+
+- CMake 3.23+
+- Git
+- X11 development libraries: `sudo apt install libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev`
+
+**macOS:**
+- Xcode 13+ with Command Line Tools
+- CMake 3.23+
+- Git
+
+## Building the Project
+
+### Linux/macOS - Using build_and_run.sh
+
+The easiest way to build on Linux/macOS is to use the provided build script:
+
+```bash
+chmod +x build_and_run.sh
+./build_and_run.sh
 ```
-(the exact names of these packages will vary across different distos)
 
-Building:
-```sh
-mkdir build
-cd build
-cmake ..
-cmake --build .
-cd Debug
-./<name>
+This interactive script will prompt you to select a build target:
+
+1. **Editor (Debug)** - Full editor with debugging symbols
+2. **Game (Release, standalone)** - Standalone game without editor, optimized, no console
+3. **Editor (Release)** - Optimized editor build
+4. **Build Tools** - Package builder tool
+5. **Build Game Package** - Create distributable game package
+6. **Game (Debug, standalone)** - Standalone game with debugging symbols and console output
+
+The script automatically:
+- Detects your compiler (GCC/Clang)
+- Configures CMake with optimal settings
+- Builds with all available CPU cores
+- Runs the application after successful build
+
+### Windows - Manual CMake Build
+
+#### Editor Mode (with ImGui)
+
+```bash
+# Configure
+cmake -B build/editor -DCMAKE_BUILD_TYPE=Debug -DBUILD_EDITOR=ON
+
+# Build
+cmake --build build/editor --config Debug
+
+# Run
+build/editor/games/MyFirstGame/Debug/editor.exe
 ```
+
+#### Game Mode (standalone, no editor)
+
+```bash
+# Configure
+cmake -B build/game -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF
+
+# Build
+cmake --build build/game --config Release
+
+# Run
+build/game/games/MyFirstGame/Release/game.exe
+```
+
+### Using CMake Presets
+
+The project includes CMake presets for common configurations:
+
+```bash
+# Configure with preset
+cmake --preset editor          # Editor (Debug)
+cmake --preset game            # Game (Release, no console)
+cmake --preset game-debug      # Game (Debug, with console)
+cmake --preset editor-release  # Editor (Release)
+
+# Build with preset
+cmake --build --preset editor
+cmake --build --preset game
+cmake --build --preset game-debug
+cmake --build --preset editor-release
+```
+
+### Using CLion (recommended)
+
+1. Open the project folder in CLion
+2. CLion will automatically detect CMake configuration
+3. Select a preset from the toolbar: `editor`, `game`, `game-debug`, or `editor-release`
+4. Build and run using CLion's interface
+
+## Build Modes
+
+### Editor Mode (`BUILD_EDITOR=ON`)
+
+- Includes full ImGui editor interface
+- Scene editing with gizmos, hierarchy panel, and inspector
+- Undo/Redo support
+- Runtime scene manipulation
+- Built-in profiler and console
+- Suitable for development and content creation
+
+### Game Mode (`BUILD_EDITOR=OFF`)
+
+Two variants available for different purposes:
+
+**Release (game preset):**
+- Optimized for distribution
+- No console window (Windows)
+- No debugging symbols
+- Smaller binary size
+- Maximum performance
+
+**Debug (game-debug preset):**
+- For debugging standalone game
+- Console window visible (shows TraceLog output)
+- Full debugging symbols
+- Useful for testing game without editor
+- Diagnose runtime issues (icon loading, asset paths, etc.)
+
+## Project Structure
+
+```
+PiiXeLEngine/
+├── engine/                    # Engine library
+│   ├── src/                   # Engine source code
+│   │   ├── Core/              # Core systems (Engine, Application)
+│   │   ├── Systems/           # ECS Systems (Render, Physics, Script)
+│   │   ├── Components/        # ECS Components
+│   │   ├── Scene/             # Scene management
+│   │   ├── Editor/            # Editor UI and commands
+│   │   ├── Reflection/        # Reflection system
+│   │   ├── Scripting/         # Script system
+│   │   ├── Physics/           # Physics integration
+│   │   ├── Resources/         # Asset management
+│   │   └── Debug/             # Debug utilities
+│   ├── include/               # Public headers
+│   ├── assets/                # Engine assets (splash screen, etc.)
+│   └── CMakeLists.txt
+│
+├── games/                     # Game projects
+│   └── MyFirstGame/           # Example game
+│       ├── src/               # Game-specific C++ code
+│       │   ├── game_main.cpp  # Standalone game entry point
+│       │   └── GameScripts.cpp # Custom game scripts
+│       ├── include/           # Game headers
+│       ├── assets/            # Game assets (textures, audio)
+│       ├── scenes/            # Game scenes (.scene files)
+│       ├── datas/             # Generated data (game.package)
+│       ├── game.config.json   # Game configuration
+│       └── CMakeLists.txt
+│
+├── tools/                     # Build tools
+│   └── BuildPackage.cpp       # Game packaging tool
+│
+├── build/                     # Build output (generated)
+│   ├── editor/                # Editor build
+│   ├── game/                  # Game build
+│   └── editor-release/        # Release editor build
+│
+├── docs/                      # Documentation
+├── cmake/                     # CMake modules
+├── CMakeLists.txt             # Root CMake configuration
+├── CMakePresets.json          # CMake presets
+├── build_and_run.sh           # Linux/macOS build script
+└── README.md                  # This file
+```
+
+## Creating a New Game
+
+### 1. Create Game Directory Structure
+
+```bash
+mkdir -p games/MyNewGame/{src,assets,scenes,datas,include}
+```
+
+### 2. Copy Base Files
+
+Copy from `games/MyFirstGame/`:
+- `CMakeLists.txt`
+- `src/game_main.cpp`
+- `src/GameScripts.cpp`
+- `game.config.json`
+
+### 3. Configure game.config.json
+
+```json
+{
+  "title": "My New Game",
+  "window": {
+    "width": 1920,
+    "height": 1080,
+    "fullscreen": false,
+    "vsync": true
+  },
+  "startScene": "scenes/MainScene.scene"
+}
+```
+
+### 4. Build Your Game
+
+**Linux/macOS:**
+```bash
+GAME_PROJECT=MyNewGame ./build_and_run.sh
+```
+
+**Windows:**
+```bash
+cmake -B build/editor -DGAME_PROJECT=MyNewGame -DBUILD_EDITOR=ON
+cmake --build build/editor
+```
+
+### 5. Open in Editor
+
+Run the editor executable and start creating your game!
+
+## Build & Export System
+
+PiiXeL Engine provides a comprehensive build and export system accessible both from the editor UI and command line.
+
+### Build from Editor (Recommended)
+
+The editor includes a **Build & Export** panel with a visual progress bar and detailed build log:
+
+**Features:**
+- **Build Game Package** - Creates `game.package` with all assets and scenes
+- **Build Game Executable** - Compiles the standalone game (Release mode, no editor)
+- **Export Game (Full)** - Complete export with executable, package, and all dependencies ready to distribute
+
+**Progress Tracking:**
+- Real-time progress bar with percentage
+- Current build step display (Configuring CMake, Compiling, Packaging, Copying)
+- Animated spinner during active builds
+- Build log with timestamps
+- Cancel button to abort builds
+- Color-coded status (blue=running, green=success, red=failed)
+
+**Export Process:**
+1. Opens export dialog
+2. Specify export directory path
+3. Automatically builds game executable (Release)
+4. Creates game package from all assets
+5. Copies game executable to export folder
+6. Copies game.package to export/datas/
+7. Copies required DLLs (Windows) or shared libraries (Linux)
+8. Ready-to-distribute folder with everything needed to run
+
+### Build from Command Line
+
+#### Create a Game Package
+
+The game package system bundles all assets and scenes into a single `.package` file:
+
+**Linux/macOS:**
+```bash
+./build_and_run.sh
+# Select option 5: Build Game Package
+```
+
+**Windows:**
+```bash
+cmake -B build/tools -DBUILD_EDITOR=OFF
+cmake --build build/tools --target build_package
+cd games/MyFirstGame
+../../build/tools/build_package.exe
+```
+
+This generates `games/MyFirstGame/datas/game.package` containing:
+- All scene files
+- All assets (textures, audio, etc.)
+- Game configuration
+
+### Build Final Distributable
+
+After creating the package, build the standalone game:
+
+```bash
+cmake -B build/game -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF
+cmake --build build/game --config Release
+```
+
+Distribute:
+- The game executable (`game.exe` or `game`)
+- The `datas/game.package` file
+- Required DLLs (Windows only)
+
+### Game Icon Configuration
+
+Configure your game's icon from the editor:
+
+1. Open **Project Settings** from the menu
+2. Go to the **Window** tab
+3. Set the **Icon Path** field (e.g., `content/assets/icon.ico`)
+
+**Simplified workflow - Just use .ico:**
+
+PiiXeL Engine intelligently handles icons with automatic fallback:
+
+1. **Set the icon path to your .ico file** in Project Settings
+   - Example: `content/assets/icon.ico`
+
+2. **What happens automatically:**
+   - **Exe Icon (Windows)**: CMake embeds the `.ico` into the executable (for file explorer)
+   - **Window Icon**: Engine tries to load the `.ico` for the window title bar
+   - **Auto-fallback**: If `.ico` fails to load, engine automatically looks for `.png` with same name
+
+3. **Best practice:**
+   - Create `icon.ico` (32x32 or 64x64 recommended) for both exe and window
+   - Optionally create `icon.png` as fallback (if `.ico` doesn't load at runtime)
+   - Set path to `.ico` in Project Settings - everything is automatic
+
+**Smart format handling:**
+- Engine auto-converts any pixel format (Grayscale, RGB, RGBA) to required format
+- No need to worry about pixel format compatibility
+- Works with any standard image format supported by
+- Raylib
+
+**Cross-platform notes:**
+- **Windows**: Both `.ico` (exe) and window icon work seamlessly
+- **Linux/Mac**: Only window icon matters (use `.png` on these platforms)
+
+## Understanding the Asset Systems
+
+PiiXeL Engine uses three complementary asset systems:
+
+### 1. PiiXeL Asset System (.pxa)
+
+**Purpose:** Individual asset management with UUID-based references and fast loading
+
+**What it includes:**
+- Binary asset packages (`.pxa` files) generated automatically
+- UUID-based asset identification
+- Asset metadata (import time, source file, version)
+- Compressed/optimized asset data embedded directly
+
+**How it works:**
+- Place source assets (PNG, WAV, etc.) in your project
+- AssetImporter automatically generates `.pxa` files alongside sources
+- Same filename as source (e.g., `player.png` → `player.pxa`)
+- Binary format - not human-readable, optimized for loading
+- All asset data embedded in `.pxa` file (no external paths)
+- Assets tracked by UUID for cross-scene references
+- Automatic reimport when source files change
+
+**Supported asset types:**
+- **Textures:** PNG, JPG, JPEG, BMP, TGA, GIF
+- **Audio:** WAV, OGG, MP3, FLAC
+- **Scenes:** Scene files with cross-references
+
+**Usage in Editor:**
+- **Asset Browser:** Browse and select assets
+- **Asset Inspector:** View asset properties, preview, and reimport
+- **Drag & Drop:** Drag assets from browser into inspector fields
+- **Component References:** Reference specific components on other entities
+
+**Asset References:**
+```cpp
+AssetRef<Texture2D> m_Texture;      // Reference to texture asset
+AssetRef<Sound> m_Sound;             // Reference to audio asset
+ComponentRef<Transform> m_Target;    // Reference to component on entity
+```
+
+**Cross-Platform Compatibility:**
+
+`.pxa` files are **binary compatible across Windows, Linux, and macOS** (all modern x86/x64/ARM platforms use little-endian). The binary format includes:
+- PNG-encoded texture data (cross-platform)
+- Little-endian integer fields (compatible on all target platforms)
+- No platform-specific pointers or structures
+
+**Note:** While technically platform-dependent due to endianness, all PiiXeL Engine target platforms (Windows/Linux/macOS) use little-endian, making `.pxa` files fully portable in practice.
+
+**Git Version Control Strategy for .pxa Files:**
+
+The `.pxa` files **SHOULD be committed to git** alongside your source assets. Here's why and how:
+
+**Why commit .pxa files:**
+- Team members can clone and immediately work without reimporting all assets
+- Faster project setup - no waiting for initial asset import
+- Consistent asset UUIDs across all team members
+- Build systems can use precompiled assets directly
+
+**Git configuration:**
+```gitattributes
+# Mark .pxa files as binary (already configured)
+*.pxa binary
+```
+
+**Recommended workflow:**
+
+1. **For small projects (<100MB of assets):**
+   - Commit both source files (PNG, WAV, etc.) AND `.pxa` files
+   - Standard git workflow works fine
+   - Fast cloning and setup for team members
+
+2. **For large projects (>100MB of assets):**
+   - Use **Git LFS (Large File Storage)** for `.pxa` files
+   - Configure Git LFS to track `.pxa` files:
+     ```bash
+     git lfs install
+     git lfs track "*.pxa"
+     git add .gitattributes
+     ```
+   - Commit `.pxa` files through Git LFS
+   - Team members clone with `git lfs clone` for faster downloads
+
+3. **What to commit:**
+   - ✅ Source assets (PNG, WAV, OGG, etc.)
+   - ✅ `.pxa` files (binary asset packages)
+   - ✅ `.scene` files (scene definitions)
+   - ✅ `datas/.asset_uuid_cache` (UUID persistence)
+   - ❌ `datas/game.package` (generated at build time)
+   - ❌ Build artifacts in `build/` and `export/`
+
+**Ignoring unnecessary files:**
+```gitignore
+# Build outputs
+build/
+export/
+
+# Generated packages (rebuild before distribution)
+**/game.package
+
+# Editor temporary files
+imgui.ini
+
+# Asset UUID cache is committed for UUID persistence
+# datas/.asset_uuid_cache - DO commit this!
+```
+
+**Asset workflow with version control:**
+
+1. **Adding new assets:**
+   ```bash
+   # Add source file
+   git add assets/player.png
+
+   # Import in editor (generates player.pxa automatically)
+
+   # Commit both source and .pxa
+   git add assets/player.pxa
+   git commit -m "Add player sprite"
+   ```
+
+2. **Updating assets:**
+   ```bash
+   # Update source file
+   # Editor auto-detects change and regenerates .pxa
+
+   # Commit both updated files
+   git add assets/player.png assets/player.pxa
+   git commit -m "Update player sprite"
+   ```
+
+3. **Team synchronization:**
+   ```bash
+   # Pull latest changes
+   git pull
+
+   # .pxa files already updated
+   # Editor loads assets instantly - no reimport needed
+   # UUIDs remain consistent across team
+   ```
+
+**Benefits of this approach:**
+- Zero-configuration setup for new team members
+- Consistent asset UUIDs prevent broken references
+- Fast asset loading in editor (no reimport needed)
+- Build pipelines can use cached .pxa files
+- Git LFS handles large binary files efficiently
+
+### 2. Game Package System
+
+**Purpose:** Bundle all game assets and scenes for distribution
+
+**What it includes:**
+- All scene files (`.scene`)
+- All assets referenced in scenes (textures, audio, etc.)
+- Game configuration
+
+**How it works:**
+- `tools/BuildPackage.cpp` scans the game directory
+- Creates a single `game.package` file
+- Game executable loads assets from this package at runtime
+- Package is portable - just distribute exe + package file
+
+**Usage:**
+- Development: Assets loaded directly from files
+- Distribution: Assets loaded from `game.package`
+
+### 3. Embedded Asset System
+
+**Purpose:** Compile critical engine assets directly into the executable
+
+**What it includes:**
+- Engine UI assets (splash screen, icons, fonts)
+- Critical resources needed before package loading
+- Assets that must always be available
+
+**How it works:**
+- `tools/EmbedAsset.cpp` reads binary files
+- Generates C++20 headers with `constexpr` byte arrays
+- Assets are compiled into the exe (no external files needed)
+- Runtime access via `EmbeddedAssetLoader`
+
+**Key differences:**
+
+| Feature | .pxa Assets | Game Package | Embedded Assets |
+|---------|-------------|--------------|-----------------|
+| **When processed** | Import time | Distribution time | Compile time |
+| **Format** | Binary per-asset | Single binary bundle | C++ constexpr arrays |
+| **Size** | Individual files | Unlimited | Keep small (exe size) |
+| **Use case** | Development assets | Distribution bundle | Engine critical assets |
+| **Modifiable** | Yes (update source) | Yes (rebuild package) | No (recompile needed) |
+| **Access speed** | Fast (cached by UUID) | Disk I/O | Memory (instant) |
+| **References** | UUID-based | Path-based | Direct embedding |
+
+### Workflow Summary
+
+1. **During Development:**
+   - Place assets in `games/MyFirstGame/assets/`
+   - `.pxa` files generated automatically on import
+   - Assets referenced by UUID in scenes and components
+   - Fast iteration - just update source files
+   - Editor auto-detects changes and reimports
+
+2. **Asset Import:**
+   - Editor imports assets on first use
+   - Generates `.pxa` next to source file
+   - UUID assigned and cached
+   - Subsequent loads use fast `.pxa` format
+
+3. **Building for Distribution:**
+   - Run "Build Game Package" from editor
+   - Creates `game.package` with all game assets
+   - Build game executable (Release, no editor)
+   - Export combines exe + package + dependencies
+
+4. **Distribution:**
+   - Users receive: `game.exe` + `datas/game.package` + DLLs
+   - Game loads assets from package
+   - Engine assets already embedded in exe
+   - No loose asset files needed
+
+## Scripting System
+
+PiiXeL Engine supports native C++ scripting with a component-based approach.
+
+### Script Lifecycle
+
+Scripts have a well-defined lifecycle with callbacks at different stages:
+
+```cpp
+// In games/MyFirstGame/include/GameScripts.hpp
+#include "Scripting/ScriptComponent.hpp"
+
+class PlayerController : public PiiXeL::ScriptComponent {
+public:
+    float moveSpeed{300.0f};
+
+protected:
+    void OnAwake() override {
+        TraceLog(LOG_INFO, "Awake - called when script is created (edit mode or play mode)");
+    }
+
+    void OnStart() override {
+        TraceLog(LOG_INFO, "Start - called on first frame of play mode only");
+    }
+
+    void OnUpdate(float deltaTime) override {
+        TraceLog(LOG_INFO, "Update - called every frame during play mode");
+    }
+
+    void OnFixedUpdate(float fixedDeltaTime) override {
+        TraceLog(LOG_INFO, "FixedUpdate - called at fixed timestep (60 Hz) during play mode");
+    }
+
+    void OnCollisionEnter(entt::entity other) override {
+        TraceLog(LOG_INFO, "CollisionEnter - when collision begins");
+    }
+
+    void OnCollisionStay(entt::entity other) override {
+    }
+
+    void OnCollisionExit(entt::entity other) override {
+        TraceLog(LOG_INFO, "CollisionExit - when collision ends");
+    }
+
+    void OnTriggerEnter(entt::entity other) override {
+        TraceLog(LOG_INFO, "TriggerEnter - when entering trigger collider");
+    }
+
+    void OnTriggerStay(entt::entity other) override {
+    }
+
+    void OnTriggerExit(entt::entity other) override {
+        TraceLog(LOG_INFO, "TriggerExit - when leaving trigger collider");
+    }
+
+    void OnDestroy() override {
+        TraceLog(LOG_INFO, "Destroy - called when script is destroyed");
+    }
+};
+
+REGISTER_SCRIPT(PlayerController)
+```
+
+**Lifecycle Order:**
+
+1. **OnAwake()** - Called when script instance is created
+   - Happens in edit mode when you add the script
+   - Happens when loading a scene with the script
+   - Use for initialization that needs to happen regardless of play state
+
+2. **OnStart()** - Called on the first Update frame during play mode
+   - Only called once per play session
+   - Only called during actual play mode (not in editor)
+   - Use for game-specific initialization
+
+3. **OnUpdate(deltaTime)** - Called every frame during play mode
+   - Variable timestep based on frame rate
+   - Use for input handling, movement, non-physics logic
+
+4. **OnFixedUpdate(fixedDeltaTime)** - Called at fixed timestep during play mode
+   - Fixed timestep (default: 60 Hz)
+   - Use for physics-related logic
+
+5. **OnCollision*/OnTrigger*()** - Called when physics events occur
+   - Enter: First frame of contact
+   - Stay: Every frame while in contact
+   - Exit: First frame after contact ends
+
+6. **OnDestroy()** - Called when script is removed or entity destroyed
+
+Scripts are attached to entities via the Script component in the editor.
+
+## Editor Features
+
+- **Scene Hierarchy** - Tree view of all entities
+- **Inspector Panel** - Component property editing with reflection
+- **Viewport** - Interactive scene view with gizmos
+- **Console** - Runtime logging and messages
+- **Profiler** - Performance monitoring
+- **Build & Export** - Package building and game export with progress tracking
+- **Undo/Redo** - Full command history (Ctrl+Z / Ctrl+Y)
+- **Play/Pause/Step** - Runtime control
+- **Scene Serialization** - Save/Load scenes (Ctrl+S / Ctrl+O)
+- **Drag & Drop** - Asset management
+
+## Coding Standards
+
+- **Avoid `auto`** - Use explicit type declarations for clarity
+- **Brace initialization** - Use `{}` for constructors (e.g., `Vector2{0.0f, 0.0f}`)
+- **SOLID principles** - Clean, maintainable architecture
+- **No RTTI** - Custom reflection system instead
+- **Performance focus** - Cache-friendly data layouts with EnTT
+
+## Development Workflow
+
+### For Engine Development
+
+1. Make changes to `engine/` code
+2. Build with editor mode
+3. Test in the editor
+4. Ensure MSVC and GCC compatibility
+
+### For Game Development
+
+1. Open editor: `./build_and_run.sh` → Select "Editor (Debug)"
+2. Create/edit scenes in the editor
+3. Write custom scripts in `games/MyFirstGame/src/`
+4. Test in editor
+5. Create package for distribution
+6. Build standalone game
+
+### Debugging Standalone Game
+
+When you need to debug the game without the editor (e.g., to test icon loading, asset paths, or production behavior):
+
+**Using CLion:**
+1. Select the `game-debug` preset
+2. Build and run
+3. Console window shows all TraceLog output
+4. Full debugging symbols available
+
+**Using build_and_run.sh (Linux/macOS):**
+```bash
+./build_and_run.sh
+# Select option 6: Game (Debug, standalone with console)
+```
+
+**Console output will show:**
+- Window icon loading status
+- Asset loading operations
+- Physics initialization
+- Any runtime errors or warnings
+
+## Troubleshooting
+
+### CMake hangs during configuration (Windows)
+
+If CMake gets stuck downloading dependencies:
+1. Close CLion/Visual Studio completely
+2. Delete the `build/` folder
+3. Re-run CMake configuration
+
+### Missing X11 libraries (Linux)
+
+```bash
+sudo apt install libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
+```
+
+### Compiler not found (Linux)
+
+Set explicit compiler:
+```bash
+export CC=gcc-11
+export CXX=g++-11
+./build_and_run.sh
+```
+
+### ImGui linker errors
+
+Make sure you're building with `BUILD_EDITOR=ON` when using editor features.
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+- Code compiles without warnings on both MSVC and GCC
+- Follow the coding standards (no comments, explicit types)
+- Test on both Windows and Linux if possible
+- Maintain C++20 standard compliance
+
+## Acknowledgments
+
+- **EnTT** - Michele Caini
+- **Box2D** - Erin Catto
+- **Raylib** - Ramon Santamaria
+- **ImGui** - Omar Cornut
+- **nlohmann/json** - Niels Lohmann
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on the repository.
+
+---
+
+**Built with modern C++20 | Cross-platform | Open source**
