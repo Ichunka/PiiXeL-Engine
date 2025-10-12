@@ -64,7 +64,12 @@ void SpriteSheet::Unload() {
 }
 
 size_t SpriteSheet::GetMemoryUsage() const {
-    return m_Frames.size() * sizeof(SpriteFrame);
+    size_t total = sizeof(SpriteSheet);
+    total += m_Frames.capacity() * sizeof(SpriteFrame);
+    for (const SpriteFrame& frame : m_Frames) {
+        total += frame.name.capacity();
+    }
+    return total;
 }
 
 void SpriteSheet::SetTexture(UUID textureUUID) {

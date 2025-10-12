@@ -718,8 +718,19 @@ void EditorLayer::RenderInspector() {
 
             ImGui::Text("Name: %s", metadata.name.c_str());
             ImGui::Text("UUID: %" PRIu64, metadata.uuid.Get());
-            ImGui::Text("Type: %s", metadata.type == AssetType::Texture ? "Texture" :
-                                     metadata.type == AssetType::Audio ? "Audio" : "Unknown");
+
+            const char* typeStr = "Unknown";
+            switch (metadata.type) {
+                case AssetType::Texture: typeStr = "Texture"; break;
+                case AssetType::Audio: typeStr = "Audio"; break;
+                case AssetType::SpriteSheet: typeStr = "Sprite Sheet"; break;
+                case AssetType::AnimationClip: typeStr = "Animation Clip"; break;
+                case AssetType::AnimatorController: typeStr = "Animator Controller"; break;
+                case AssetType::Scene: typeStr = "Scene"; break;
+                default: break;
+            }
+            ImGui::Text("Type: %s", typeStr);
+
             ImGui::Text("Source: %s", metadata.sourceFile.c_str());
             ImGui::Text("Memory: %zu bytes", asset->GetMemoryUsage());
             ImGui::Text("Loaded: %s", asset->IsLoaded() ? "Yes" : "No");
@@ -770,6 +781,37 @@ void EditorLayer::RenderInspector() {
                             StopSound(sound);
                         }
                     }
+                }
+            } else if (metadata.type == AssetType::SpriteSheet) {
+                SpriteSheet* spriteSheet = dynamic_cast<SpriteSheet*>(asset.get());
+                if (spriteSheet) {
+                    ImGui::Text("Texture UUID: %" PRIu64, spriteSheet->GetTextureUUID().Get());
+                    ImGui::Text("Grid: %dx%d", spriteSheet->GetGridColumns(), spriteSheet->GetGridRows());
+                    ImGui::Text("Frame Count: %zu", spriteSheet->GetFrames().size());
+                }
+            } else if (metadata.type == AssetType::AnimationClip) {
+                AnimationClip* animClip = dynamic_cast<AnimationClip*>(asset.get());
+                if (animClip) {
+                    ImGui::Text("Sprite Sheet UUID: %" PRIu64, animClip->GetSpriteSheetUUID().Get());
+                    ImGui::Text("Frame Count: %zu", animClip->GetFrames().size());
+                    ImGui::Text("Frame Rate: %.1f fps", animClip->GetFrameRate());
+                    ImGui::Text("Duration: %.2f seconds", animClip->GetTotalDuration());
+
+                    const char* wrapModeStr = "Unknown";
+                    switch (animClip->GetWrapMode()) {
+                        case AnimationWrapMode::Once: wrapModeStr = "Once"; break;
+                        case AnimationWrapMode::Loop: wrapModeStr = "Loop"; break;
+                        case AnimationWrapMode::PingPong: wrapModeStr = "Ping Pong"; break;
+                    }
+                    ImGui::Text("Wrap Mode: %s", wrapModeStr);
+                }
+            } else if (metadata.type == AssetType::AnimatorController) {
+                AnimatorController* controller = dynamic_cast<AnimatorController*>(asset.get());
+                if (controller) {
+                    ImGui::Text("Default State: %s", controller->GetDefaultState().c_str());
+                    ImGui::Text("Parameters: %zu", controller->GetParameters().size());
+                    ImGui::Text("States: %zu", controller->GetStates().size());
+                    ImGui::Text("Transitions: %zu", controller->GetTransitions().size());
                 }
             }
 
@@ -1548,8 +1590,23 @@ void EditorLayer::RenderContentBrowser() {
                                          asset.type == "animclip" ? "CLIP" : "CTRL";
                 if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
                     m_SelectedAssetPath = asset.path;
-                    m_SelectedAssetUUID = UUID{0};
                     m_SelectedEntity = entt::null;
+
+                    UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                        ? AssetRegistry::Instance().GetAsset(existingUUID)
+                        : nullptr;
+
+                    if (!existingAsset) {
+                        std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                        if (loadedAsset) {
+                            m_SelectedAssetUUID = loadedAsset->GetUUID();
+                        } else {
+                            m_SelectedAssetUUID = UUID{0};
+                        }
+                    } else {
+                        m_SelectedAssetUUID = existingUUID;
+                    }
                 }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {

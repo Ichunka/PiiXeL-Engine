@@ -55,7 +55,9 @@ void AnimationClip::Unload() {
 }
 
 size_t AnimationClip::GetMemoryUsage() const {
-    return m_Frames.size() * sizeof(AnimationFrame);
+    size_t total = sizeof(AnimationClip);
+    total += m_Frames.capacity() * sizeof(AnimationFrame);
+    return total;
 }
 
 void AnimationClip::SetSpriteSheet(UUID spriteSheetUUID) {

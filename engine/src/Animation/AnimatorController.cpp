@@ -117,9 +117,31 @@ void AnimatorController::Unload() {
 }
 
 size_t AnimatorController::GetMemoryUsage() const {
-    return m_Parameters.size() * sizeof(AnimatorParameter) +
-           m_States.size() * sizeof(AnimatorState) +
-           m_Transitions.size() * sizeof(AnimatorTransition);
+    size_t total = sizeof(AnimatorController);
+
+    total += m_Parameters.capacity() * sizeof(AnimatorParameter);
+    for (const AnimatorParameter& param : m_Parameters) {
+        total += param.name.capacity();
+    }
+
+    total += m_States.capacity() * sizeof(AnimatorState);
+    for (const AnimatorState& state : m_States) {
+        total += state.name.capacity();
+    }
+
+    total += m_Transitions.capacity() * sizeof(AnimatorTransition);
+    for (const AnimatorTransition& transition : m_Transitions) {
+        total += transition.fromState.capacity();
+        total += transition.toState.capacity();
+        total += transition.conditions.capacity() * sizeof(TransitionCondition);
+        for (const TransitionCondition& condition : transition.conditions) {
+            total += condition.parameterName.capacity();
+        }
+    }
+
+    total += m_DefaultState.capacity();
+
+    return total;
 }
 
 void AnimatorController::AddParameter(const AnimatorParameter& parameter) {
