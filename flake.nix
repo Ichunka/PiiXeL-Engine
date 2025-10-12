@@ -24,14 +24,23 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             cmake
-            # glfw
+
             raylib
+
+            entt
+            nlohmann_json
+            imgui
+            box2d
 
             libxcursor
             libxrandr
             xorg.libXi
             xorg.libXinerama
           ];
+
+          shellHook = ''
+            export C_INCLUDE_PATH="${pkgs.raylib}/include:$C_INCLUDE_PATH"
+          '';
         };
       }
     );
