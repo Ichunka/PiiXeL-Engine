@@ -1,9 +1,16 @@
 #include "Resources/AssetPackage.hpp"
 #include <filesystem>
 #include <cstring>
+#include <algorithm>
 #include <raylib.h>
 
 namespace PiiXeL {
+
+static std::string NormalizePath(const std::string& path) {
+    std::string normalized = path;
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    return normalized;
+}
 
 bool AssetPackage::SaveToFile(const std::string& path, const AssetMetadata& metadata,
                                const void* data, size_t dataSize) {
@@ -20,12 +27,16 @@ bool AssetPackage::SaveToFile(const std::string& path, const AssetMetadata& meta
     header.sourceTimestamp = metadata.sourceTimestamp;
     header.dataSize = dataSize;
 
-    std::string metadataStr = metadata.name + "|" + metadata.sourceFile + "|" +
+    std::string normalizedSourceFile = NormalizePath(metadata.sourceFile);
+    std::string metadataStr = metadata.name + "|" + normalizedSourceFile + "|" +
                               std::to_string(metadata.version);
     header.metadataSize = metadataStr.size();
 
     if (!WriteHeader(file, header)) return false;
-    if (!WriteMetadata(file, metadata)) return false;
+
+    file.write(metadataStr.c_str(), metadataStr.size());
+    if (!file.good()) return false;
+
     if (!WriteData(file, data, dataSize)) return false;
 
     file.close();

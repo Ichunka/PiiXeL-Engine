@@ -1,6 +1,5 @@
 #include "Core/Application.hpp"
 #include "Core/Engine.hpp"
-#include "Core/SplashScreen.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
@@ -11,10 +10,13 @@
 
 #ifdef BUILD_WITH_EDITOR
 #include "Editor/EditorLayer.hpp"
-#include "Core/SplashScreen.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include <rlImGui.h>
 #include <imgui.h>
+#endif
+
+#ifndef BUILD_WITH_EDITOR
+#include "Core/SplashScreen.hpp"
 #endif
 
 namespace PiiXeL {
@@ -110,7 +112,6 @@ void Application::Initialize() {
         splashScreen.Update(deltaTime);
 
         BeginDrawing();
-        ClearBackground(Color{0, 0, 0, 255});
         splashScreen.Render();
         EndDrawing();
 
