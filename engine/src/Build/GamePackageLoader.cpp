@@ -296,7 +296,7 @@ void GamePackageLoader::InitializeAssetRegistry() {
             std::vector<uint8_t> assetData{};
 
             AssetPackage package{};
-            if (package.LoadFromMemory(asset.data.data(), asset.data.size(), metadata, assetData)) {
+            if (package.LoadFromMemory(asset.data.data(), asset.data.size(), metadata, assetData, normalizedPath)) {
                 AssetRegistry::Instance().RegisterAssetFromMemory(metadata.uuid, metadata.sourceFile, asset.data);
                 registeredCount++;
             }

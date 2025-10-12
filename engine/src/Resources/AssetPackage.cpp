@@ -28,8 +28,12 @@ bool AssetPackage::SaveToFile(const std::string& path, const AssetMetadata& meta
     header.sourceTimestamp = metadata.sourceTimestamp;
     header.dataSize = dataSize;
 
-    std::string normalizedSourceFile = NormalizePath(metadata.sourceFile);
-    std::string metadataStr = metadata.name + "|" + normalizedSourceFile + "|" +
+    std::string extension = metadata.sourceExtension;
+    if (extension.empty() && !metadata.sourceFile.empty()) {
+        extension = std::filesystem::path{metadata.sourceFile}.extension().string();
+    }
+
+    std::string metadataStr = metadata.name + "|" + extension + "|" +
                               std::to_string(metadata.version);
     header.metadataSize = metadataStr.size();
 
@@ -80,7 +84,7 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
 }
 
 bool AssetPackage::LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata,
-                                    std::vector<uint8_t>& outData) {
+                                    std::vector<uint8_t>& outData, const std::string& pxaPath) {
     if (!data || dataSize < sizeof(Header)) {
         return false;
     }
@@ -119,8 +123,16 @@ bool AssetPackage::LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMet
     }
 
     outMetadata.name = metadataStr.substr(0, pos1);
-    outMetadata.sourceFile = NormalizePath(metadataStr.substr(pos1 + 1, pos2 - pos1 - 1));
+    outMetadata.sourceExtension = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
     outMetadata.version = std::stoul(metadataStr.substr(pos2 + 1));
+
+    if (!pxaPath.empty()) {
+        std::filesystem::path pxa{pxaPath};
+        std::string sourceFile = pxa.parent_path().string();
+        if (!sourceFile.empty()) sourceFile += "/";
+        sourceFile += pxa.stem().string() + outMetadata.sourceExtension;
+        outMetadata.sourceFile = NormalizePath(sourceFile);
+    }
 
     if (offset + header.dataSize > dataSize) {
         return false;
@@ -151,6 +163,12 @@ bool AssetPackage::LoadMetadataOnly(const std::string& path, AssetMetadata& outM
     outMetadata.sourceTimestamp = header.sourceTimestamp;
 
     if (!ReadMetadata(file, outMetadata, header.metadataSize)) return false;
+
+    std::filesystem::path pxaPath{path};
+    std::string sourceFile = pxaPath.parent_path().string();
+    if (!sourceFile.empty()) sourceFile += "/";
+    sourceFile += pxaPath.stem().string() + outMetadata.sourceExtension;
+    outMetadata.sourceFile = NormalizePath(sourceFile);
 
     file.close();
     return true;
@@ -209,7 +227,7 @@ bool AssetPackage::ReadMetadata(std::ifstream& stream, AssetMetadata& metadata, 
     if (pos1 == std::string::npos || pos2 == std::string::npos) return false;
 
     metadata.name = metadataStr.substr(0, pos1);
-    metadata.sourceFile = NormalizePath(metadataStr.substr(pos1 + 1, pos2 - pos1 - 1));
+    metadata.sourceExtension = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
     metadata.version = std::stoul(metadataStr.substr(pos2 + 1));
 
     return true;

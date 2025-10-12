@@ -24,6 +24,7 @@ struct AssetMetadata {
     AssetType type{AssetType::Unknown};
     std::string name;
     std::string sourceFile;
+    std::string sourceExtension;
     uint64_t importTimestamp{0};
     uint64_t sourceTimestamp{0};
     uint32_t version{1};

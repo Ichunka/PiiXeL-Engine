@@ -35,7 +35,7 @@ public:
                       std::vector<uint8_t>& outData);
 
     bool LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata,
-                        std::vector<uint8_t>& outData);
+                        std::vector<uint8_t>& outData, const std::string& pxaPath = "");
 
     bool LoadMetadataOnly(const std::string& path, AssetMetadata& outMetadata);
 

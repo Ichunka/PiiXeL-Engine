@@ -360,7 +360,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
                     if (missingUUIDs.find(uuidValue) != missingUUIDs.end()) {
                         TraceLog(LOG_INFO, "UUID %" PRIu64 " matches a missing UUID, reading metadata...", uuidValue);
-                        pxaFile.seekg(sizeof(uint64_t), std::ios::cur);
+                        pxaFile.seekg(sizeof(uint64_t) * 2, std::ios::cur);
 
                         std::string metadataStr(static_cast<size_t>(metadataSize), '\0');
                         pxaFile.read(&metadataStr[0], static_cast<std::streamsize>(metadataSize));
@@ -369,8 +369,14 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
                         size_t pos2 = metadataStr.find('|', pos1 + 1);
 
                         if (pos1 != std::string::npos && pos2 != std::string::npos) {
-                            std::string sourcePath = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
+                            std::string extension = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
+
+                            std::filesystem::path pxaPath = entry.path();
+                            std::string sourcePath = pxaPath.parent_path().string();
+                            if (!sourcePath.empty()) sourcePath += "/";
+                            sourcePath += pxaPath.stem().string() + extension;
                             std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
+
                             uuidToPath[uuidValue] = sourcePath;
                             TraceLog(LOG_INFO, "Resolved UUID %" PRIu64 " -> %s from .pxa scan", uuidValue, sourcePath.c_str());
                         }

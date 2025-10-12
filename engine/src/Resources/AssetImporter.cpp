@@ -207,6 +207,7 @@ AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sour
     metadata.type = AssetType::Texture;
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
     metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -244,6 +245,7 @@ AssetImporter::ImportResult AssetImporter::ImportAudio(const std::string& source
     metadata.type = AssetType::Audio;
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
     metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
