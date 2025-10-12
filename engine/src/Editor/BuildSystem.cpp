@@ -352,7 +352,7 @@ void BuildSystem::BuildGamePackage(ProgressCallback callback) {
 
     commands.push_back(tempBatch);
 #else
-    commands.push_back("cmake -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
     commands.push_back("cmake --build \"" + buildDir + "\" --target build_package --config Release");
     commands.push_back("cd \"" + gameDir + "\" && \"" + buildDir + "/build_package\"");
 #endif
@@ -386,7 +386,7 @@ void BuildSystem::BuildGameExecutable(ProgressCallback callback) {
 
     commands.push_back(tempBatch);
 #else
-    commands.push_back("cmake -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
     commands.push_back("cmake --build \"" + buildDir + "\" --target game --config Release");
 #endif
 
@@ -431,7 +431,7 @@ void BuildSystem::ExportGame(const std::string& exportPath, ProgressCallback cal
 
         buildCommands.push_back(tempBatch);
 #else
-        buildCommands.push_back("cmake -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+        buildCommands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
         buildCommands.push_back("cmake --build \"" + buildDir + "\" --target game --config Release");
         buildCommands.push_back("cmake --build \"" + buildDir + "\" --target build_package --config Release");
         buildCommands.push_back("cd \"" + gameDir + "\" && \"" + buildDir + "/build_package\"");
