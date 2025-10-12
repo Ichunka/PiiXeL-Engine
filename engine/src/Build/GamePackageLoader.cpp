@@ -15,6 +15,7 @@
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/AssetPackage.hpp"
 #include <raylib.h>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 
@@ -287,7 +288,10 @@ void GamePackageLoader::InitializeAssetRegistry() {
 
     size_t registeredCount = 0;
     for (const AssetData& asset : m_Package.GetAssets()) {
-        if (asset.path.ends_with(".pxa")) {
+        std::string normalizedPath = asset.path;
+        std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
+        if (normalizedPath.ends_with(".pxa")) {
             AssetMetadata metadata{};
             std::vector<uint8_t> assetData{};
 
