@@ -23,16 +23,6 @@ void AnimationClipEditorPanel::Render() {
             RenderToolbar();
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("How to use", ImGuiTreeNodeFlags_None)) {
-                ImGui::TextColored(ImVec4{0.4f, 0.8f, 1.0f, 1.0f}, "Quick Guide:");
-                ImGui::BulletText("STEP 1: Drag a SHEET from Content Browser to the drop zone");
-                ImGui::BulletText("STEP 2: Drag frames from 'Available Frames' to Timeline");
-                ImGui::BulletText("STEP 3: Adjust frame duration by dragging the sliders");
-                ImGui::BulletText("STEP 4: Press Play to preview your animation");
-                ImGui::BulletText("STEP 5: Save when done!");
-                ImGui::Separator();
-            }
-
             ImGui::BeginChild("LeftPanel", ImVec2{350, 0}, true);
             RenderSettings();
             ImGui::Separator();
@@ -72,15 +62,20 @@ void AnimationClipEditorPanel::Open(const std::string& animClipPath) {
 
     if (m_AnimationClip) {
         m_SelectedSpriteSheetUUID = m_AnimationClip->GetSpriteSheetUUID();
+        TraceLog(LOG_INFO, "AnimationClip opened, SpriteSheetUUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
+
         if (m_SelectedSpriteSheetUUID.Get() != 0) {
             std::shared_ptr<Asset> spriteSheetAsset = AssetRegistry::Instance().LoadAsset(m_SelectedSpriteSheetUUID);
             m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(spriteSheetAsset);
 
             if (m_SpriteSheet) {
+                TraceLog(LOG_INFO, "SpriteSheet loaded: %s", m_SpriteSheet->GetName().c_str());
                 UUID textureUUID = m_SpriteSheet->GetTextureUUID();
                 if (textureUUID.Get() != 0) {
                     AssetRegistry::Instance().LoadAsset(textureUUID);
                 }
+            } else {
+                TraceLog(LOG_WARNING, "Failed to load SpriteSheet with UUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
             }
         }
     }
@@ -102,11 +97,6 @@ void AnimationClipEditorPanel::Close() {
 void AnimationClipEditorPanel::RenderToolbar() {
     if (ImGui::Button("Save")) {
         Save();
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("Close")) {
-        Close();
     }
 
     ImGui::SameLine();
@@ -159,8 +149,17 @@ void AnimationClipEditorPanel::RenderSettings() {
                         if (spriteSheetUUID.Get() != 0) {
                             m_SelectedSpriteSheetUUID = spriteSheetUUID;
                             m_AnimationClip->SetSpriteSheet(m_SelectedSpriteSheetUUID);
-                            std::shared_ptr<Asset> spriteSheetAsset = AssetRegistry::Instance().GetAsset(m_SelectedSpriteSheetUUID);
+                            std::shared_ptr<Asset> spriteSheetAsset = AssetRegistry::Instance().LoadAsset(m_SelectedSpriteSheetUUID);
                             m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(spriteSheetAsset);
+
+                            if (m_SpriteSheet) {
+                                UUID textureUUID = m_SpriteSheet->GetTextureUUID();
+                                if (textureUUID.Get() != 0) {
+                                    AssetRegistry::Instance().LoadAsset(textureUUID);
+                                }
+                            }
+
+                            Save();
                         }
                     }
                 }
@@ -169,18 +168,19 @@ void AnimationClipEditorPanel::RenderSettings() {
         }
     } else {
         ImGui::Text("SpriteSheet:");
-        char spriteSheetUuidStr[64];
-        snprintf(spriteSheetUuidStr, sizeof(spriteSheetUuidStr), "%" PRIu64, m_SelectedSpriteSheetUUID.Get());
-        ImGui::InputText("##spriteSheetUUID", spriteSheetUuidStr, sizeof(spriteSheetUuidStr), ImGuiInputTextFlags_ReadOnly);
+
+        if (m_SpriteSheet) {
+            ImGui::Text("  %s", m_SpriteSheet->GetName().c_str());
+            ImGui::TextColored(ImVec4{0.3f, 1.0f, 0.3f, 1.0f}, "  Frames available: %zu", m_SpriteSheet->GetFrameCount());
+        } else if (m_SelectedSpriteSheetUUID.Get() != 0) {
+            ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  [Not Loaded]");
+        }
 
         if (ImGui::Button("Clear SpriteSheet")) {
             m_SelectedSpriteSheetUUID = UUID{0};
             m_AnimationClip->SetSpriteSheet(UUID{0});
             m_SpriteSheet.reset();
-        }
-
-        if (m_SpriteSheet) {
-            ImGui::TextColored(ImVec4{0.3f, 1.0f, 0.3f, 1.0f}, "Frames available: %zu", m_SpriteSheet->GetFrameCount());
+            Save();
         }
     }
 
@@ -216,38 +216,63 @@ void AnimationClipEditorPanel::RenderAvailableFrames() {
         return;
     }
 
-    ImGui::Text("Available Frames (%zu):", m_SpriteSheet->GetFrameCount());
-    ImGui::TextWrapped("Drag frames to the timeline or click + 'Add Selected'");
+    ImGui::Text("Available Frames: %zu", m_SpriteSheet->GetFrameCount());
+    ImGui::Text("Available Groups: %zu", m_SpriteSheet->GetFrameGroupCount());
+    ImGui::TextWrapped("Drag frames/groups to timeline");
     ImGui::Separator();
 
     ImGui::BeginChild("AvailableFramesScroll", ImVec2{0, 0}, false);
 
-    const std::vector<SpriteFrame>& frames = m_SpriteSheet->GetFrames();
-    for (size_t i = 0; i < frames.size(); ++i) {
-        ImGui::PushID(static_cast<int>(i));
+    if (m_SpriteSheet->GetFrameGroupCount() > 0 && ImGui::CollapsingHeader("Frame Groups", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const std::vector<FrameGroup>& groups = m_SpriteSheet->GetFrameGroups();
+        for (size_t i = 0; i < groups.size(); ++i) {
+            ImGui::PushID(static_cast<int>(i) + 10000);
 
-        bool isSelected = (static_cast<int>(i) == m_SelectedFrameIndex);
-        if (isSelected) {
-            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{0.3f, 0.5f, 0.8f, 1.0f});
+            char label[128];
+            snprintf(label, sizeof(label), "[GROUP] %s (%zu frames)", groups[i].name.c_str(), groups[i].frameIndices.size());
+
+            ImGui::Button(label, ImVec2{-1, 0});
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                size_t groupIdx = i;
+                ImGui::SetDragDropPayload("ANIM_GROUP", &groupIdx, sizeof(size_t));
+                ImGui::Text("Group: %s", groups[i].name.c_str());
+                ImGui::EndDragDropSource();
+            }
+
+            ImGui::PopID();
         }
+        ImGui::Separator();
+    }
 
-        char label[64];
-        snprintf(label, sizeof(label), "Frame %zu", i);
-        if (ImGui::Selectable(label, isSelected)) {
-            m_SelectedFrameIndex = static_cast<int>(i);
+    if (ImGui::CollapsingHeader("Individual Frames", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const std::vector<SpriteFrame>& frames = m_SpriteSheet->GetFrames();
+        for (size_t i = 0; i < frames.size(); ++i) {
+            ImGui::PushID(static_cast<int>(i));
+
+            bool isSelected = (static_cast<int>(i) == m_SelectedFrameIndex);
+            if (isSelected) {
+                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{0.3f, 0.5f, 0.8f, 1.0f});
+            }
+
+            char label[64];
+            snprintf(label, sizeof(label), "Frame %zu", i);
+            if (ImGui::Selectable(label, isSelected)) {
+                m_SelectedFrameIndex = static_cast<int>(i);
+            }
+
+            if (ImGui::BeginDragDropSource()) {
+                ImGui::SetDragDropPayload("ANIM_FRAME", &i, sizeof(size_t));
+                ImGui::Text("Frame %zu", i);
+                ImGui::EndDragDropSource();
+            }
+
+            if (isSelected) {
+                ImGui::PopStyleColor();
+            }
+
+            ImGui::PopID();
         }
-
-        if (ImGui::BeginDragDropSource()) {
-            ImGui::SetDragDropPayload("ANIM_FRAME", &i, sizeof(size_t));
-            ImGui::Text("Frame %zu", i);
-            ImGui::EndDragDropSource();
-        }
-
-        if (isSelected) {
-            ImGui::PopStyleColor();
-        }
-
-        ImGui::PopID();
     }
 
     ImGui::EndChild();
@@ -298,6 +323,19 @@ void AnimationClipEditorPanel::RenderTimeline() {
                 newFrame.duration = 1.0f / m_AnimationClip->GetFrameRate();
                 frames.insert(frames.begin() + i, newFrame);
                 framesChanged = true;
+            } else if (const ImGuiPayload* groupPayload = ImGui::AcceptDragDropPayload("ANIM_GROUP")) {
+                size_t groupIndex = *static_cast<const size_t*>(groupPayload->Data);
+                const FrameGroup* group = m_SpriteSheet->GetFrameGroup(groupIndex);
+                if (group) {
+                    for (size_t frameIdx : group->frameIndices) {
+                        AnimationFrame newFrame{};
+                        newFrame.frameIndex = frameIdx;
+                        newFrame.duration = 1.0f / m_AnimationClip->GetFrameRate();
+                        frames.insert(frames.begin() + i, newFrame);
+                        i++;
+                    }
+                    framesChanged = true;
+                }
             }
             ImGui::EndDragDropTarget();
         }
@@ -352,6 +390,18 @@ void AnimationClipEditorPanel::RenderTimeline() {
                 newFrame.duration = 1.0f / m_AnimationClip->GetFrameRate();
                 frames.push_back(newFrame);
                 framesChanged = true;
+            } else if (const ImGuiPayload* groupPayload = ImGui::AcceptDragDropPayload("ANIM_GROUP")) {
+                size_t groupIndex = *static_cast<const size_t*>(groupPayload->Data);
+                const FrameGroup* group = m_SpriteSheet->GetFrameGroup(groupIndex);
+                if (group) {
+                    for (size_t frameIdx : group->frameIndices) {
+                        AnimationFrame newFrame{};
+                        newFrame.frameIndex = frameIdx;
+                        newFrame.duration = 1.0f / m_AnimationClip->GetFrameRate();
+                        frames.push_back(newFrame);
+                    }
+                    framesChanged = true;
+                }
             }
             ImGui::EndDragDropTarget();
         }

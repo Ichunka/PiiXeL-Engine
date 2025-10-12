@@ -130,6 +130,14 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
         json["frames"].push_back(frameJson);
     }
 
+    json["frameGroups"] = nlohmann::json::array();
+    for (const FrameGroup& group : spriteSheet.GetFrameGroups()) {
+        nlohmann::json groupJson{};
+        groupJson["name"] = group.name;
+        groupJson["frameIndices"] = group.frameIndices;
+        json["frameGroups"].push_back(groupJson);
+    }
+
     return json;
 }
 
@@ -163,6 +171,23 @@ void AnimationSerializer::JsonToSpriteSheet(const nlohmann::json& json, SpriteSh
             frames.push_back(frame);
         }
         spriteSheet.SetFrames(frames);
+    }
+
+    if (json.contains("frameGroups") && json["frameGroups"].is_array()) {
+        std::vector<FrameGroup> groups;
+        for (const auto& groupJson : json["frameGroups"]) {
+            FrameGroup group{};
+            group.name = groupJson.value("name", "");
+
+            if (groupJson.contains("frameIndices") && groupJson["frameIndices"].is_array()) {
+                for (const auto& indexJson : groupJson["frameIndices"]) {
+                    group.frameIndices.push_back(indexJson.get<size_t>());
+                }
+            }
+
+            groups.push_back(group);
+        }
+        spriteSheet.SetFrameGroups(groups);
     }
 }
 

@@ -34,11 +34,13 @@ private:
     void RenderToolbar();
     void RenderTextureSelector();
     void RenderGridSettings();
+    void RenderFrameGroups();
     void RenderFrameList();
     void RenderPreview();
 
     void UpdateFramesFromGrid();
     void UpdateFramesFromSelection();
+    void CreateGroupFromSelection();
     void Save();
 
     int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight);
@@ -57,9 +59,14 @@ private:
     float m_PreviewZoom{1.0f};
     Vector2 m_PreviewOffset{0.0f, 0.0f};
     int m_SelectedFrameIndex{-1};
+    int m_SelectedGroupIndex{-1};
 
     bool m_ShowGrid{true};
     bool m_ShowPivots{true};
+
+    char m_NewGroupName[64]{"NewGroup"};
+    char m_EditGroupName[64]{""};
+    bool m_IsEditingGroupName{false};
 };
 
 } // namespace PiiXeL

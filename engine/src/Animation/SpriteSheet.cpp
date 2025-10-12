@@ -49,6 +49,22 @@ bool SpriteSheet::Load(const void* data, size_t size) {
             }
         }
 
+        if (json.contains("frameGroups") && json["frameGroups"].is_array()) {
+            m_FrameGroups.clear();
+            for (const auto& groupJson : json["frameGroups"]) {
+                FrameGroup group{};
+                group.name = groupJson.value("name", "");
+
+                if (groupJson.contains("frameIndices") && groupJson["frameIndices"].is_array()) {
+                    for (const auto& indexJson : groupJson["frameIndices"]) {
+                        group.frameIndices.push_back(indexJson.get<size_t>());
+                    }
+                }
+
+                m_FrameGroups.push_back(group);
+            }
+        }
+
         m_IsLoaded = true;
         return true;
     } catch (const nlohmann::json::exception& e) {
@@ -89,6 +105,40 @@ const SpriteFrame* SpriteSheet::GetFrame(size_t index) const {
         return nullptr;
     }
     return &m_Frames[index];
+}
+
+void SpriteSheet::AddFrameGroup(const FrameGroup& group) {
+    m_FrameGroups.push_back(group);
+}
+
+void SpriteSheet::RemoveFrameGroup(size_t index) {
+    if (index < m_FrameGroups.size()) {
+        m_FrameGroups.erase(m_FrameGroups.begin() + index);
+    }
+}
+
+void SpriteSheet::UpdateFrameGroup(size_t index, const FrameGroup& group) {
+    if (index < m_FrameGroups.size()) {
+        m_FrameGroups[index] = group;
+    }
+}
+
+void SpriteSheet::SetFrameGroups(const std::vector<FrameGroup>& groups) {
+    m_FrameGroups = groups;
+}
+
+FrameGroup* SpriteSheet::GetFrameGroup(size_t index) {
+    if (index >= m_FrameGroups.size()) {
+        return nullptr;
+    }
+    return &m_FrameGroups[index];
+}
+
+const FrameGroup* SpriteSheet::GetFrameGroup(size_t index) const {
+    if (index >= m_FrameGroups.size()) {
+        return nullptr;
+    }
+    return &m_FrameGroups[index];
 }
 
 } // namespace PiiXeL

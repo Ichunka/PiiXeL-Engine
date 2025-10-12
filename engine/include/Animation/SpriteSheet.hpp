@@ -13,6 +13,11 @@ struct SpriteFrame {
     std::string name;
 };
 
+struct FrameGroup {
+    std::string name;
+    std::vector<size_t> frameIndices;
+};
+
 class SpriteSheet : public Asset {
 public:
     SpriteSheet(UUID uuid, const std::string& name);
@@ -35,9 +40,19 @@ public:
     int GetGridColumns() const { return m_GridColumns; }
     int GetGridRows() const { return m_GridRows; }
 
+    void AddFrameGroup(const FrameGroup& group);
+    void RemoveFrameGroup(size_t index);
+    void UpdateFrameGroup(size_t index, const FrameGroup& group);
+    void SetFrameGroups(const std::vector<FrameGroup>& groups);
+    const std::vector<FrameGroup>& GetFrameGroups() const { return m_FrameGroups; }
+    FrameGroup* GetFrameGroup(size_t index);
+    const FrameGroup* GetFrameGroup(size_t index) const;
+    size_t GetFrameGroupCount() const { return m_FrameGroups.size(); }
+
 private:
     UUID m_TextureUUID{0};
     std::vector<SpriteFrame> m_Frames;
+    std::vector<FrameGroup> m_FrameGroups;
     int m_GridColumns{1};
     int m_GridRows{1};
 };

@@ -23,10 +23,12 @@ void SpriteSheetEditorPanel::Render() {
             RenderToolbar();
             ImGui::Separator();
 
-            ImGui::BeginChild("LeftPanel", ImVec2{300, 0}, true);
+            ImGui::BeginChild("LeftPanel", ImVec2{350, 0}, true);
             RenderTextureSelector();
             ImGui::Separator();
             RenderGridSettings();
+            ImGui::Separator();
+            RenderFrameGroups();
             ImGui::Separator();
             RenderFrameList();
             ImGui::EndChild();
@@ -73,16 +75,16 @@ void SpriteSheetEditorPanel::Close() {
     m_CurrentPath.clear();
     m_SelectedTextureUUID = UUID{0};
     m_SelectedFrameIndex = -1;
+    m_SelectedGroupIndex = -1;
+    m_SelectedCells.clear();
+    m_PreviewZoom = 1.0f;
+    m_PreviewOffset = Vector2{0.0f, 0.0f};
+    m_IsEditingGroupName = false;
 }
 
 void SpriteSheetEditorPanel::RenderToolbar() {
     if (ImGui::Button("Save")) {
         Save();
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("Close")) {
-        Close();
     }
 
     ImGui::SameLine();
@@ -92,9 +94,16 @@ void SpriteSheetEditorPanel::RenderToolbar() {
 void SpriteSheetEditorPanel::RenderTextureSelector() {
     ImGui::Text("Texture");
 
-    char textureUuidStr[64];
-    snprintf(textureUuidStr, sizeof(textureUuidStr), "%" PRIu64, m_SelectedTextureUUID.Get());
-    ImGui::InputText("##textureUUID", textureUuidStr, sizeof(textureUuidStr), ImGuiInputTextFlags_ReadOnly);
+    if (m_SelectedTextureUUID.Get() != 0) {
+        std::shared_ptr<Asset> texAsset = AssetRegistry::Instance().GetAsset(m_SelectedTextureUUID);
+        if (texAsset) {
+            ImGui::Text("  %s", texAsset->GetName().c_str());
+        } else {
+            ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  [Not Found]");
+        }
+    } else {
+        ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "  None");
+    }
 
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID")) {
@@ -105,7 +114,7 @@ void SpriteSheetEditorPanel::RenderTextureSelector() {
                 m_SpriteSheet->SetTexture(m_SelectedTextureUUID);
                 UpdateFramesFromGrid();
             }
-        } else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
+        } else if (const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
             struct AssetInfo {
                 std::string path;
                 std::string filename;
@@ -116,7 +125,7 @@ void SpriteSheetEditorPanel::RenderTextureSelector() {
                 size_t fileSize;
             };
 
-            AssetInfo** draggedAssetPtr = static_cast<AssetInfo**>(const_cast<void*>(payload->Data));
+            AssetInfo** draggedAssetPtr = static_cast<AssetInfo**>(const_cast<void*>(assetPayload->Data));
             if (draggedAssetPtr && *draggedAssetPtr) {
                 AssetInfo* draggedAsset = *draggedAssetPtr;
                 UUID textureUUID = AssetRegistry::Instance().GetUUIDFromPath(draggedAsset->path);
@@ -176,6 +185,8 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
     if (ImGui::RadioButton("Grid (All)", m_SelectionMode == SelectionMode::Grid)) {
         m_SelectionMode = SelectionMode::Grid;
         UpdateFramesFromGrid();
+        m_SelectedGroupIndex = -1;
+        m_IsEditingGroupName = false;
     }
 
     if (ImGui::RadioButton("Manual", m_SelectionMode == SelectionMode::Manual)) {
@@ -191,13 +202,11 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
             for (int i = 0; i < m_GridColumns * m_GridRows; ++i) {
                 m_SelectedCells.insert(i);
             }
-            UpdateFramesFromSelection();
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Clear")) {
             m_SelectedCells.clear();
-            UpdateFramesFromSelection();
         }
 
         ImGui::SameLine();
@@ -209,7 +218,6 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
                 }
             }
             m_SelectedCells = newSelection;
-            UpdateFramesFromSelection();
         }
 
         if (ImGui::Button("Apply Selection")) {
@@ -541,6 +549,156 @@ void SpriteSheetEditorPanel::UpdateFramesFromSelection() {
     m_SpriteSheet->SetFrames(frames);
 }
 
+void SpriteSheetEditorPanel::RenderFrameGroups() {
+    ImGui::TextColored(ImVec4{0.8f, 0.6f, 0.4f, 1.0f}, "Frame Groups");
+    ImGui::Text("Groups: %zu", m_SpriteSheet->GetFrameGroupCount());
+
+    if (m_SelectionMode == SelectionMode::Manual && !m_SelectedCells.empty()) {
+        ImGui::InputText("New Group", m_NewGroupName, sizeof(m_NewGroupName));
+        if (ImGui::Button("Create Group from Selection", ImVec2{-1, 0})) {
+            CreateGroupFromSelection();
+        }
+        ImGui::Separator();
+    }
+
+    ImGui::BeginChild("FrameGroupsScroll", ImVec2{0, m_SelectedGroupIndex >= 0 ? 100.0f : 150.0f}, false);
+
+    const std::vector<FrameGroup>& groups = m_SpriteSheet->GetFrameGroups();
+    int groupToDelete = -1;
+
+    for (size_t i = 0; i < groups.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+
+        bool isSelected = (static_cast<int>(i) == m_SelectedGroupIndex);
+        if (isSelected) {
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{0.8f, 0.6f, 0.4f, 1.0f});
+        }
+
+        if (isSelected && m_IsEditingGroupName) {
+            ImGui::SetKeyboardFocusHere();
+            if (ImGui::InputText("##edit", m_EditGroupName, sizeof(m_EditGroupName), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                FrameGroup* group = m_SpriteSheet->GetFrameGroup(i);
+                if (group) {
+                    group->name = m_EditGroupName;
+                }
+                m_IsEditingGroupName = false;
+            }
+            if (!ImGui::IsItemActive() && !ImGui::IsItemFocused()) {
+                m_IsEditingGroupName = false;
+            }
+        } else {
+            char label[128];
+            snprintf(label, sizeof(label), "%s (%zu frames)", groups[i].name.c_str(), groups[i].frameIndices.size());
+
+            bool wasDoubleClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
+            if (ImGui::Selectable(label, isSelected)) {
+                if (wasDoubleClicked && isSelected) {
+                    m_IsEditingGroupName = true;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+                    strncpy(m_EditGroupName, groups[i].name.c_str(), sizeof(m_EditGroupName) - 1);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+                    m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
+                } else {
+                    m_SelectedGroupIndex = static_cast<int>(i);
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+                    strncpy(m_EditGroupName, groups[i].name.c_str(), sizeof(m_EditGroupName) - 1);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+                    m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
+
+                    m_SelectedCells.clear();
+                    for (size_t cellIdx : groups[i].frameIndices) {
+                        m_SelectedCells.insert(static_cast<int>(cellIdx));
+                    }
+
+                    if (m_SelectionMode != SelectionMode::Manual) {
+                        m_SelectionMode = SelectionMode::Manual;
+                    }
+                }
+            }
+        }
+
+        if (isSelected) {
+            ImGui::PopStyleColor();
+        }
+
+        if (!m_IsEditingGroupName || !isSelected) {
+            ImGui::SameLine();
+            if (ImGui::SmallButton("X")) {
+                groupToDelete = static_cast<int>(i);
+            }
+        }
+
+        ImGui::PopID();
+    }
+
+    if (groupToDelete >= 0) {
+        m_SpriteSheet->RemoveFrameGroup(static_cast<size_t>(groupToDelete));
+        if (m_SelectedGroupIndex == groupToDelete) {
+            m_SelectedGroupIndex = -1;
+            m_IsEditingGroupName = false;
+        } else if (m_SelectedGroupIndex > groupToDelete) {
+            m_SelectedGroupIndex--;
+        }
+    }
+
+    ImGui::EndChild();
+
+    if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+        const FrameGroup* selectedGroup = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+        if (selectedGroup) {
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Selected Group:");
+            ImGui::Text("  %s (%zu cells)", selectedGroup->name.c_str(), selectedGroup->frameIndices.size());
+            ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Double-click to rename");
+
+            if (m_SelectionMode == SelectionMode::Manual) {
+                if (ImGui::Button("Update Group from Selection", ImVec2{-1, 0})) {
+                    FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+                    if (group) {
+                        group->frameIndices.clear();
+                        for (int cell : m_SelectedCells) {
+                            group->frameIndices.push_back(static_cast<size_t>(cell));
+                        }
+                    }
+                }
+                ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Modify selection, then click button");
+            }
+        }
+    }
+}
+
+void SpriteSheetEditorPanel::CreateGroupFromSelection() {
+    if (m_SelectedCells.empty()) {
+        return;
+    }
+
+    if (m_SpriteSheet->GetFrameCount() != static_cast<size_t>(m_GridColumns * m_GridRows)) {
+        UpdateFramesFromGrid();
+    }
+
+    FrameGroup group{};
+    group.name = m_NewGroupName;
+
+    for (int cellIndex : m_SelectedCells) {
+        group.frameIndices.push_back(static_cast<size_t>(cellIndex));
+    }
+
+    m_SpriteSheet->AddFrameGroup(group);
+
+    snprintf(m_NewGroupName, sizeof(m_NewGroupName), "NewGroup%zu", m_SpriteSheet->GetFrameGroupCount() + 1);
+}
+
 int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight) {
     float relX = mousePos.x - imagePos.x;
     float relY = mousePos.y - imagePos.y;
@@ -556,14 +714,20 @@ int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, con
 }
 
 void SpriteSheetEditorPanel::Save() {
-    if (!m_SpriteSheet || m_CurrentPath.empty()) {
-        TraceLog(LOG_ERROR, "Cannot save: no sprite sheet or path");
+    if (!m_SpriteSheet) {
+        TraceLog(LOG_ERROR, "Cannot save: no sprite sheet");
         return;
     }
 
-    if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
-        TraceLog(LOG_INFO, "Saved sprite sheet: %s", m_CurrentPath.c_str());
+    if (m_CurrentPath.empty()) {
+        TraceLog(LOG_ERROR, "Cannot save: no path set (m_CurrentPath is empty)");
+        return;
+    }
 
+    TraceLog(LOG_INFO, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
+
+    if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
+        TraceLog(LOG_INFO, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
     } else {
         TraceLog(LOG_ERROR, "Failed to save sprite sheet: %s", m_CurrentPath.c_str());

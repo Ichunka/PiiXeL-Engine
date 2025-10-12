@@ -17,7 +17,7 @@ bool TextureAsset::Load(const void* data, size_t size) {
     }
 
     const char* fileExt = ".png";
-    Image image = LoadImageFromMemory(fileExt, static_cast<const unsigned char*>(data), size);
+    Image image = LoadImageFromMemory(fileExt, static_cast<const unsigned char*>(data), static_cast<int>(size));
 
     if (image.data == nullptr) {
         TraceLog(LOG_ERROR, "Failed to load texture from memory");

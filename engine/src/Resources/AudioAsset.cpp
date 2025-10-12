@@ -18,7 +18,7 @@ bool AudioAsset::Load(const void* data, size_t size) {
     }
 
     const char* fileExt = ".wav";
-    m_Wave = LoadWaveFromMemory(fileExt, static_cast<const unsigned char*>(data), size);
+    m_Wave = LoadWaveFromMemory(fileExt, static_cast<const unsigned char*>(data), static_cast<int>(size));
 
     if (m_Wave.data == nullptr) {
         TraceLog(LOG_ERROR, "Failed to load audio from memory");

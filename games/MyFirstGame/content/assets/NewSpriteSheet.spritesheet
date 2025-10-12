@@ -1,4 +1,22 @@
 {
+    "frameGroups": [
+        {
+            "frameIndices": [
+                0,
+                1,
+                2
+            ],
+            "name": "NewGroup"
+        },
+        {
+            "frameIndices": [
+                0,
+                1,
+                2
+            ],
+            "name": "NewGroup2"
+        }
+    ],
     "frames": [
         {
             "name": "frame_0_0",

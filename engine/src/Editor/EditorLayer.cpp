@@ -5,6 +5,7 @@
 #include "Editor/BuildPanel.hpp"
 #include "Editor/SpriteSheetEditorPanel.hpp"
 #include "Editor/AnimationClipEditorPanel.hpp"
+#include "Editor/AnimatorControllerEditorPanel.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
@@ -80,6 +81,7 @@ EditorLayer::EditorLayer(Engine* engine)
     m_BuildPanel = std::make_unique<BuildPanel>();
     m_SpriteSheetEditor = std::make_unique<SpriteSheetEditorPanel>();
     m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
+    m_AnimatorControllerEditor = std::make_unique<AnimatorControllerEditorPanel>();
     SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
@@ -239,6 +241,10 @@ void EditorLayer::OnImGuiRender() {
         m_AnimationClipEditor->Render();
     }
 
+    if (m_AnimatorControllerEditor) {
+        m_AnimatorControllerEditor->Render();
+    }
+
     EndDockspace();
 }
 
@@ -353,20 +359,6 @@ void EditorLayer::RenderMenuBar() {
         if (ImGui::BeginMenu("Project")) {
             if (ImGui::MenuItem("Settings")) {
                 m_ShowProjectSettings = true;
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Tools")) {
-            if (ImGui::MenuItem("Sprite Sheet Editor")) {
-                if (m_SpriteSheetEditor && !m_SelectedAssetPath.empty()) {
-                    m_SpriteSheetEditor->Open(m_SelectedAssetPath);
-                }
-            }
-            if (ImGui::MenuItem("Animation Clip Editor")) {
-                if (m_AnimationClipEditor && !m_SelectedAssetPath.empty()) {
-                    m_AnimationClipEditor->Open(m_SelectedAssetPath);
-                }
             }
             ImGui::EndMenu();
         }
@@ -1653,8 +1645,8 @@ void EditorLayer::RenderContentBrowser() {
                         m_SpriteSheetEditor->Open(asset.path);
                     } else if (asset.type == "animclip" && m_AnimationClipEditor) {
                         m_AnimationClipEditor->Open(asset.path);
-                    } else if (asset.type == "animcontroller") {
-                        TraceLog(LOG_INFO, "TODO: Open AnimatorController editor for: %s", asset.path.c_str());
+                    } else if (asset.type == "animcontroller" && m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->Open(asset.path);
                     }
                 }
 
@@ -1754,40 +1746,46 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::Columns(1);
     }
 
-    if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+    if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight)) {
         rightClickedItem.clear();
 
-        if (ImGui::MenuItem("New Scene")) {
-            showNewScenePopup = true;
-            std::memset(newItemName, 0, sizeof(newItemName));
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("New Scene")) {
+                showNewScenePopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
+            }
+            ImGui::EndMenu();
         }
 
-        if (ImGui::MenuItem("New Folder")) {
-            showNewFolderPopup = true;
-            std::memset(newItemName, 0, sizeof(newItemName));
+        if (ImGui::BeginMenu("Animation")) {
+            if (ImGui::MenuItem("Sprite Sheet")) {
+                std::string newPath = currentPath + "/NewSpriteSheet.spritesheet";
+                SpriteSheet spriteSheet{UUID{}, "NewSpriteSheet"};
+                AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
+                needsRefresh = true;
+            }
+
+            if (ImGui::MenuItem("Animation Clip")) {
+                std::string newPath = currentPath + "/NewAnimationClip.animclip";
+                AnimationClip clip{UUID{}, "NewAnimationClip"};
+                AnimationSerializer::SerializeAnimationClip(clip, newPath);
+                needsRefresh = true;
+            }
+
+            if (ImGui::MenuItem("Animator Controller")) {
+                std::string newPath = currentPath + "/NewAnimatorController.animcontroller";
+                AnimatorController controller{UUID{}, "NewAnimatorController"};
+                AnimationSerializer::SerializeAnimatorController(controller, newPath);
+                needsRefresh = true;
+            }
+            ImGui::EndMenu();
         }
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("New Sprite Sheet")) {
-            std::string newPath = currentPath + "/NewSpriteSheet.spritesheet";
-            SpriteSheet spriteSheet{UUID{}, "NewSpriteSheet"};
-            AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
-            needsRefresh = true;
-        }
-
-        if (ImGui::MenuItem("New Animation Clip")) {
-            std::string newPath = currentPath + "/NewAnimationClip.animclip";
-            AnimationClip clip{UUID{}, "NewAnimationClip"};
-            AnimationSerializer::SerializeAnimationClip(clip, newPath);
-            needsRefresh = true;
-        }
-
-        if (ImGui::MenuItem("New Animator Controller")) {
-            std::string newPath = currentPath + "/NewAnimatorController.animcontroller";
-            AnimatorController controller{UUID{}, "NewAnimatorController"};
-            AnimationSerializer::SerializeAnimatorController(controller, newPath);
-            needsRefresh = true;
+        if (ImGui::MenuItem("New Folder")) {
+            showNewFolderPopup = true;
+            std::memset(newItemName, 0, sizeof(newItemName));
         }
 
         ImGui::EndPopup();

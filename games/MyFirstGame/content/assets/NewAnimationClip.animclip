@@ -1,21 +1,8 @@
 {
-    "frameRate": 7.526000022888184,
-    "frames": [
-        {
-            "duration": 0.13287270069122314,
-            "frameIndex": 2
-        },
-        {
-            "duration": 0.13287270069122314,
-            "frameIndex": 1
-        },
-        {
-            "duration": 0.13287270069122314,
-            "frameIndex": 0
-        }
-    ],
+    "frameRate": 12.0,
+    "frames": [],
     "name": "NewAnimationClip",
     "spriteSheetUUID": 9423670565313367668,
     "uuid": 5834419731261374628,
-    "wrapMode": 2
+    "wrapMode": 1
 }
