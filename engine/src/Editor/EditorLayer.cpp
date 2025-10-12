@@ -6,6 +6,10 @@
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Animation/AnimationSerializer.hpp"
+#include "Animation/SpriteSheet.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimatorController.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
@@ -1270,6 +1274,12 @@ void EditorLayer::RenderContentBrowser() {
                         info.type = "audio";
                     } else if (info.extension == ".scene") {
                         info.type = "scene";
+                    } else if (info.extension == ".spritesheet") {
+                        info.type = "spritesheet";
+                    } else if (info.extension == ".animclip") {
+                        info.type = "animclip";
+                    } else if (info.extension == ".animcontroller") {
+                        info.type = "animcontroller";
                     } else {
                         info.type = "unknown";
                     }
@@ -1526,6 +1536,56 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 ImGui::PopStyleColor(3);
+            } else if (asset.type == "spritesheet" || asset.type == "animclip" || asset.type == "animcontroller") {
+                ImVec4 animColor = asset.type == "spritesheet" ? ImVec4{0.4f, 0.8f, 0.6f, 1.0f} :
+                                   asset.type == "animclip" ? ImVec4{0.6f, 0.8f, 0.4f, 1.0f} :
+                                   ImVec4{0.8f, 0.6f, 0.4f, 1.0f};
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.3f, 0.3f, 1.0f});
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.4f, 1.0f});
+                ImGui::PushStyleColor(ImGuiCol_Text, animColor);
+
+                std::string buttonLabel = asset.type == "spritesheet" ? "SHEET" :
+                                         asset.type == "animclip" ? "CLIP" : "CTRL";
+                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+                    m_SelectedAssetUUID = UUID{0};
+                    m_SelectedEntity = entt::null;
+                }
+
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    TraceLog(LOG_INFO, "TODO: Open animation asset editor for: %s", asset.path.c_str());
+                }
+
+                if (ImGui::BeginPopupContextItem()) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+
+                    if (ImGui::MenuItem("Rename")) {
+                        showRenamePopup = true;
+                        std::string itemName = asset.filename;
+                        size_t dotPos = itemName.find_last_of('.');
+                        if (dotPos != std::string::npos) {
+                            itemName = itemName.substr(0, dotPos);
+                        }
+                        std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                        newItemName[sizeof(newItemName) - 1] = '\0';
+                    }
+
+                    if (ImGui::MenuItem("Delete")) {
+                        #ifdef _WIN32
+                        std::string cmd = "del /f \"" + asset.path + "\"";
+                        #else
+                        std::string cmd = "rm -f \"" + asset.path + "\"";
+                        #endif
+                        system(cmd.c_str());
+                        needsRefresh = true;
+                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                ImGui::PopStyleColor(3);
             } else {
                 ImVec4 fileColor = asset.type == "audio" ? ImVec4{0.8f, 0.4f, 0.8f, 1.0f} : ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
                 ImGui::PushStyleColor(ImGuiCol_Text, fileColor);
@@ -1603,6 +1663,29 @@ void EditorLayer::RenderContentBrowser() {
         if (ImGui::MenuItem("New Folder")) {
             showNewFolderPopup = true;
             std::memset(newItemName, 0, sizeof(newItemName));
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("New Sprite Sheet")) {
+            std::string newPath = currentPath + "/NewSpriteSheet.spritesheet";
+            SpriteSheet spriteSheet{UUID{}, "NewSpriteSheet"};
+            AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
+            needsRefresh = true;
+        }
+
+        if (ImGui::MenuItem("New Animation Clip")) {
+            std::string newPath = currentPath + "/NewAnimationClip.animclip";
+            AnimationClip clip{UUID{}, "NewAnimationClip"};
+            AnimationSerializer::SerializeAnimationClip(clip, newPath);
+            needsRefresh = true;
+        }
+
+        if (ImGui::MenuItem("New Animator Controller")) {
+            std::string newPath = currentPath + "/NewAnimatorController.animcontroller";
+            AnimatorController controller{UUID{}, "NewAnimatorController"};
+            AnimationSerializer::SerializeAnimatorController(controller, newPath);
+            needsRefresh = true;
         }
 
         ImGui::EndPopup();

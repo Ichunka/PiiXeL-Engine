@@ -43,7 +43,8 @@ void AssetBrowserPanel::RefreshAssetList() {
             std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
             if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
-                ext == ".wav" || ext == ".mp3" || ext == ".ogg") {
+                ext == ".wav" || ext == ".mp3" || ext == ".ogg" ||
+                ext == ".spritesheet" || ext == ".animclip" || ext == ".animcontroller") {
 
                 std::string pxaPath = entry.path().string();
                 pxaPath = pxaPath.substr(0, pxaPath.find_last_of('.')) + ".pxa";

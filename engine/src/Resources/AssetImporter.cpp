@@ -42,6 +42,15 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
         case AssetType::Audio:
             result = ImportAudio(sourcePath, uuid);
             break;
+        case AssetType::SpriteSheet:
+            result = ImportSpriteSheet(sourcePath, uuid);
+            break;
+        case AssetType::AnimationClip:
+            result = ImportAnimationClip(sourcePath, uuid);
+            break;
+        case AssetType::AnimatorController:
+            result = ImportAnimatorController(sourcePath, uuid);
+            break;
         default:
             result.errorMessage = "Unsupported asset type";
             break;
@@ -122,6 +131,18 @@ AssetType AssetImporter::DetectAssetType(const std::string& path) const {
 
     if (ext == ".scene") {
         return AssetType::Scene;
+    }
+
+    if (ext == ".spritesheet") {
+        return AssetType::SpriteSheet;
+    }
+
+    if (ext == ".animclip") {
+        return AssetType::AnimationClip;
+    }
+
+    if (ext == ".animcontroller") {
+        return AssetType::AnimatorController;
     }
 
     return AssetType::Unknown;
@@ -288,6 +309,144 @@ std::chrono::system_clock::time_point AssetImporter::GetFileLastWriteTime(const 
     } catch (...) {
         return std::chrono::system_clock::now();
     }
+}
+
+AssetImporter::ImportResult AssetImporter::ImportSpriteSheet(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open sprite sheet file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Sprite sheet file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::SpriteSheet;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save sprite sheet package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    TraceLog(LOG_INFO, "Imported sprite sheet: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
+}
+
+AssetImporter::ImportResult AssetImporter::ImportAnimationClip(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open animation clip file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Animation clip file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::AnimationClip;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save animation clip package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    TraceLog(LOG_INFO, "Imported animation clip: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
+}
+
+AssetImporter::ImportResult AssetImporter::ImportAnimatorController(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open animator controller file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Animator controller file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::AnimatorController;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save animator controller package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    TraceLog(LOG_INFO, "Imported animator controller: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
 }
 
 } // namespace PiiXeL

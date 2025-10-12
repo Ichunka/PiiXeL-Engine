@@ -1,4 +1,6 @@
 #include "Animation/AnimationClip.hpp"
+#include <nlohmann/json.hpp>
+#include <raylib.h>
 
 namespace PiiXeL {
 
@@ -7,10 +9,43 @@ AnimationClip::AnimationClip(UUID uuid, const std::string& name)
 }
 
 bool AnimationClip::Load(const void* data, size_t size) {
-    (void)data;
-    (void)size;
-    m_IsLoaded = true;
-    return true;
+    if (!data || size == 0) {
+        TraceLog(LOG_ERROR, "Invalid data for AnimationClip");
+        return false;
+    }
+
+    try {
+        std::string jsonStr{reinterpret_cast<const char*>(data), size};
+        nlohmann::json json = nlohmann::json::parse(jsonStr);
+
+        if (json.contains("spriteSheetUUID")) {
+            m_SpriteSheetUUID = UUID{json["spriteSheetUUID"].get<uint64_t>()};
+        }
+
+        if (json.contains("frameRate")) {
+            m_FrameRate = json["frameRate"].get<float>();
+        }
+
+        if (json.contains("wrapMode")) {
+            m_WrapMode = static_cast<AnimationWrapMode>(json["wrapMode"].get<int>());
+        }
+
+        if (json.contains("frames") && json["frames"].is_array()) {
+            m_Frames.clear();
+            for (const auto& frameJson : json["frames"]) {
+                AnimationFrame frame{};
+                frame.frameIndex = frameJson.value("frameIndex", 0);
+                frame.duration = frameJson.value("duration", 0.1f);
+                m_Frames.push_back(frame);
+            }
+        }
+
+        m_IsLoaded = true;
+        return true;
+    } catch (const nlohmann::json::exception& e) {
+        TraceLog(LOG_ERROR, "Failed to parse AnimationClip JSON: %s", e.what());
+        return false;
+    }
 }
 
 void AnimationClip::Unload() {
