@@ -23,6 +23,10 @@ protected:
         TraceLog(LOG_INFO, "[GAME] PlayerController: Awake!");
     }
 
+    void OnStart() override {
+        TraceLog(LOG_INFO, "[GAME] PlayerController: Start!");
+    }
+
     void OnUpdate(float deltaTime) override {
         (void)deltaTime;
 

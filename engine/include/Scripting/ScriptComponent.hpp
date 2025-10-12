@@ -24,6 +24,10 @@ public:
 
     void ExecuteUpdate(float deltaTime) {
         if (m_Initialized && m_Enabled) {
+            if (!m_Started) {
+                m_Started = true;
+                OnStart();
+            }
             OnUpdate(deltaTime);
         }
     }
@@ -68,12 +72,14 @@ public:
 
 protected:
     virtual void OnAwake() {}
+    virtual void OnStart() {}
     virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnFixedUpdate(float fixedDeltaTime) { (void)fixedDeltaTime; }
     virtual void OnDestroy() {}
 
 private:
     bool m_Initialized{false};
+    bool m_Started{false};
 };
 
 } // namespace PiiXeL

@@ -620,29 +620,91 @@ imgui.ini
 
 PiiXeL Engine supports native C++ scripting with a component-based approach.
 
-### Creating a Script Component
+### Script Lifecycle
+
+Scripts have a well-defined lifecycle with callbacks at different stages:
 
 ```cpp
-// In games/MyFirstGame/src/GameScripts.cpp
+// In games/MyFirstGame/include/GameScripts.hpp
 #include "Scripting/ScriptComponent.hpp"
 
 class PlayerController : public PiiXeL::ScriptComponent {
 public:
+    float moveSpeed{300.0f};
+
+protected:
+    void OnAwake() override {
+        TraceLog(LOG_INFO, "Awake - called when script is created (edit mode or play mode)");
+    }
+
     void OnStart() override {
-        // Initialization
+        TraceLog(LOG_INFO, "Start - called on first frame of play mode only");
     }
 
     void OnUpdate(float deltaTime) override {
-        // Per-frame logic
+        TraceLog(LOG_INFO, "Update - called every frame during play mode");
     }
 
-    void OnCollision(entt::entity other) override {
-        // Collision handling
+    void OnFixedUpdate(float fixedDeltaTime) override {
+        TraceLog(LOG_INFO, "FixedUpdate - called at fixed timestep (60 Hz) during play mode");
+    }
+
+    void OnCollisionEnter(entt::entity other) override {
+        TraceLog(LOG_INFO, "CollisionEnter - when collision begins");
+    }
+
+    void OnCollisionStay(entt::entity other) override {
+    }
+
+    void OnCollisionExit(entt::entity other) override {
+        TraceLog(LOG_INFO, "CollisionExit - when collision ends");
+    }
+
+    void OnTriggerEnter(entt::entity other) override {
+        TraceLog(LOG_INFO, "TriggerEnter - when entering trigger collider");
+    }
+
+    void OnTriggerStay(entt::entity other) override {
+    }
+
+    void OnTriggerExit(entt::entity other) override {
+        TraceLog(LOG_INFO, "TriggerExit - when leaving trigger collider");
+    }
+
+    void OnDestroy() override {
+        TraceLog(LOG_INFO, "Destroy - called when script is destroyed");
     }
 };
 
 REGISTER_SCRIPT(PlayerController)
 ```
+
+**Lifecycle Order:**
+
+1. **OnAwake()** - Called when script instance is created
+   - Happens in edit mode when you add the script
+   - Happens when loading a scene with the script
+   - Use for initialization that needs to happen regardless of play state
+
+2. **OnStart()** - Called on the first Update frame during play mode
+   - Only called once per play session
+   - Only called during actual play mode (not in editor)
+   - Use for game-specific initialization
+
+3. **OnUpdate(deltaTime)** - Called every frame during play mode
+   - Variable timestep based on frame rate
+   - Use for input handling, movement, non-physics logic
+
+4. **OnFixedUpdate(fixedDeltaTime)** - Called at fixed timestep during play mode
+   - Fixed timestep (default: 60 Hz)
+   - Use for physics-related logic
+
+5. **OnCollision*/OnTrigger*()** - Called when physics events occur
+   - Enter: First frame of contact
+   - Stay: Every frame while in contact
+   - Exit: First frame after contact ends
+
+6. **OnDestroy()** - Called when script is removed or entity destroyed
 
 Scripts are attached to entities via the Script component in the editor.
 
