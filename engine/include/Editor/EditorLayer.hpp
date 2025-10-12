@@ -18,6 +18,7 @@ namespace PiiXeL {
 class Engine;
 class Scene;
 class BuildPanel;
+class SpriteSheetEditorPanel;
 
 enum class EditorState {
     Edit,
@@ -160,6 +161,7 @@ private:
     float m_ProfilerFlameGraphScroll{0.0f};
 
     std::unique_ptr<BuildPanel> m_BuildPanel;
+    std::unique_ptr<SpriteSheetEditorPanel> m_SpriteSheetEditor;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;
