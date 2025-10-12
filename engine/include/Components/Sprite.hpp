@@ -20,6 +20,9 @@ struct Sprite {
     [[nodiscard]] Vector2 GetSize() const;
 
     void SetTexture(UUID assetUUID);
+
+private:
+    mutable UUID m_LastLoadedTextureUUID{0};
 };
 
 } // namespace PiiXeL

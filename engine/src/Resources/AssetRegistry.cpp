@@ -270,6 +270,10 @@ const std::unordered_map<UUID, std::shared_ptr<Asset>>& AssetRegistry::GetAllAss
     return m_Assets;
 }
 
+const std::unordered_map<UUID, std::string>& AssetRegistry::GetAllKnownAssetPaths() const {
+    return m_UUIDToPath;
+}
+
 size_t AssetRegistry::GetTotalMemoryUsage() const {
     size_t total = 0;
     for (const auto& [uuid, asset] : m_Assets) {

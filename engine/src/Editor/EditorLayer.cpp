@@ -3048,6 +3048,9 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
     std::string preview = "None";
     if (uuid->Get() != 0) {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*uuid);
+        if (!asset) {
+            asset = AssetRegistry::Instance().LoadAsset(*uuid);
+        }
         if (asset) {
             preview = asset->GetMetadata().name;
         } else {
@@ -3062,19 +3065,41 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
             changed = true;
         }
 
-        const auto& allAssets = AssetRegistry::Instance().GetAllAssets();
-        for (const auto& [assetUUID, asset] : allAssets) {
-            if (asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
-                bool isSelected = (uuid->Get() == assetUUID.Get());
-                std::string itemLabel = asset->GetMetadata().name;
+        const auto& allKnownPaths = AssetRegistry::Instance().GetAllKnownAssetPaths();
+        for (const auto& [assetUUID, assetPath] : allKnownPaths) {
+            std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(assetUUID);
+            if (!asset) {
+                asset = AssetRegistry::Instance().LoadAsset(assetUUID);
+            }
 
-                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                    *uuid = assetUUID;
-                    changed = true;
+            if (asset) {
+                AssetType assetTypeEnum = asset->GetMetadata().type;
+                bool matchesFilter = false;
+
+                if (assetType == "texture" && assetTypeEnum == AssetType::Texture) {
+                    matchesFilter = true;
+                } else if (assetType == "AnimatorController" && assetTypeEnum == AssetType::AnimatorController) {
+                    matchesFilter = true;
+                } else if (assetType == "SpriteSheet" && assetTypeEnum == AssetType::SpriteSheet) {
+                    matchesFilter = true;
+                } else if (assetType == "AnimationClip" && assetTypeEnum == AssetType::AnimationClip) {
+                    matchesFilter = true;
+                } else if (assetType == "Audio" && assetTypeEnum == AssetType::Audio) {
+                    matchesFilter = true;
                 }
 
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
+                if (matchesFilter) {
+                    bool isSelected = (uuid->Get() == assetUUID.Get());
+                    std::string itemLabel = asset->GetMetadata().name;
+
+                    if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                        *uuid = assetUUID;
+                        changed = true;
+                    }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
             }
         }

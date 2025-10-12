@@ -46,6 +46,7 @@ public:
 
     [[nodiscard]] std::vector<AssetMetadata> GetAllAssetMetadata() const;
     [[nodiscard]] const std::unordered_map<UUID, std::shared_ptr<Asset>>& GetAllAssets() const;
+    [[nodiscard]] const std::unordered_map<UUID, std::string>& GetAllKnownAssetPaths() const;
     [[nodiscard]] size_t GetTotalMemoryUsage() const;
 
     static AssetRegistry& Instance();
