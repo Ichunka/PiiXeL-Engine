@@ -36,8 +36,11 @@ else()
     target_include_directories(game PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(game PRIVATE piixel_engine)
 
-    if(WIN32 AND GAME_ICON_FULL_PATH)
-        add_windows_icon(game ${GAME_ICON_FULL_PATH})
+    if(WIN32)
+        if(GAME_ICON_FULL_PATH)
+            add_windows_icon(game ${GAME_ICON_FULL_PATH})
+        endif()
+        target_link_options(game PRIVATE /ENTRY:mainCRTStartup)
     endif()
 
     add_custom_command(TARGET game POST_BUILD
