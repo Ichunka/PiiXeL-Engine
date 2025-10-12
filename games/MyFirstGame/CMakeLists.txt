@@ -8,7 +8,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/AddWindowsIcon.cmake)
 
 file(GLOB_RECURSE GAME_SCRIPTS src/GameScripts.cpp)
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/game.config.json)
+if(WIN32 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/game.config.json)
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/game.config.json GAME_CONFIG_JSON)
     string(JSON GAME_ICON_PATH ERROR_VARIABLE JSON_ERROR GET ${GAME_CONFIG_JSON} window icon)
     if(NOT JSON_ERROR AND GAME_ICON_PATH)
@@ -27,11 +27,16 @@ if(BUILD_EDITOR)
         ${CMAKE_BINARY_DIR}/engine/assets
     )
 else()
-    add_executable(game src/game_main.cpp ${GAME_SCRIPTS})
+    if(WIN32)
+        add_executable(game WIN32 src/game_main.cpp ${GAME_SCRIPTS})
+    else()
+        add_executable(game src/game_main.cpp ${GAME_SCRIPTS})
+    endif()
+
     target_include_directories(game PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(game PRIVATE piixel_engine)
 
-    if(GAME_ICON_FULL_PATH)
+    if(WIN32 AND GAME_ICON_FULL_PATH)
         add_windows_icon(game ${GAME_ICON_FULL_PATH})
     endif()
 
