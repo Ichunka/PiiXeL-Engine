@@ -1,5 +1,4 @@
 #include "Core/Application.hpp"
-#include "Project/ProjectSettings.hpp"
 #include "Reflection/ReflectionInit.hpp"
 #include "Build/GamePackageLoader.hpp"
 #include "Build/GamePackage.hpp"
@@ -8,9 +7,6 @@
 int main() {
     try {
         PiiXeL::Reflection::InitializeReflection();
-
-        PiiXeL::ProjectSettings& settings = PiiXeL::ProjectSettings::Instance();
-        settings.Load("game.config.json");
 
         PiiXeL::GamePackageLoader packageLoader{};
         if (!packageLoader.LoadPackage("datas/game.package")) {
@@ -30,6 +26,7 @@ int main() {
         config.resizable = packageConfig.value("resizable", true);
         config.fullscreen = packageConfig.value("fullscreen", false);
         config.iconPath = packageConfig.value("icon", "");
+        config.packageLoader = &packageLoader;
 
         PiiXeL::Application app{config};
         app.Run();

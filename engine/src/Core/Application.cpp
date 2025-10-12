@@ -5,6 +5,8 @@
 #include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Debug/Profiler.hpp"
+#include "Build/GamePackageLoader.hpp"
+#include "Build/GamePackage.hpp"
 #include <raylib.h>
 
 #ifdef BUILD_WITH_EDITOR
@@ -50,20 +52,42 @@ void Application::Initialize() {
     }
 
     if (!m_Config.iconPath.empty()) {
-        if (FileExists(m_Config.iconPath.c_str())) {
-            Image iconImage = LoadImage(m_Config.iconPath.c_str());
-            if (iconImage.data != nullptr) {
-                if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
-                    ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        Image iconImage{};
+
+        if (m_Config.packageLoader) {
+            const GamePackage& package = m_Config.packageLoader->GetPackage();
+            const AssetData* iconAsset = package.GetAsset(m_Config.iconPath);
+
+            if (iconAsset && iconAsset->type == "texture") {
+                iconImage = LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
+                if (iconImage.data != nullptr) {
+                    TraceLog(LOG_INFO, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
+                } else {
+                    TraceLog(LOG_WARNING, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
                 }
-                SetWindowIcon(iconImage);
-                UnloadImage(iconImage);
-                TraceLog(LOG_INFO, "Window icon set: %s", m_Config.iconPath.c_str());
             } else {
-                TraceLog(LOG_WARNING, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+                TraceLog(LOG_WARNING, "Window icon not found in package: %s", m_Config.iconPath.c_str());
             }
         } else {
-            TraceLog(LOG_WARNING, "Window icon file not found: %s", m_Config.iconPath.c_str());
+            if (FileExists(m_Config.iconPath.c_str())) {
+                iconImage = LoadImage(m_Config.iconPath.c_str());
+                if (iconImage.data != nullptr) {
+                    TraceLog(LOG_INFO, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
+                } else {
+                    TraceLog(LOG_WARNING, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+                }
+            } else {
+                TraceLog(LOG_WARNING, "Window icon file not found: %s", m_Config.iconPath.c_str());
+            }
+        }
+
+        if (iconImage.data != nullptr) {
+            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            }
+            SetWindowIcon(iconImage);
+            UnloadImage(iconImage);
+            TraceLog(LOG_INFO, "Window icon set successfully");
         }
     }
 

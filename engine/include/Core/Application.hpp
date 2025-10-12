@@ -7,6 +7,7 @@
 namespace PiiXeL {
 
 class Engine;
+class GamePackageLoader;
 #ifdef BUILD_WITH_EDITOR
 class EditorLayer;
 #endif
@@ -20,6 +21,7 @@ struct ApplicationConfig {
     bool resizable{true};
     bool fullscreen{false};
     std::string iconPath{};
+    GamePackageLoader* packageLoader{nullptr};
 };
 
 class Application {
