@@ -49,6 +49,13 @@ void Application::Initialize() {
         ToggleFullscreen();
     }
 
+    if (!m_Config.iconPath.empty() && FileExists(m_Config.iconPath.c_str())) {
+        Image iconImage = LoadImage(m_Config.iconPath.c_str());
+        SetWindowIcon(iconImage);
+        UnloadImage(iconImage);
+        TraceLog(LOG_INFO, "Window icon set: %s", m_Config.iconPath.c_str());
+    }
+
     PathManager::Instance().Initialize();
 
 #ifndef BUILD_WITH_EDITOR

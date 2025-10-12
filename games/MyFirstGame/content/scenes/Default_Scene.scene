@@ -400,6 +400,61 @@
                 ]
             },
             "uuid": 3130055565495595910
+        },
+        {
+            "BoxCollider2D": {
+                "isTrigger": false,
+                "offset": [
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    16.0,
+                    16.0
+                ]
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 1
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "texturePath": "content/assets/dirt.png",
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity (Copy)"
+            },
+            "Transform": {
+                "position": [
+                    -18757.662109375,
+                    4371099.0
+                ],
+                "rotation": 151.5438690185547,
+                "scale": [
+                    4.0,
+                    4.0
+                ]
+            },
+            "uuid": 10451560186544421231
         }
     ],
     "scene": "Default Scene"

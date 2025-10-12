@@ -19,6 +19,7 @@ struct ApplicationConfig {
     bool vsync{true};
     bool resizable{true};
     bool fullscreen{false};
+    std::string iconPath{};
 };
 
 class Application {

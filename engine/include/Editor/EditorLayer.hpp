@@ -16,6 +16,7 @@ namespace PiiXeL {
 
 class Engine;
 class Scene;
+class BuildPanel;
 
 enum class EditorState {
     Edit,
@@ -68,6 +69,7 @@ private:
     void RenderConsole();
     void RenderProjectSettings();
     void RenderProfiler();
+    void RenderBuildPanel();
 
     Vector2 ScreenToWorld(Vector2 screenPos, const Camera2D& camera);
     void HandleGizmoInteraction();
@@ -153,6 +155,8 @@ private:
     FrameSnapshot m_ProfilerSelectedFrameSnapshot{};
     float m_ProfilerFlameGraphZoom{1.0f};
     float m_ProfilerFlameGraphScroll{0.0f};
+
+    std::unique_ptr<BuildPanel> m_BuildPanel;
 };
 
 } // namespace PiiXeL

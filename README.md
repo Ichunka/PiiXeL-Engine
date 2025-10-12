@@ -10,7 +10,8 @@ A modern 2D game engine with a complete editor, built using C++20.
 - **Full-featured Editor** with ImGui v1.92.2
 - **Custom Reflection System** for component serialization and inspector
 - **Scene Management** with JSON serialization
-- **Asset Packaging System** for distribution
+- **Dual Asset System** - Game package for content + embedded assets for engine
+- **Build & Export from Editor** - Visual progress tracking and one-click export
 - **Scripting System** with native C++ script components
 - **Built-in Profiler** for performance analysis
 - **Undo/Redo System** in the editor
@@ -275,9 +276,40 @@ cmake --build build/editor
 
 Run the editor executable and start creating your game!
 
-## Game Packaging and Distribution
+## Build & Export System
 
-### Create a Game Package
+PiiXeL Engine provides a comprehensive build and export system accessible both from the editor UI and command line.
+
+### Build from Editor (Recommended)
+
+The editor includes a **Build & Export** panel with a visual progress bar and detailed build log:
+
+**Features:**
+- **Build Game Package** - Creates `game.package` with all assets and scenes
+- **Build Game Executable** - Compiles the standalone game (Release mode, no editor)
+- **Export Game (Full)** - Complete export with executable, package, and all dependencies ready to distribute
+
+**Progress Tracking:**
+- Real-time progress bar with percentage
+- Current build step display (Configuring CMake, Compiling, Packaging, Copying)
+- Animated spinner during active builds
+- Build log with timestamps
+- Cancel button to abort builds
+- Color-coded status (blue=running, green=success, red=failed)
+
+**Export Process:**
+1. Opens export dialog
+2. Specify export directory path
+3. Automatically builds game executable (Release)
+4. Creates game package from all assets
+5. Copies game executable to export folder
+6. Copies game.package to export/datas/
+7. Copies required DLLs (Windows) or shared libraries (Linux)
+8. Ready-to-distribute folder with everything needed to run
+
+### Build from Command Line
+
+#### Create a Game Package
 
 The game package system bundles all assets and scenes into a single `.package` file:
 
@@ -313,6 +345,73 @@ Distribute:
 - The game executable (`game.exe` or `game`)
 - The `datas/game.package` file
 - Required DLLs (Windows only)
+
+## Understanding the Asset Systems
+
+PiiXeL Engine uses two complementary asset systems:
+
+### 1. Game Package System
+
+**Purpose:** Bundle all game assets and scenes for distribution
+
+**What it includes:**
+- All scene files (`.scene`)
+- All assets referenced in scenes (textures, audio, etc.)
+- Game configuration
+
+**How it works:**
+- `tools/BuildPackage.cpp` scans the game directory
+- Creates a single `game.package` file
+- Game executable loads assets from this package at runtime
+- Package is portable - just distribute exe + package file
+
+**Usage:**
+- Development: Assets loaded directly from files
+- Distribution: Assets loaded from `game.package`
+
+### 2. Embedded Asset System
+
+**Purpose:** Compile critical engine assets directly into the executable
+
+**What it includes:**
+- Engine UI assets (splash screen, icons, fonts)
+- Critical resources needed before package loading
+- Assets that must always be available
+
+**How it works:**
+- `tools/EmbedAsset.cpp` reads binary files
+- Generates C++20 headers with `constexpr` byte arrays
+- Assets are compiled into the exe (no external files needed)
+- Runtime access via `EmbeddedAssetLoader`
+
+**Key differences:**
+
+| Feature | Game Package | Embedded Assets |
+|---------|--------------|-----------------|
+| **When processed** | Distribution time | Compile time |
+| **Size** | Unlimited | Keep small (increases exe size) |
+| **Use case** | Game content | Engine critical assets |
+| **Modifiable** | Yes (replace package file) | No (recompile needed) |
+| **Access speed** | Disk I/O | Memory (instant) |
+
+### Workflow Summary
+
+1. **During Development:**
+   - Edit assets in `games/MyFirstGame/assets/`
+   - Engine assets in `engine/assets/` (embedded at compile time)
+   - Assets loaded from files for quick iteration
+
+2. **Building for Distribution:**
+   - Run "Build Game Package" from editor or `build_and_run.sh`
+   - Creates `game.package` with all game assets
+   - Build game executable (Release, no editor)
+   - Export combines exe + package + dependencies
+
+3. **Distribution:**
+   - Users receive: `game.exe` + `datas/game.package` + DLLs
+   - Game loads assets from package
+   - Engine assets already embedded in exe
+   - No loose asset files needed
 
 ## Scripting System
 
@@ -351,6 +450,7 @@ Scripts are attached to entities via the Script component in the editor.
 - **Viewport** - Interactive scene view with gizmos
 - **Console** - Runtime logging and messages
 - **Profiler** - Performance monitoring
+- **Build & Export** - Package building and game export with progress tracking
 - **Undo/Redo** - Full command history (Ctrl+Z / Ctrl+Y)
 - **Play/Pause/Step** - Runtime control
 - **Scene Serialization** - Save/Load scenes (Ctrl+S / Ctrl+O)

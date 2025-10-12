@@ -20,6 +20,7 @@ int main() {
         config.vsync = settings.window.vsync;
         config.resizable = settings.window.resizable;
         config.fullscreen = settings.window.fullscreen;
+        config.iconPath = settings.window.icon;
 
         PiiXeL::Application app{config};
         app.Run();

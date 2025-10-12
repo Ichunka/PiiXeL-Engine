@@ -53,6 +53,7 @@ bool ProjectSettings::Load(const std::string& filepath) {
         if (windowJson.contains("vsync")) window.vsync = windowJson["vsync"].get<bool>();
         if (windowJson.contains("fullscreen")) window.fullscreen = windowJson["fullscreen"].get<bool>();
         if (windowJson.contains("targetFPS")) window.targetFPS = windowJson["targetFPS"].get<int>();
+        if (windowJson.contains("icon")) window.icon = windowJson["icon"].get<std::string>();
     }
 
     if (json.contains("physics")) {
@@ -97,6 +98,9 @@ bool ProjectSettings::Save(const std::string& filepath) {
     json["window"]["vsync"] = window.vsync;
     json["window"]["fullscreen"] = window.fullscreen;
     json["window"]["targetFPS"] = window.targetFPS;
+    if (!window.icon.empty()) {
+        json["window"]["icon"] = window.icon;
+    }
 
     json["physics"]["gravity"] = {physics.gravity.x, physics.gravity.y};
     json["physics"]["timeStep"] = physics.timeStep;

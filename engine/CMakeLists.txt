@@ -8,6 +8,11 @@ include(${CMAKE_SOURCE_DIR}/cmake/EmbedAsset.cmake)
 
 file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS src/*.cpp include/*.hpp)
 list(FILTER ENGINE_SRC EXCLUDE REGEX ".*editor_main\\.cpp$")
+
+if(NOT BUILD_EDITOR)
+    list(FILTER ENGINE_SRC EXCLUDE REGEX ".*/Editor/.*")
+endif()
+
 if(ENGINE_SRC)
     add_library(piixel_engine STATIC ${ENGINE_SRC})
 else()

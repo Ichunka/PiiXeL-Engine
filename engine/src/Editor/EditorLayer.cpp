@@ -2,6 +2,7 @@
 
 #include "Editor/EditorLayer.hpp"
 #include "Editor/ConsoleLogger.hpp"
+#include "Editor/BuildPanel.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
@@ -51,6 +52,7 @@ EditorLayer::EditorLayer(Engine* engine)
 {
     m_ViewportTexture = LoadRenderTexture(1920, 1080);
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
+    m_BuildPanel = std::make_unique<BuildPanel>();
     SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
@@ -197,6 +199,7 @@ void EditorLayer::OnImGuiRender() {
     RenderConsole();
     RenderProjectSettings();
     RenderProfiler();
+    RenderBuildPanel();
 
     EndDockspace();
 }
@@ -254,6 +257,7 @@ void EditorLayer::SetupDockingLayout() {
     ImGui::DockBuilderDockWindow("Game", dockspace_id);
     ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
+    ImGui::DockBuilderDockWindow("Build & Export", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
 
     ImGui::DockBuilderFinish(dockspace_id);
@@ -2419,6 +2423,23 @@ void EditorLayer::RenderProjectSettings() {
                 ImGui::Checkbox("VSync", &settings.window.vsync);
                 ImGui::Checkbox("Fullscreen by Default", &settings.window.fullscreen);
 
+                ImGui::SeparatorText("Window Icon");
+                char iconPath[512];
+                std::memcpy(iconPath, settings.window.icon.c_str(),
+                    std::min(settings.window.icon.size(), sizeof(iconPath) - 1));
+                iconPath[std::min(settings.window.icon.size(), sizeof(iconPath) - 1)] = '\0';
+                if (ImGui::InputText("Icon Path", iconPath, sizeof(iconPath))) {
+                    settings.window.icon = std::string(iconPath);
+                }
+                ImGui::SameLine();
+                ImGui::TextDisabled("(?)");
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Path to icon file\n"
+                                     "- Window icon: PNG, JPG, BMP\n"
+                                     "- Exe icon (Windows): Must be .ico format\n"
+                                     "Relative to game directory");
+                }
+
                 ImGui::Spacing();
                 ImGui::TextDisabled("Note: These settings apply to the built game.");
                 ImGui::TextDisabled("Use F11 to toggle fullscreen at runtime.");
@@ -3197,6 +3218,13 @@ void EditorLayer::RenderProfiler() {
     }
 
     ImGui::End();
+}
+
+void EditorLayer::RenderBuildPanel() {
+    if (m_BuildPanel) {
+        m_BuildPanel->Update();
+        m_BuildPanel->Render();
+    }
 }
 
 } // namespace PiiXeL
