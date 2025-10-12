@@ -7,6 +7,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Animator.hpp"
 #include "Components/UUID.hpp"
 #include "Scene/EntityRegistry.hpp"
 #include "Scripting/ScriptComponent.hpp"
@@ -194,6 +195,15 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         entityJson["Script"] = scriptJson;
     }
 
+    if (registry.all_of<Animator>(entity)) {
+        const Animator& animator = registry.get<Animator>(entity);
+        entityJson["Animator"] = {
+            {"controllerUUID", animator.controllerUUID.Get()},
+            {"isPlaying", animator.isPlaying},
+            {"playbackSpeed", animator.playbackSpeed}
+        };
+    }
+
     return entityJson;
 }
 
@@ -321,6 +331,20 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         Script script{};
         script.scriptName = scriptJson.value("scriptName", "");
         registry.emplace<Script>(entity, script);
+    }
+
+    if (entityJson.contains("Animator")) {
+        const nlohmann::json& animatorJson = entityJson["Animator"];
+        Animator animator{};
+
+        if (animatorJson.contains("controllerUUID")) {
+            animator.controllerUUID = UUID{animatorJson["controllerUUID"].get<uint64_t>()};
+        }
+
+        animator.isPlaying = animatorJson.value("isPlaying", true);
+        animator.playbackSpeed = animatorJson.value("playbackSpeed", 1.0f);
+
+        registry.emplace<Animator>(entity, animator);
     }
 
     return entity;

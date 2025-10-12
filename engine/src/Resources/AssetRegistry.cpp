@@ -1,6 +1,9 @@
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Animation/SpriteSheet.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimatorController.hpp"
 #include <raylib.h>
 #include <cinttypes>
 #include <cstring>
@@ -286,6 +289,12 @@ std::shared_ptr<Asset> AssetRegistry::CreateAsset(AssetType type, UUID uuid, con
             return std::make_shared<TextureAsset>(uuid, name);
         case AssetType::Audio:
             return std::make_shared<AudioAsset>(uuid, name);
+        case AssetType::SpriteSheet:
+            return std::make_shared<SpriteSheet>(uuid, name);
+        case AssetType::AnimationClip:
+            return std::make_shared<AnimationClip>(uuid, name);
+        case AssetType::AnimatorController:
+            return std::make_shared<AnimatorController>(uuid, name);
         default:
             TraceLog(LOG_ERROR, "Unsupported asset type: %d", static_cast<int>(type));
             return nullptr;

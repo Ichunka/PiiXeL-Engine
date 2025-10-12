@@ -6,6 +6,7 @@
 #include "Systems/RenderSystem.hpp"
 #include "Systems/PhysicsSystem.hpp"
 #include "Systems/ScriptSystem.hpp"
+#include "Systems/AnimationSystem.hpp"
 #include "Components/Transform.hpp"
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
@@ -68,6 +69,13 @@ void Engine::Update(float deltaTime) {
         PROFILE_SCOPE("ScriptSystem::OnUpdate");
         if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
             m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+        }
+    }
+
+    {
+        PROFILE_SCOPE("AnimationSystem::Update");
+        if (m_ActiveScene) {
+            AnimationSystem::Update(m_ActiveScene->GetRegistry(), deltaTime);
         }
     }
 

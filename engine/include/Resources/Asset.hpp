@@ -16,7 +16,10 @@ enum class AssetType : uint16_t {
     Prefab = 4,
     Material = 5,
     Shader = 6,
-    Font = 7
+    Font = 7,
+    SpriteSheet = 8,
+    AnimationClip = 9,
+    AnimatorController = 10
 };
 
 struct AssetMetadata {

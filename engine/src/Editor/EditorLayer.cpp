@@ -19,6 +19,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Animator.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/ScriptSystem.hpp"
 #include "Scripting/ScriptRegistry.hpp"
@@ -1106,6 +1107,43 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
+            if (registry.all_of<Animator>(inspectedEntity)) {
+                ImGui::Separator();
+                bool removeAnimator = false;
+
+                ImGui::AlignTextToFramePadding();
+                bool animatorOpen = ImGui::TreeNodeEx("Animator", ImGuiTreeNodeFlags_DefaultOpen);
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
+                if (ImGui::SmallButton("X##RemoveAnimator")) {
+                    removeAnimator = true;
+                }
+
+                if (animatorOpen) {
+                    Animator& animator = registry.get<Animator>(inspectedEntity);
+
+                    if (RenderAssetPicker("Controller", &animator.controllerUUID, "AnimatorController")) {
+                    }
+
+                    ImGui::Checkbox("Is Playing", &animator.isPlaying);
+                    ImGui::DragFloat("Playback Speed", &animator.playbackSpeed, 0.01f, 0.0f, 10.0f);
+
+                    if (animator.controllerUUID.Get() != 0) {
+                        ImGui::Separator();
+                        ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "State: %s", animator.currentState.empty() ? "(None)" : animator.currentState.c_str());
+                        ImGui::Text("Time: %.2f", animator.stateTime);
+                        ImGui::Text("Frame: %zu", animator.currentFrameIndex);
+                    }
+
+                    ImGui::TreePop();
+                }
+
+                if (removeAnimator) {
+                    m_CommandHistory.ExecuteCommand(
+                        std::make_unique<RemoveComponentCommand<Animator>>(&registry, inspectedEntity)
+                    );
+                }
+            }
+
             ImGui::Separator();
 
             if (ImGui::Button("Add Component")) {
@@ -1160,6 +1198,13 @@ void EditorLayer::RenderInspector() {
                 if (ImGui::MenuItem("Script")) {
                     if (!registry.all_of<Script>(inspectedEntity)) {
                         registry.emplace<Script>(inspectedEntity);
+                    }
+                }
+                if (ImGui::MenuItem("Animator")) {
+                    if (!registry.all_of<Animator>(inspectedEntity)) {
+                        m_CommandHistory.ExecuteCommand(
+                            std::make_unique<AddComponentCommand<Animator>>(&registry, inspectedEntity, Animator{})
+                        );
                     }
                 }
                 ImGui::EndPopup();
