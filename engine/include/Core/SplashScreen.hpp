@@ -3,6 +3,7 @@
 
 #include <raylib.h>
 #include <string>
+#include <string_view>
 
 namespace PiiXeL {
 
@@ -12,6 +13,7 @@ public:
     ~SplashScreen();
 
     void Show(const std::string& imagePath, float minDurationSeconds = 3.0f);
+    void ShowEmbedded(std::string_view assetName, float minDurationSeconds = 3.0f);
     void Update(float deltaTime);
     void Render();
 
