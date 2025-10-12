@@ -73,9 +73,6 @@ EditorLayer::EditorLayer(Engine* engine)
     m_BuildPanel = std::make_unique<BuildPanel>();
     SetupDarkTheme();
 
-    AssetRegistry::Instance().Initialize();
-    AssetRegistry::Instance().ImportDirectory("content/assets");
-
     m_Engine->SetScriptsEnabled(false);
 
     SetTraceLogCallback(ConsoleLogger::RaylibLogCallback);

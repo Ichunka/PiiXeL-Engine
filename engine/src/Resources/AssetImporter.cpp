@@ -109,7 +109,7 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
 AssetType AssetImporter::DetectAssetType(const std::string& path) const {
     std::filesystem::path fsPath{path};
     std::string ext = fsPath.extension().string();
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
     if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
         ext == ".tga" || ext == ".gif") {

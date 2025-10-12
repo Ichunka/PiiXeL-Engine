@@ -1,6 +1,5 @@
 #include "Core/Application.hpp"
 #include "Core/Engine.hpp"
-#include "Core/SplashScreen.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
@@ -11,8 +10,13 @@
 
 #ifdef BUILD_WITH_EDITOR
 #include "Editor/EditorLayer.hpp"
+#include "Resources/AssetRegistry.hpp"
 #include <rlImGui.h>
 #include <imgui.h>
+#endif
+
+#ifndef BUILD_WITH_EDITOR
+#include "Core/SplashScreen.hpp"
 #endif
 
 namespace PiiXeL {
@@ -37,6 +41,10 @@ void Application::Initialize() {
         return;
     }
 
+    PathManager::Instance().Initialize();
+    SetExitKey(0);
+
+#ifndef BUILD_WITH_EDITOR
     if (m_Config.resizable) {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     }
@@ -46,7 +54,6 @@ void Application::Initialize() {
 
     InitWindow(m_Config.windowWidth, m_Config.windowHeight, m_Config.title.c_str());
     SetTargetFPS(m_Config.targetFPS);
-    SetExitKey(0);
 
     if (m_Config.fullscreen) {
         ToggleFullscreen();
@@ -92,9 +99,6 @@ void Application::Initialize() {
         }
     }
 
-    PathManager::Instance().Initialize();
-
-#ifndef BUILD_WITH_EDITOR
     SplashScreen splashScreen{};
     splashScreen.ShowEmbedded("engine/ui/splashscreen", 3.0f);
 
@@ -108,7 +112,6 @@ void Application::Initialize() {
         splashScreen.Update(deltaTime);
 
         BeginDrawing();
-        ClearBackground(Color{0, 0, 0, 255});
         splashScreen.Render();
         EndDrawing();
 
@@ -128,6 +131,64 @@ void Application::Initialize() {
         }
     }
 #else
+    if (m_Config.resizable) {
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    }
+    if (m_Config.vsync) {
+        SetConfigFlags(FLAG_VSYNC_HINT);
+    }
+
+    InitWindow(800, 450, "PiiXeL Engine - Loading Assets");
+    SetTargetFPS(60);
+
+    AssetRegistry::Instance().Initialize();
+
+    AssetRegistry::Instance().ScanAllPxaFiles(".", [&](size_t current, size_t total, const std::string&) {
+        float progress = total > 0 ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+
+        BeginDrawing();
+        ClearBackground(Color{20, 20, 25, 255});
+
+        const char* title = "PiiXeL Engine";
+        int titleWidth = MeasureText(title, 48);
+        DrawText(title, (800 - titleWidth) / 2, 150, 48, WHITE);
+
+        int barWidth = 600;
+        int barHeight = 30;
+        int barX = 100;
+        int barY = 225;
+
+        DrawRectangle(barX, barY, barWidth, barHeight, Color{40, 40, 45, 255});
+        DrawRectangle(barX, barY, static_cast<int>(barWidth * progress), barHeight, Color{100, 150, 255, 255});
+        DrawRectangleLines(barX, barY, barWidth, barHeight, Color{80, 80, 85, 255});
+
+        int percentage = static_cast<int>(progress * 100.0f);
+        std::string percentText = std::to_string(percentage) + "%";
+        int percentWidth = MeasureText(percentText.c_str(), 20);
+        DrawText(percentText.c_str(), (800 - percentWidth) / 2, barY + barHeight + 20, 20, LIGHTGRAY);
+
+        EndDrawing();
+    });
+
+    SetWindowSize(m_Config.windowWidth, m_Config.windowHeight);
+    SetWindowTitle(m_Config.title.c_str());
+    SetTargetFPS(m_Config.targetFPS);
+
+    if (m_Config.fullscreen) {
+        ToggleFullscreen();
+    }
+
+    if (!m_Config.iconPath.empty() && FileExists(m_Config.iconPath.c_str())) {
+        Image iconImage = LoadImage(m_Config.iconPath.c_str());
+        if (iconImage.data != nullptr) {
+            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            }
+            SetWindowIcon(iconImage);
+            UnloadImage(iconImage);
+        }
+    }
+
     rlImGuiSetup(true);
 
     ImGuiIO& io = ImGui::GetIO();

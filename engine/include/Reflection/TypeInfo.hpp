@@ -6,6 +6,7 @@
 #include <typeindex>
 #include <functional>
 #include <any>
+#include <cstdint>
 
 namespace PiiXeL::Reflection {
 
