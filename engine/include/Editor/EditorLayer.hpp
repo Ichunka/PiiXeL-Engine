@@ -19,6 +19,7 @@ class Engine;
 class Scene;
 class BuildPanel;
 class SpriteSheetEditorPanel;
+class AnimationClipEditorPanel;
 
 enum class EditorState {
     Edit,
@@ -162,6 +163,7 @@ private:
 
     std::unique_ptr<BuildPanel> m_BuildPanel;
     std::unique_ptr<SpriteSheetEditorPanel> m_SpriteSheetEditor;
+    std::unique_ptr<AnimationClipEditorPanel> m_AnimationClipEditor;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;

@@ -60,6 +60,10 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         m_SelectedTextureUUID = m_SpriteSheet->GetTextureUUID();
         m_GridColumns = m_SpriteSheet->GetGridColumns();
         m_GridRows = m_SpriteSheet->GetGridRows();
+
+        if (m_SelectedTextureUUID.Get() != 0) {
+            AssetRegistry::Instance().LoadAsset(m_SelectedTextureUUID);
+        }
     }
 }
 

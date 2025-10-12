@@ -4,6 +4,7 @@
 #include "Editor/ConsoleLogger.hpp"
 #include "Editor/BuildPanel.hpp"
 #include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Editor/AnimationClipEditorPanel.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
@@ -78,6 +79,7 @@ EditorLayer::EditorLayer(Engine* engine)
 
     m_BuildPanel = std::make_unique<BuildPanel>();
     m_SpriteSheetEditor = std::make_unique<SpriteSheetEditorPanel>();
+    m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
     SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
@@ -233,6 +235,10 @@ void EditorLayer::OnImGuiRender() {
         m_SpriteSheetEditor->Render();
     }
 
+    if (m_AnimationClipEditor) {
+        m_AnimationClipEditor->Render();
+    }
+
     EndDockspace();
 }
 
@@ -355,6 +361,11 @@ void EditorLayer::RenderMenuBar() {
             if (ImGui::MenuItem("Sprite Sheet Editor")) {
                 if (m_SpriteSheetEditor && !m_SelectedAssetPath.empty()) {
                     m_SpriteSheetEditor->Open(m_SelectedAssetPath);
+                }
+            }
+            if (ImGui::MenuItem("Animation Clip Editor")) {
+                if (m_AnimationClipEditor && !m_SelectedAssetPath.empty()) {
+                    m_AnimationClipEditor->Open(m_SelectedAssetPath);
                 }
             }
             ImGui::EndMenu();
@@ -1630,11 +1641,18 @@ void EditorLayer::RenderContentBrowser() {
                     }
                 }
 
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                    draggedAsset = &asset;
+                    ImGui::SetDragDropPayload("ASSET_ANIM", &draggedAsset, sizeof(AssetInfo*));
+                    ImGui::Text("%s: %s", buttonLabel.c_str(), asset.filename.c_str());
+                    ImGui::EndDragDropSource();
+                }
+
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (asset.type == "spritesheet" && m_SpriteSheetEditor) {
                         m_SpriteSheetEditor->Open(asset.path);
-                    } else if (asset.type == "animclip") {
-                        TraceLog(LOG_INFO, "TODO: Open AnimationClip editor for: %s", asset.path.c_str());
+                    } else if (asset.type == "animclip" && m_AnimationClipEditor) {
+                        m_AnimationClipEditor->Open(asset.path);
                     } else if (asset.type == "animcontroller") {
                         TraceLog(LOG_INFO, "TODO: Open AnimatorController editor for: %s", asset.path.c_str());
                     }
