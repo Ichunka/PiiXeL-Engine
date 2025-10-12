@@ -2,6 +2,9 @@
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
 #include <raylib.h>
+#include <cinttypes>
+#include <filesystem>
+#include <fstream>
 
 namespace PiiXeL {
 
@@ -44,7 +47,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
 
     auto pathIt = m_UUIDToPath.find(uuid);
     if (pathIt == m_UUIDToPath.end()) {
-        TraceLog(LOG_WARNING, "Asset not found in registry: %llu", uuid.Get());
+        TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, uuid.Get());
         return nullptr;
     }
 
@@ -124,6 +127,43 @@ void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
 
         TraceLog(LOG_INFO, "Reimported asset: %s", sourcePath.c_str());
     }
+}
+
+void AssetRegistry::RegisterExtractedAssets() {
+    std::string cachePath = "datas/.asset_uuid_cache";
+    if (!std::filesystem::exists(cachePath)) {
+        TraceLog(LOG_WARNING, "UUID cache not found at: %s", cachePath.c_str());
+        return;
+    }
+
+    std::ifstream cacheFile{cachePath, std::ios::binary};
+    if (!cacheFile.is_open()) {
+        TraceLog(LOG_ERROR, "Failed to open UUID cache: %s", cachePath.c_str());
+        return;
+    }
+
+    uint32_t count = 0;
+    cacheFile.read(reinterpret_cast<char*>(&count), sizeof(count));
+
+    size_t registeredCount = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        uint32_t pathLen = 0;
+        cacheFile.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
+
+        std::string sourcePath(pathLen, '\0');
+        cacheFile.read(&sourcePath[0], pathLen);
+
+        uint64_t uuidValue = 0;
+        cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
+
+        UUID uuid{uuidValue};
+        m_UUIDToPath[uuid] = sourcePath;
+        m_PathToUUID[sourcePath] = uuid;
+        registeredCount++;
+    }
+
+    cacheFile.close();
+    TraceLog(LOG_INFO, "Registered %zu assets from UUID cache", registeredCount);
 }
 
 bool AssetRegistry::IsAssetLoaded(UUID uuid) const {
@@ -213,7 +253,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
     m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
     m_PathToUUID[metadata.sourceFile] = metadata.uuid;
 
-    TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %llu)", metadata.name.c_str(), metadata.uuid.Get());
+    TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
     return asset;
 }
 

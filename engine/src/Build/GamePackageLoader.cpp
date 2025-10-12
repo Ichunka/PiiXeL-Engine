@@ -13,6 +13,8 @@
 #include "Scripting/ScriptComponent.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
+#include <filesystem>
+#include <fstream>
 
 namespace PiiXeL {
 
@@ -267,6 +269,43 @@ void GamePackageLoader::UnloadAllTextures() {
         UnloadTexture(pair.second);
     }
     m_LoadedTextures.clear();
+}
+
+void GamePackageLoader::InitializeAssetRegistry() {
+    if (!m_IsLoaded) {
+        TraceLog(LOG_ERROR, "Cannot initialize AssetRegistry: no package loaded");
+        return;
+    }
+
+    std::filesystem::create_directories("datas");
+    std::filesystem::create_directories("datas/cache");
+
+    const AssetData* uuidCache = m_Package.GetAsset("datas/.asset_uuid_cache");
+    if (uuidCache && !uuidCache->data.empty()) {
+        std::ofstream cacheFile{"datas/.asset_uuid_cache", std::ios::binary};
+        if (cacheFile.is_open()) {
+            cacheFile.write(reinterpret_cast<const char*>(uuidCache->data.data()), uuidCache->data.size());
+            cacheFile.close();
+            TraceLog(LOG_INFO, "Extracted UUID cache from package");
+        }
+    }
+
+    size_t extractedCount = 0;
+    for (const AssetData& asset : m_Package.GetAssets()) {
+        if (asset.path.ends_with(".pxa")) {
+            std::filesystem::path outputPath = std::filesystem::path{"datas/cache"} / asset.path;
+            std::filesystem::create_directories(outputPath.parent_path());
+
+            std::ofstream file{outputPath, std::ios::binary};
+            if (file.is_open()) {
+                file.write(reinterpret_cast<const char*>(asset.data.data()), asset.data.size());
+                file.close();
+                extractedCount++;
+            }
+        }
+    }
+
+    TraceLog(LOG_INFO, "Extracted %zu .pxa assets from package to datas/cache", extractedCount);
 }
 
 } // namespace PiiXeL

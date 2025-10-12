@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <cinttypes>
 
 namespace PiiXeL {
 
@@ -714,7 +715,7 @@ void EditorLayer::RenderInspector() {
             const AssetMetadata& metadata = asset->GetMetadata();
 
             ImGui::Text("Name: %s", metadata.name.c_str());
-            ImGui::Text("UUID: %llu", metadata.uuid.Get());
+            ImGui::Text("UUID: %" PRIu64, metadata.uuid.Get());
             ImGui::Text("Type: %s", metadata.type == AssetType::Texture ? "Texture" :
                                      metadata.type == AssetType::Audio ? "Audio" : "Unknown");
             ImGui::Text("Source: %s", metadata.sourceFile.c_str());
