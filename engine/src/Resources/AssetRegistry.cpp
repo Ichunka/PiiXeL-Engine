@@ -75,7 +75,10 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
 }
 
 std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path) {
-    auto it = m_PathToUUID.find(path);
+    std::string normalizedPath = path;
+    std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
+    auto it = m_PathToUUID.find(normalizedPath);
     if (it != m_PathToUUID.end()) {
         return LoadAsset(it->second);
     }
@@ -86,8 +89,8 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path)
         return nullptr;
     }
 
-    m_PathToUUID[path] = result.uuid;
-    m_UUIDToPath[result.uuid] = path;
+    m_PathToUUID[normalizedPath] = result.uuid;
+    m_UUIDToPath[result.uuid] = normalizedPath;
 
     return LoadAssetFromPackage(result.packagePath);
 }
@@ -125,8 +128,10 @@ void AssetRegistry::ImportDirectory(const std::string& directory) {
 
             AssetPackage package{};
             if (package.LoadFromFile(result.packagePath, metadata, data)) {
-                m_PathToUUID[metadata.sourceFile] = metadata.uuid;
-                m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
+                std::string normalizedPath = metadata.sourceFile;
+                std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+                m_PathToUUID[normalizedPath] = metadata.uuid;
+                m_UUIDToPath[metadata.uuid] = normalizedPath;
             }
         }
     }
@@ -175,6 +180,8 @@ void AssetRegistry::RegisterExtractedAssets() {
         uint64_t uuidValue = 0;
         cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
 
+        std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
+
         UUID uuid{uuidValue};
         m_UUIDToPath[uuid] = sourcePath;
         m_PathToUUID[sourcePath] = uuid;
@@ -209,8 +216,10 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
 
         AssetPackage package{};
         if (package.LoadMetadataOnly(pxaPath.string(), metadata)) {
-            m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
-            m_PathToUUID[metadata.sourceFile] = metadata.uuid;
+            std::string normalizedPath = metadata.sourceFile;
+            std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+            m_UUIDToPath[metadata.uuid] = normalizedPath;
+            m_PathToUUID[normalizedPath] = metadata.uuid;
         }
 
         current++;
@@ -228,7 +237,10 @@ bool AssetRegistry::IsAssetLoaded(UUID uuid) const {
 }
 
 UUID AssetRegistry::GetUUIDFromPath(const std::string& path) const {
-    auto it = m_PathToUUID.find(path);
+    std::string normalizedPath = path;
+    std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
+    auto it = m_PathToUUID.find(normalizedPath);
     if (it != m_PathToUUID.end()) {
         return it->second;
     }
@@ -305,9 +317,12 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
         return nullptr;
     }
 
+    std::string normalizedPath = metadata.sourceFile;
+    std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
     m_Assets[metadata.uuid] = asset;
-    m_UUIDToPath[metadata.uuid] = metadata.sourceFile;
-    m_PathToUUID[metadata.sourceFile] = metadata.uuid;
+    m_UUIDToPath[metadata.uuid] = normalizedPath;
+    m_PathToUUID[normalizedPath] = metadata.uuid;
 
     TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
     return asset;
@@ -342,6 +357,8 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
         std::memcpy(&uuidValue, data + offset, sizeof(uuidValue));
         offset += sizeof(uuidValue);
 
+        std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
+
         UUID uuid{uuidValue};
         m_UUIDToPath[uuid] = sourcePath;
         m_PathToUUID[sourcePath] = uuid;
@@ -353,9 +370,12 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
 
 void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,
                                               const std::vector<uint8_t>& packageData) {
+    std::string normalizedPath = sourcePath;
+    std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
     m_PackageDataCache[uuid] = packageData;
-    m_UUIDToPath[uuid] = sourcePath;
-    m_PathToUUID[sourcePath] = uuid;
+    m_UUIDToPath[uuid] = normalizedPath;
+    m_PathToUUID[normalizedPath] = uuid;
 }
 
 } // namespace PiiXeL

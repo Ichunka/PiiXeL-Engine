@@ -290,6 +290,8 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
                 uint64_t uuidValue = 0;
                 cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
 
+                std::replace(path.begin(), path.end(), '\\', '/');
+
                 uuidToPath[uuidValue] = path;
             }
             cacheFile.close();
@@ -297,6 +299,87 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         }
     } else {
         TraceLog(LOG_WARNING, "UUID cache not found: %s", cachePath.c_str());
+    }
+
+    std::unordered_set<uint64_t> missingUUIDs;
+    for (const std::pair<std::string, nlohmann::json>& scenePair : package.GetScenes()) {
+        const nlohmann::json& sceneData = scenePair.second;
+        if (sceneData.contains("entities") && sceneData["entities"].is_array()) {
+            for (const nlohmann::json& entity : sceneData["entities"]) {
+                if (entity.contains("Sprite")) {
+                    const nlohmann::json& sprite = entity["Sprite"];
+                    if (sprite.contains("textureAssetUUID")) {
+                        uint64_t uuidValue = sprite["textureAssetUUID"].get<uint64_t>();
+                        if (uuidValue != 0 && uuidToPath.find(uuidValue) == uuidToPath.end()) {
+                            missingUUIDs.insert(uuidValue);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (!missingUUIDs.empty()) {
+        TraceLog(LOG_INFO, "Scanning for .pxa files to resolve %zu missing UUIDs...", missingUUIDs.size());
+
+        std::string contentPath = (basePath / "content").string();
+        if (std::filesystem::exists(contentPath)) {
+            for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator(contentPath)) {
+                if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
+                    TraceLog(LOG_INFO, "Checking .pxa file: %s", entry.path().string().c_str());
+                    std::ifstream pxaFile{entry.path(), std::ios::binary};
+                    if (!pxaFile.is_open()) {
+                        TraceLog(LOG_WARNING, "Failed to open .pxa file: %s", entry.path().string().c_str());
+                        continue;
+                    }
+
+                    uint32_t magic = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+                    if (magic != 0x41585850) {
+                        TraceLog(LOG_WARNING, "Invalid magic number in .pxa file: %s (got 0x%08X)", entry.path().string().c_str(), magic);
+                        pxaFile.close();
+                        continue;
+                    }
+
+                    uint32_t version = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&version), sizeof(version));
+
+                    uint16_t assetType = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&assetType), sizeof(assetType));
+
+                    uint16_t reserved = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&reserved), sizeof(reserved));
+
+                    uint64_t uuidValue = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
+
+                    TraceLog(LOG_INFO, "Read UUID %" PRIu64 " from .pxa file", uuidValue);
+
+                    uint64_t metadataSize = 0;
+                    pxaFile.read(reinterpret_cast<char*>(&metadataSize), sizeof(metadataSize));
+
+                    if (missingUUIDs.find(uuidValue) != missingUUIDs.end()) {
+                        TraceLog(LOG_INFO, "UUID %" PRIu64 " matches a missing UUID, reading metadata...", uuidValue);
+                        pxaFile.seekg(sizeof(uint64_t), std::ios::cur);
+
+                        std::string metadataStr(static_cast<size_t>(metadataSize), '\0');
+                        pxaFile.read(&metadataStr[0], static_cast<std::streamsize>(metadataSize));
+
+                        size_t pos1 = metadataStr.find('|');
+                        size_t pos2 = metadataStr.find('|', pos1 + 1);
+
+                        if (pos1 != std::string::npos && pos2 != std::string::npos) {
+                            std::string sourcePath = metadataStr.substr(pos1 + 1, pos2 - pos1 - 1);
+                            std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
+                            uuidToPath[uuidValue] = sourcePath;
+                            TraceLog(LOG_INFO, "Resolved UUID %" PRIu64 " -> %s from .pxa scan", uuidValue, sourcePath.c_str());
+                        }
+                    }
+
+                    pxaFile.close();
+                }
+            }
+        }
     }
 
     for (const std::pair<std::string, nlohmann::json>& scenePair : package.GetScenes()) {
