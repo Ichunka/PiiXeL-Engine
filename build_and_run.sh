@@ -94,8 +94,9 @@ echo "2) Game (Release, standalone)"
 echo "3) Editor (Release)"
 echo "4) Build Tools (embed_asset_tool, build_package)"
 echo "5) Build Game Package"
+echo "6) Game (Debug, standalone with console)"
 echo ""
-read -r -p "Enter choice [1-5]: " choice
+read -r -p "Enter choice [1-6]: " choice
 
 # ---------- defaults ----------
 BUILD_DIR=""
@@ -168,6 +169,14 @@ case "$choice" in
     echo "Package build complete!"
     echo "=================================="
     exit 0
+    ;;
+  6)
+    echo "Building Game (Debug, standalone with console)..."
+    BUILD_DIR="$PROJECT_ROOT/build/game-debug"
+    BUILD_TYPE="Debug"
+    BUILD_EDITOR="OFF"
+    TARGET_NAME="game"
+    EXECUTABLE_PATH="$BUILD_DIR/games/MyFirstGame/game"
     ;;
   *)
     echo "Invalid choice!"

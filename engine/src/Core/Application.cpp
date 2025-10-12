@@ -49,11 +49,23 @@ void Application::Initialize() {
         ToggleFullscreen();
     }
 
-    if (!m_Config.iconPath.empty() && FileExists(m_Config.iconPath.c_str())) {
-        Image iconImage = LoadImage(m_Config.iconPath.c_str());
-        SetWindowIcon(iconImage);
-        UnloadImage(iconImage);
-        TraceLog(LOG_INFO, "Window icon set: %s", m_Config.iconPath.c_str());
+    if (!m_Config.iconPath.empty()) {
+        if (FileExists(m_Config.iconPath.c_str())) {
+            Image iconImage = LoadImage(m_Config.iconPath.c_str());
+            if (iconImage.data != nullptr) {
+                if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                    ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                    TraceLog(LOG_INFO, "Converted icon to RGBA format for window display");
+                }
+                SetWindowIcon(iconImage);
+                UnloadImage(iconImage);
+                TraceLog(LOG_INFO, "Window icon set: %s", m_Config.iconPath.c_str());
+            } else {
+                TraceLog(LOG_WARNING, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+            }
+        } else {
+            TraceLog(LOG_WARNING, "Window icon file not found: %s", m_Config.iconPath.c_str());
+        }
     }
 
     PathManager::Instance().Initialize();

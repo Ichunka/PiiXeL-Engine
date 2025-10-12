@@ -4,7 +4,9 @@ project(MyFirstGame LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(${CMAKE_SOURCE_DIR}/cmake/AddWindowsIcon.cmake)
+if(WIN32)
+    include(${CMAKE_SOURCE_DIR}/cmake/AddWindowsIcon.cmake)
+endif()
 
 file(GLOB_RECURSE GAME_SCRIPTS src/GameScripts.cpp)
 
@@ -27,7 +29,7 @@ if(BUILD_EDITOR)
         ${CMAKE_BINARY_DIR}/engine/assets
     )
 else()
-    if(WIN32)
+    if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
         add_executable(game WIN32 src/game_main.cpp ${GAME_SCRIPTS})
     else()
         add_executable(game src/game_main.cpp ${GAME_SCRIPTS})
@@ -40,7 +42,9 @@ else()
         if(GAME_ICON_FULL_PATH)
             add_windows_icon(game ${GAME_ICON_FULL_PATH})
         endif()
-        target_link_options(game PRIVATE /ENTRY:mainCRTStartup)
+        if(CMAKE_BUILD_TYPE STREQUAL "Release")
+            target_link_options(game PRIVATE /ENTRY:mainCRTStartup)
+        endif()
     endif()
 
     add_custom_command(TARGET game POST_BUILD

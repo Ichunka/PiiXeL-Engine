@@ -99,10 +99,11 @@ chmod +x build_and_run.sh
 This interactive script will prompt you to select a build target:
 
 1. **Editor (Debug)** - Full editor with debugging symbols
-2. **Game (Release, standalone)** - Standalone game without editor
+2. **Game (Release, standalone)** - Standalone game without editor, optimized, no console
 3. **Editor (Release)** - Optimized editor build
 4. **Build Tools** - Package builder tool
 5. **Build Game Package** - Create distributable game package
+6. **Game (Debug, standalone)** - Standalone game with debugging symbols and console output
 
 The script automatically:
 - Detects your compiler (GCC/Clang)
@@ -145,12 +146,14 @@ The project includes CMake presets for common configurations:
 ```bash
 # Configure with preset
 cmake --preset editor          # Editor (Debug)
-cmake --preset game            # Game (Release)
+cmake --preset game            # Game (Release, no console)
+cmake --preset game-debug      # Game (Debug, with console)
 cmake --preset editor-release  # Editor (Release)
 
 # Build with preset
 cmake --build --preset editor
 cmake --build --preset game
+cmake --build --preset game-debug
 cmake --build --preset editor-release
 ```
 
@@ -158,7 +161,7 @@ cmake --build --preset editor-release
 
 1. Open the project folder in CLion
 2. CLion will automatically detect CMake configuration
-3. Select a preset from the toolbar: `editor`, `game`, or `editor-release`
+3. Select a preset from the toolbar: `editor`, `game`, `game-debug`, or `editor-release`
 4. Build and run using CLion's interface
 
 ## Build Modes
@@ -174,11 +177,21 @@ cmake --build --preset editor-release
 
 ### Game Mode (`BUILD_EDITOR=OFF`)
 
-- No ImGui or editor dependencies
-- Minimal executable for distribution
-- Direct game rendering without editor overlay
-- Optimized for performance
+Two variants available for different purposes:
+
+**Release (game preset):**
+- Optimized for distribution
+- No console window (Windows)
+- No debugging symbols
 - Smaller binary size
+- Maximum performance
+
+**Debug (game-debug preset):**
+- For debugging standalone game
+- Console window visible (shows TraceLog output)
+- Full debugging symbols
+- Useful for testing game without editor
+- Diagnose runtime issues (icon loading, asset paths, etc.)
 
 ## Project Structure
 
@@ -346,6 +359,35 @@ Distribute:
 - The `datas/game.package` file
 - Required DLLs (Windows only)
 
+### Game Icon Configuration
+
+Configure your game's icon from the editor:
+
+1. Open **Project Settings** from the menu
+2. Go to the **Window** tab
+3. Set the **Icon Path** field (e.g., `content/assets/icon.png`)
+
+**Icon system explained:**
+
+PiiXeL Engine uses a dual icon system:
+
+1. **Window Icon (Runtime)** - The icon shown in the window title bar
+   - Format: `.png`, `.jpg`, or `.bmp`
+   - Loaded at runtime via Raylib
+   - Set via Project Settings → Window → Icon Path
+   - Example: `content/assets/icon.png`
+
+2. **Executable Icon (Windows only)** - The icon shown in file explorer
+   - Format: `.ico` (Windows icon format)
+   - Embedded during build via CMake resource file
+   - Automatically detected if `.ico` exists in same path
+   - Example: If you set `content/assets/icon.png`, CMake will also look for `content/assets/icon.ico` and embed it
+
+**Recommended workflow:**
+- Create both `icon.png` (for window) and `icon.ico` (for exe)
+- Set only the `.png` path in Project Settings
+- CMake will automatically handle the `.ico` for the executable
+
 ## Understanding the Asset Systems
 
 PiiXeL Engine uses two complementary asset systems:
@@ -481,6 +523,28 @@ Scripts are attached to entities via the Script component in the editor.
 4. Test in editor
 5. Create package for distribution
 6. Build standalone game
+
+### Debugging Standalone Game
+
+When you need to debug the game without the editor (e.g., to test icon loading, asset paths, or production behavior):
+
+**Using CLion:**
+1. Select the `game-debug` preset
+2. Build and run
+3. Console window shows all TraceLog output
+4. Full debugging symbols available
+
+**Using build_and_run.sh (Linux/macOS):**
+```bash
+./build_and_run.sh
+# Select option 6: Game (Debug, standalone with console)
+```
+
+**Console output will show:**
+- Window icon loading status
+- Asset loading operations
+- Physics initialization
+- Any runtime errors or warnings
 
 ## Troubleshooting
 
