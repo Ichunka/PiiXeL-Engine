@@ -435,6 +435,114 @@ AssetRef<Sound> m_Sound;             // Reference to audio asset
 ComponentRef<Transform> m_Target;    // Reference to component on entity
 ```
 
+**Cross-Platform Compatibility:**
+
+`.pxa` files are **binary compatible across Windows, Linux, and macOS** (all modern x86/x64/ARM platforms use little-endian). The binary format includes:
+- PNG-encoded texture data (cross-platform)
+- Little-endian integer fields (compatible on all target platforms)
+- No platform-specific pointers or structures
+
+**Note:** While technically platform-dependent due to endianness, all PiiXeL Engine target platforms (Windows/Linux/macOS) use little-endian, making `.pxa` files fully portable in practice.
+
+**Git Version Control Strategy for .pxa Files:**
+
+The `.pxa` files **SHOULD be committed to git** alongside your source assets. Here's why and how:
+
+**Why commit .pxa files:**
+- Team members can clone and immediately work without reimporting all assets
+- Faster project setup - no waiting for initial asset import
+- Consistent asset UUIDs across all team members
+- Build systems can use precompiled assets directly
+
+**Git configuration:**
+```gitattributes
+# Mark .pxa files as binary (already configured)
+*.pxa binary
+```
+
+**Recommended workflow:**
+
+1. **For small projects (<100MB of assets):**
+   - Commit both source files (PNG, WAV, etc.) AND `.pxa` files
+   - Standard git workflow works fine
+   - Fast cloning and setup for team members
+
+2. **For large projects (>100MB of assets):**
+   - Use **Git LFS (Large File Storage)** for `.pxa` files
+   - Configure Git LFS to track `.pxa` files:
+     ```bash
+     git lfs install
+     git lfs track "*.pxa"
+     git add .gitattributes
+     ```
+   - Commit `.pxa` files through Git LFS
+   - Team members clone with `git lfs clone` for faster downloads
+
+3. **What to commit:**
+   - ✅ Source assets (PNG, WAV, OGG, etc.)
+   - ✅ `.pxa` files (binary asset packages)
+   - ✅ `.scene` files (scene definitions)
+   - ✅ `datas/.asset_uuid_cache` (UUID persistence)
+   - ❌ `datas/game.package` (generated at build time)
+   - ❌ Build artifacts in `build/` and `export/`
+
+**Ignoring unnecessary files:**
+```gitignore
+# Build outputs
+build/
+export/
+
+# Generated packages (rebuild before distribution)
+**/game.package
+
+# Editor temporary files
+imgui.ini
+
+# Asset UUID cache is committed for UUID persistence
+# datas/.asset_uuid_cache - DO commit this!
+```
+
+**Asset workflow with version control:**
+
+1. **Adding new assets:**
+   ```bash
+   # Add source file
+   git add assets/player.png
+
+   # Import in editor (generates player.pxa automatically)
+
+   # Commit both source and .pxa
+   git add assets/player.pxa
+   git commit -m "Add player sprite"
+   ```
+
+2. **Updating assets:**
+   ```bash
+   # Update source file
+   # Editor auto-detects change and regenerates .pxa
+
+   # Commit both updated files
+   git add assets/player.png assets/player.pxa
+   git commit -m "Update player sprite"
+   ```
+
+3. **Team synchronization:**
+   ```bash
+   # Pull latest changes
+   git pull
+
+   # .pxa files already updated
+   # Editor loads assets instantly - no reimport needed
+   # UUIDs remain consistent across team
+   ```
+
+**Benefits of this approach:**
+- Zero-configuration setup for new team members
+- Consistent asset UUIDs prevent broken references
+- Fast asset loading in editor (no reimport needed)
+- Build pipelines can use cached .pxa files
+- Git LFS handles large binary files efficiently
+
 ### 2. Game Package System
 
 **Purpose:** Bundle all game assets and scenes for distribution

@@ -29,7 +29,8 @@ enum FieldFlags : uint32_t {
     EntityPicker = 1 << 2,
     ColorPicker = 1 << 3,
     Range = 1 << 4,
-    Serializable = 1 << 5
+    Serializable = 1 << 5,
+    AssetPicker = 1 << 6
 };
 
 struct FieldMetadata {

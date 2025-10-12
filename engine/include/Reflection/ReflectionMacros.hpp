@@ -8,6 +8,7 @@
 
 namespace PiiXeL {
     class EntityRef;
+    class UUID;
 }
 
 namespace PiiXeL::Reflection {
@@ -23,6 +24,7 @@ struct TypeDeducer {
         else if constexpr (std::is_same_v<T, Color>) return FieldType::Color;
         else if constexpr (std::is_same_v<T, entt::entity>) return FieldType::Entity;
         else if constexpr (std::is_same_v<T, EntityRef>) return FieldType::EntityRef;
+        else if constexpr (std::is_same_v<T, UUID>) return FieldType::AssetRef;
         else return FieldType::Custom;
     }
 };
@@ -102,6 +104,11 @@ builder.Field(#FieldName, &ReflectedType::FieldName, \
 #define FIELD_ENTITY(FieldName) \
 builder.Field(#FieldName, &ReflectedType::FieldName, \
 ::PiiXeL::Reflection::FieldFlags::Public | ::PiiXeL::Reflection::FieldFlags::Serializable | ::PiiXeL::Reflection::FieldFlags::EntityPicker);
+
+#define FIELD_ASSET(FieldName, AssetType) \
+builder.Field(#FieldName, &ReflectedType::FieldName, \
+::PiiXeL::Reflection::FieldFlags::Public | ::PiiXeL::Reflection::FieldFlags::Serializable | ::PiiXeL::Reflection::FieldFlags::AssetPicker, \
+::PiiXeL::Reflection::FieldMetadata{0.0f, 0.0f, 0.0f, AssetType});
 
 #define END_REFLECT(TypeName) \
 builder.Register(); \

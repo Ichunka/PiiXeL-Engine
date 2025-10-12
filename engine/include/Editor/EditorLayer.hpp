@@ -92,6 +92,7 @@ private:
     void PasteEntity();
 
     bool RenderEntityPicker(const char* label, entt::entity* entity);
+    bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
 
     void RestoreScriptPropertiesFromFile(const std::string& filepath);
 
@@ -99,6 +100,7 @@ private:
     Engine* m_Engine;
     RenderTexture2D m_ViewportTexture;
     RenderTexture2D m_GameViewportTexture;
+    Texture2D m_DefaultWhiteTexture;
     Rectangle m_ViewportBounds{0, 0, 1920, 1080};
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};

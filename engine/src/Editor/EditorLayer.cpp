@@ -9,6 +9,7 @@
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
+#include "Scene/EntityRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Components/Tag.hpp"
@@ -43,6 +44,7 @@ EditorLayer::EditorLayer(Engine* engine)
     : m_Engine{engine}
     , m_ViewportTexture{}
     , m_GameViewportTexture{}
+    , m_DefaultWhiteTexture{}
     , m_ViewportBounds{0, 0, 1920, 1080}
     , m_ViewportHovered{false}
     , m_ViewportFocused{false}
@@ -55,6 +57,18 @@ EditorLayer::EditorLayer(Engine* engine)
 {
     m_ViewportTexture = LoadRenderTexture(1920, 1080);
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
+
+    Image whiteImage = GenImageColor(64, 64, WHITE);
+    m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
+    UnloadImage(whiteImage);
+
+    if (m_DefaultWhiteTexture.id != 0) {
+        SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
+        TraceLog(LOG_INFO, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
+    } else {
+        TraceLog(LOG_ERROR, "Failed to create default white texture");
+    }
+
     m_BuildPanel = std::make_unique<BuildPanel>();
     SetupDarkTheme();
 
@@ -95,6 +109,9 @@ EditorLayer::~EditorLayer() {
     }
     if (m_GameViewportTexture.id != 0) {
         UnloadRenderTexture(m_GameViewportTexture);
+    }
+    if (m_DefaultWhiteTexture.id != 0) {
+        UnloadTexture(m_DefaultWhiteTexture);
     }
 }
 
@@ -523,9 +540,13 @@ void EditorLayer::RenderViewport() {
 
                     Vector2 worldPos = ScreenToWorld(mouseViewportPos, dropCamera);
 
-                    Texture2D newTexture = AssetManager::Instance().LoadTexture(assetInfo->path);
-                    if (newTexture.id != 0) {
+                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                    if (asset && asset->GetMetadata().type == AssetType::Texture) {
                         entt::entity newEntity = registry.create();
+
+                        UUID uuid{};
+                        registry.emplace<UUID>(newEntity, uuid);
+                        EntityRegistry::Instance().RegisterEntity(uuid, newEntity);
 
                         std::string entityName = assetInfo->filename;
                         size_t dotPos = entityName.find_last_of('.');
@@ -544,16 +565,12 @@ void EditorLayer::RenderViewport() {
                         registry.emplace<Transform>(newEntity, transform);
 
                         Sprite sprite{};
-                        sprite.texture = newTexture;
-                        sprite.texturePath = assetInfo->path;
-                        sprite.sourceRect = Rectangle{
-                            0.0f, 0.0f,
-                            static_cast<float>(newTexture.width),
-                            static_cast<float>(newTexture.height)
-                        };
+                        sprite.SetTexture(asset->GetUUID());
                         sprite.tint = WHITE;
                         sprite.origin = Vector2{0.5f, 0.5f};
                         registry.emplace<Sprite>(newEntity, sprite);
+
+                        scene->GetEntityOrder().push_back(newEntity);
 
                         m_SelectedEntity = newEntity;
 
@@ -887,49 +904,64 @@ void EditorLayer::RenderInspector() {
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.2f, 0.2f, 1.0f});
 
+                    Texture2D displayTexture = m_DefaultWhiteTexture;
+                    float previewWidth = 100.0f;
+                    float previewHeight = 100.0f;
+                    bool isDefaultTexture = true;
+
                     if (sprite.IsValid()) {
-                        float aspectRatio = static_cast<float>(sprite.texture.width) / static_cast<float>(sprite.texture.height);
-                        float previewWidth = 100.0f;
-                        float previewHeight = previewWidth / aspectRatio;
+                        Texture2D texture = sprite.GetTexture();
+                        if (texture.id != 0) {
+                            displayTexture = texture;
+                            isDefaultTexture = false;
+                            float aspectRatio = static_cast<float>(texture.width) / static_cast<float>(texture.height);
+                            previewHeight = previewWidth / aspectRatio;
+                        }
+                    }
 
-                        ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(sprite.texture.id));
-
+                    if (displayTexture.id == 0) {
+                        ImGui::TextColored(ImVec4{1.0f, 0.0f, 0.0f, 1.0f}, "ERROR: No texture to display!");
+                    } else {
+                        ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(displayTexture.id));
                         if (ImGui::ImageButton("##TexturePreview", texId, ImVec2{previewWidth, previewHeight})) {
                         }
-                    } else {
-                        if (ImGui::Button("Drop Texture Here", ImVec2{150, 100})) {
+
+                        if (ImGui::BeginDragDropTarget()) {
+                            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
+                                AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
+                                if (assetInfo) {
+                                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                                    if (asset && asset->GetMetadata().type == AssetType::Texture) {
+                                        sprite.SetTexture(asset->GetUUID());
+                                        TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
+                                    }
+                                }
+                            }
+                            ImGui::EndDragDropTarget();
+                        }
+
+                        if (isDefaultTexture) {
+                            ImGui::SameLine();
+                            ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "(None)");
                         }
                     }
 
                     ImGui::PopStyleColor();
 
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
-                            AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
-                            if (assetInfo) {
-                                Texture2D newTexture = AssetManager::Instance().LoadTexture(assetInfo->path);
-                                if (newTexture.id != 0) {
-                                    sprite.texture = newTexture;
-                                    sprite.texturePath = assetInfo->path;
-                                    sprite.sourceRect = Rectangle{
-                                        0.0f, 0.0f,
-                                        static_cast<float>(newTexture.width),
-                                        static_cast<float>(newTexture.height)
-                                    };
-                                    TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
-                                }
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-
                     if (sprite.IsValid()) {
-                        ImGui::Text("%dx%d", sprite.texture.width, sprite.texture.height);
+                        Texture2D texture = sprite.GetTexture();
+                        if (texture.id != 0) {
+                            ImGui::Text("%dx%d", texture.width, texture.height);
+                        }
                     }
 
-                    Reflection::ImGuiRenderer::RenderProperties(sprite, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
+                    Reflection::ImGuiRenderer::RenderProperties(sprite,
+                        [this](const char* label, entt::entity* entity) {
+                            return RenderEntityPicker(label, entity);
+                        },
+                        [this](const char* label, UUID* uuid, const std::string& assetType) {
+                            return RenderAssetPicker(label, uuid, assetType);
+                        });
 
                     ImGui::TreePop();
                 }
@@ -996,7 +1028,8 @@ void EditorLayer::RenderInspector() {
                     if (registry.all_of<Sprite>(inspectedEntity)) {
                         if (ImGui::Button("Fit to Sprite")) {
                             const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
+                            Vector2 spriteSize = sprite.GetSize();
+                            collider.size = spriteSize;
                             collider.offset = Vector2{0.0f, 0.0f};
                         }
                     }
@@ -1036,9 +1069,13 @@ void EditorLayer::RenderInspector() {
                             for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                 if (field.flags & Reflection::FieldFlags::ReadOnly) continue;
                                 void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                Reflection::ImGuiRenderer::RenderField(field, fieldPtr, [this](const char* label, entt::entity* entity) {
-                                    return RenderEntityPicker(label, entity);
-                                });
+                                Reflection::ImGuiRenderer::RenderField(field, fieldPtr,
+                                    [this](const char* label, entt::entity* entity) {
+                                        return RenderEntityPicker(label, entity);
+                                    },
+                                    [this](const char* label, UUID* uuid, const std::string& assetType) {
+                                        return RenderAssetPicker(label, uuid, assetType);
+                                    });
                             }
                         }
                     } else {
@@ -2818,6 +2855,64 @@ bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
     return changed;
 }
 
+bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType) {
+    std::string preview = "None";
+    if (uuid->Get() != 0) {
+        std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*uuid);
+        if (asset) {
+            preview = asset->GetMetadata().name;
+        } else {
+            preview = "Missing [" + uuid->ToString().substr(0, 8) + "]";
+        }
+    }
+
+    bool changed = false;
+    if (ImGui::BeginCombo(label, preview.c_str())) {
+        if (ImGui::Selectable("None", uuid->Get() == 0)) {
+            *uuid = UUID{0};
+            changed = true;
+        }
+
+        const auto& allAssets = AssetRegistry::Instance().GetAllAssets();
+        for (const auto& [assetUUID, asset] : allAssets) {
+            if (asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
+                bool isSelected = (uuid->Get() == assetUUID.Get());
+                std::string itemLabel = asset->GetMetadata().name;
+
+                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                    *uuid = assetUUID;
+                    changed = true;
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            if (payload->DataSize == sizeof(std::string)) {
+                std::string draggedPath = *static_cast<std::string*>(payload->Data);
+                UUID draggedUUID = AssetRegistry::Instance().GetUUIDFromPath(draggedPath);
+                if (draggedUUID.Get() != 0) {
+                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(draggedUUID);
+                    if (asset && asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
+                        *uuid = draggedUUID;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    return changed;
+}
+
 void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
     if (!m_Engine || !m_Engine->GetActiveScene() || !m_Engine->GetScriptSystem()) {
         return;
@@ -2914,13 +3009,7 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         const Sprite& originalSprite = registry.get<Sprite>(entity);
         Sprite newSprite;
 
-        if (!originalSprite.texturePath.empty()) {
-            newSprite.texture = AssetManager::Instance().LoadTexture(originalSprite.texturePath);
-            newSprite.texturePath = originalSprite.texturePath;
-        } else {
-            newSprite.texture = originalSprite.texture;
-        }
-
+        newSprite.textureAssetUUID = originalSprite.textureAssetUUID;
         newSprite.tint = originalSprite.tint;
         newSprite.sourceRect = originalSprite.sourceRect;
         newSprite.origin = originalSprite.origin;

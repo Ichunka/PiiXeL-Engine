@@ -15,14 +15,30 @@ RenderSystem::RenderSystem()
 #ifdef BUILD_WITH_EDITOR
     : m_ShowDebug{false}
     , m_ShowColliders{false}
+    , m_DefaultWhiteTexture{}
 #else
     : m_ShowDebug{false}
     , m_ShowColliders{false}
+    , m_DefaultWhiteTexture{}
 #endif
 {
+    Image whiteImage = GenImageColor(64, 64, WHITE);
+    m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
+    UnloadImage(whiteImage);
+
+    if (m_DefaultWhiteTexture.id != 0) {
+        SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
+        TraceLog(LOG_INFO, "RenderSystem: Default white texture created (64x64)");
+    } else {
+        TraceLog(LOG_ERROR, "RenderSystem: Failed to create default white texture");
+    }
 }
 
-RenderSystem::~RenderSystem() = default;
+RenderSystem::~RenderSystem() {
+    if (m_DefaultWhiteTexture.id != 0) {
+        UnloadTexture(m_DefaultWhiteTexture);
+    }
+}
 
 void RenderSystem::Render(entt::registry& registry) {
     RenderSprites(registry);
@@ -73,9 +89,7 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
     {
         PROFILE_SCOPE("RenderSprites::Collect");
         registry.view<Sprite, Transform>().each([&](entt::entity entity, const Sprite& sprite, const Transform& transform) {
-            if (sprite.IsValid()) {
-                sprites.push_back({entity, &sprite, &transform});
-            }
+            sprites.push_back({entity, &sprite, &transform});
         });
     }
 
@@ -92,21 +106,29 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
             const Sprite* sprite{spriteEntity.sprite};
             const Transform* transform{spriteEntity.transform};
 
+            Texture2D texture = sprite->GetTexture();
+            Rectangle sourceRect = sprite->sourceRect;
+
+            if (texture.id == 0) {
+                texture = m_DefaultWhiteTexture;
+                sourceRect = {0.0f, 0.0f, 64.0f, 64.0f};
+            }
+
             Vector2 originPixels{
-                sprite->sourceRect.width * sprite->origin.x * transform->scale.x,
-                sprite->sourceRect.height * sprite->origin.y * transform->scale.y
+                sourceRect.width * sprite->origin.x * transform->scale.x,
+                sourceRect.height * sprite->origin.y * transform->scale.y
             };
 
             Rectangle destRect{
                 transform->position.x,
                 transform->position.y,
-                sprite->sourceRect.width * transform->scale.x,
-                sprite->sourceRect.height * transform->scale.y
+                sourceRect.width * transform->scale.x,
+                sourceRect.height * transform->scale.y
             };
 
             DrawTexturePro(
-                sprite->texture,
-                sprite->sourceRect,
+                texture,
+                sourceRect,
                 destRect,
                 originPixels,
                 transform->rotation,

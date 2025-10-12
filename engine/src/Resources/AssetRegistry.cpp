@@ -158,6 +158,10 @@ std::vector<AssetMetadata> AssetRegistry::GetAllAssetMetadata() const {
     return metadata;
 }
 
+const std::unordered_map<UUID, std::shared_ptr<Asset>>& AssetRegistry::GetAllAssets() const {
+    return m_Assets;
+}
+
 size_t AssetRegistry::GetTotalMemoryUsage() const {
     size_t total = 0;
     for (const auto& [uuid, asset] : m_Assets) {

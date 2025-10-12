@@ -105,13 +105,8 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                 const nlohmann::json& spriteJson = entityJson["Sprite"];
                 Sprite sprite{};
 
-                if (spriteJson.contains("texturePath")) {
-                    std::string texturePath = spriteJson["texturePath"].get<std::string>();
-                    sprite.texturePath = texturePath;
-
-                    if (!texturePath.empty()) {
-                        sprite.texture = LoadTexture(texturePath);
-                    }
+                if (spriteJson.contains("textureAssetUUID")) {
+                    sprite.textureAssetUUID = UUID{spriteJson["textureAssetUUID"].get<uint64_t>()};
                 }
 
                 if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() && spriteJson["sourceRect"].size() == 4) {

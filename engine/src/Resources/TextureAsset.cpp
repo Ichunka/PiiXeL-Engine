@@ -32,6 +32,8 @@ bool TextureAsset::Load(const void* data, size_t size) {
         return false;
     }
 
+    SetTextureWrap(m_Texture, TEXTURE_WRAP_CLAMP);
+
     m_IsLoaded = true;
     TraceLog(LOG_INFO, "Texture asset loaded: %s (%dx%d)", m_Metadata.name.c_str(),
              m_Texture.width, m_Texture.height);

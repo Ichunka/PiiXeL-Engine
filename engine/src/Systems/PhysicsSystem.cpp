@@ -187,19 +187,21 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
                 auto pair = std::minmax(entityA, entityB);
-                m_ActiveCollisions.insert(pair);
+                auto [it, inserted] = m_ActiveCollisions.insert(pair);
 
-                if (registry.all_of<Script>(entityA)) {
-                    Script& script = registry.get<Script>(entityA);
-                    if (script.instance) {
-                        script.instance->OnCollisionEnter(entityB);
+                if (inserted) {
+                    if (registry.all_of<Script>(entityA)) {
+                        Script& script = registry.get<Script>(entityA);
+                        if (script.instance) {
+                            script.instance->OnCollisionEnter(entityB);
+                        }
                     }
-                }
 
-                if (registry.all_of<Script>(entityB)) {
-                    Script& script = registry.get<Script>(entityB);
-                    if (script.instance) {
-                        script.instance->OnCollisionEnter(entityA);
+                    if (registry.all_of<Script>(entityB)) {
+                        Script& script = registry.get<Script>(entityB);
+                        if (script.instance) {
+                            script.instance->OnCollisionEnter(entityA);
+                        }
                     }
                 }
             }
@@ -221,19 +223,21 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
             if (registry.valid(entityA) && registry.valid(entityB)) {
                 auto pair = std::minmax(entityA, entityB);
-                m_ActiveCollisions.erase(pair);
+                size_t erased = m_ActiveCollisions.erase(pair);
 
-                if (registry.all_of<Script>(entityA)) {
-                    Script& script = registry.get<Script>(entityA);
-                    if (script.instance) {
-                        script.instance->OnCollisionExit(entityB);
+                if (erased > 0) {
+                    if (registry.all_of<Script>(entityA)) {
+                        Script& script = registry.get<Script>(entityA);
+                        if (script.instance) {
+                            script.instance->OnCollisionExit(entityB);
+                        }
                     }
-                }
 
-                if (registry.all_of<Script>(entityB)) {
-                    Script& script = registry.get<Script>(entityB);
-                    if (script.instance) {
-                        script.instance->OnCollisionExit(entityA);
+                    if (registry.all_of<Script>(entityB)) {
+                        Script& script = registry.get<Script>(entityB);
+                        if (script.instance) {
+                            script.instance->OnCollisionExit(entityA);
+                        }
                     }
                 }
             }
@@ -275,19 +279,21 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
             if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
                 auto pair = std::minmax(visitorEntity, sensorEntity);
-                m_ActiveTriggers.insert(pair);
+                auto [it, inserted] = m_ActiveTriggers.insert(pair);
 
-                if (registry.all_of<Script>(sensorEntity)) {
-                    Script& script = registry.get<Script>(sensorEntity);
-                    if (script.instance) {
-                        script.instance->OnTriggerEnter(visitorEntity);
+                if (inserted) {
+                    if (registry.all_of<Script>(sensorEntity)) {
+                        Script& script = registry.get<Script>(sensorEntity);
+                        if (script.instance) {
+                            script.instance->OnTriggerEnter(visitorEntity);
+                        }
                     }
-                }
 
-                if (registry.all_of<Script>(visitorEntity)) {
-                    Script& script = registry.get<Script>(visitorEntity);
-                    if (script.instance) {
-                        script.instance->OnTriggerEnter(sensorEntity);
+                    if (registry.all_of<Script>(visitorEntity)) {
+                        Script& script = registry.get<Script>(visitorEntity);
+                        if (script.instance) {
+                            script.instance->OnTriggerEnter(sensorEntity);
+                        }
                     }
                 }
             }
@@ -309,19 +315,21 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
             if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
                 auto pair = std::minmax(visitorEntity, sensorEntity);
-                m_ActiveTriggers.erase(pair);
+                size_t erased = m_ActiveTriggers.erase(pair);
 
-                if (registry.all_of<Script>(sensorEntity)) {
-                    Script& script = registry.get<Script>(sensorEntity);
-                    if (script.instance) {
-                        script.instance->OnTriggerExit(visitorEntity);
+                if (erased > 0) {
+                    if (registry.all_of<Script>(sensorEntity)) {
+                        Script& script = registry.get<Script>(sensorEntity);
+                        if (script.instance) {
+                            script.instance->OnTriggerExit(visitorEntity);
+                        }
                     }
-                }
 
-                if (registry.all_of<Script>(visitorEntity)) {
-                    Script& script = registry.get<Script>(visitorEntity);
-                    if (script.instance) {
-                        script.instance->OnTriggerExit(sensorEntity);
+                    if (registry.all_of<Script>(visitorEntity)) {
+                        Script& script = registry.get<Script>(visitorEntity);
+                        if (script.instance) {
+                            script.instance->OnTriggerExit(sensorEntity);
+                        }
                     }
                 }
             }

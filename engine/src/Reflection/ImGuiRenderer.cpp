@@ -2,12 +2,13 @@
 
 #include "Reflection/ImGuiRenderer.hpp"
 #include "Scripting/EntityRef.hpp"
+#include "Components/UUID.hpp"
 #include <imgui.h>
 #include <raylib.h>
 
 namespace PiiXeL::Reflection {
 
-bool ImGuiRenderer::RenderField(const FieldInfo& field, void* fieldPtr, EntityPickerCallback entityPicker) {
+bool ImGuiRenderer::RenderField(const FieldInfo& field, void* fieldPtr, EntityPickerCallback entityPicker, AssetPickerCallback assetPicker) {
     bool modified = false;
 
     switch (field.type) {
@@ -110,6 +111,19 @@ bool ImGuiRenderer::RenderField(const FieldInfo& field, void* fieldPtr, EntityPi
                 entt::entity entity = value->Get();
                 uint32_t entityId = static_cast<uint32_t>(entity);
                 ImGui::Text("%s: Entity(%u)", field.name.c_str(), entityId);
+            }
+            break;
+        }
+
+        case FieldType::AssetRef: {
+            if (assetPicker && (field.flags & FieldFlags::AssetPicker)) {
+                UUID* value = static_cast<UUID*>(fieldPtr);
+                if (assetPicker(field.name.c_str(), value, field.metadata.assetType)) {
+                    modified = true;
+                }
+            } else {
+                UUID* value = static_cast<UUID*>(fieldPtr);
+                ImGui::Text("%s: %s", field.name.c_str(), value->ToString().c_str());
             }
             break;
         }
