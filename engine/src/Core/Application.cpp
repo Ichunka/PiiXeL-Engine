@@ -1,6 +1,8 @@
 #include "Core/Application.hpp"
 #include "Core/Engine.hpp"
+#include "Core/SplashScreen.hpp"
 #include "Resources/AssetManager.hpp"
+#include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Debug/Profiler.hpp"
 #include <raylib.h>
@@ -47,29 +49,57 @@ void Application::Initialize() {
         ToggleFullscreen();
     }
 
-#ifdef BUILD_WITH_EDITOR
+    PathManager::Instance().Initialize();
+
+#ifndef BUILD_WITH_EDITOR
+    SplashScreen splashScreen{};
+    std::string splashPath = PathManager::Instance().GetEngineAssetsPath("ui/splashscreen.png");
+    splashScreen.Show(splashPath, 3.0f);
+
+    float lastTime{static_cast<float>(GetTime())};
+
+    while (!splashScreen.IsFinished() && !WindowShouldClose()) {
+        float currentTime{static_cast<float>(GetTime())};
+        float deltaTime{currentTime - lastTime};
+        lastTime = currentTime;
+
+        splashScreen.Update(deltaTime);
+
+        BeginDrawing();
+        ClearBackground(Color{0, 0, 0, 255});
+        splashScreen.Render();
+        EndDrawing();
+
+        if (!m_Initialized) {
+            m_Engine = std::make_unique<Engine>();
+            m_Engine->Initialize();
+
+            ProjectSettings& settings = ProjectSettings::Instance();
+            settings.ApplyToPhysics(m_Engine->GetPhysicsSystem());
+
+            m_Engine->CreatePhysicsBodies();
+            m_Engine->SetPhysicsEnabled(true);
+            m_Engine->SetScriptsEnabled(true);
+
+            m_Initialized = true;
+            splashScreen.MarkLoadingComplete();
+        }
+    }
+#else
     rlImGuiSetup(true);
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-#endif
 
     m_Engine = std::make_unique<Engine>();
     m_Engine->Initialize();
 
-#ifdef BUILD_WITH_EDITOR
     m_EditorLayer = std::make_unique<EditorLayer>(m_Engine.get());
-#else
-    ProjectSettings& settings = ProjectSettings::Instance();
-    settings.ApplyToPhysics(m_Engine->GetPhysicsSystem());
-
-    m_Engine->CreatePhysicsBodies();
-    m_Engine->SetPhysicsEnabled(true);
-    m_Engine->SetScriptsEnabled(true);
-#endif
 
     m_Initialized = true;
+#endif
+
     m_Running = true;
 }
 
