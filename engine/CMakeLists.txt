@@ -15,9 +15,13 @@ else()
     add_library(piixel_engine STATIC ${CMAKE_BINARY_DIR}/engine_dummy.cpp)
 endif()
 
-embed_assets(piixel_engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/assets/ui/splashscreen.png "engine/ui/splashscreen"
-)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/ui/splashscreen.png)
+    embed_assets(piixel_engine
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/ui/splashscreen.png "engine/ui/splashscreen"
+    )
+else()
+    embed_assets(piixel_engine)
+endif()
 
 target_include_directories(piixel_engine
     PUBLIC
