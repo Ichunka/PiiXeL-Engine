@@ -7,8 +7,17 @@
 #include "Components/UUID.hpp"
 #include <string>
 #include <memory>
+#include <vector>
+#include <set>
+
+struct ImVec2;
 
 namespace PiiXeL {
+
+enum class SelectionMode {
+    Grid,
+    Manual
+};
 
 class SpriteSheetEditorPanel {
 public:
@@ -29,7 +38,10 @@ private:
     void RenderPreview();
 
     void UpdateFramesFromGrid();
+    void UpdateFramesFromSelection();
     void Save();
+
+    int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight);
 
     bool m_IsOpen{false};
     std::string m_CurrentPath;
@@ -38,6 +50,9 @@ private:
     UUID m_SelectedTextureUUID{0};
     int m_GridColumns{1};
     int m_GridRows{1};
+
+    SelectionMode m_SelectionMode{SelectionMode::Grid};
+    std::set<int> m_SelectedCells;
 
     float m_PreviewZoom{1.0f};
     Vector2 m_PreviewOffset{0.0f, 0.0f};

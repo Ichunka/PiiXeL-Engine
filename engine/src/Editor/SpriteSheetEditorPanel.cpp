@@ -161,13 +161,63 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
 
     if (m_GridColumns != prevColumns || m_GridRows != prevRows) {
         m_SpriteSheet->SetGridSize(m_GridColumns, m_GridRows);
+        if (m_SelectionMode == SelectionMode::Grid) {
+            UpdateFramesFromGrid();
+        }
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Selection Mode");
+
+    if (ImGui::RadioButton("Grid (All)", m_SelectionMode == SelectionMode::Grid)) {
+        m_SelectionMode = SelectionMode::Grid;
         UpdateFramesFromGrid();
     }
 
-    if (ImGui::Button("Auto-Generate Frames")) {
-        UpdateFramesFromGrid();
+    if (ImGui::RadioButton("Manual", m_SelectionMode == SelectionMode::Manual)) {
+        m_SelectionMode = SelectionMode::Manual;
+        m_SelectedCells.clear();
     }
 
+    if (m_SelectionMode == SelectionMode::Manual) {
+        ImGui::Text("Selected: %zu / %d", m_SelectedCells.size(), m_GridColumns * m_GridRows);
+
+        if (ImGui::Button("Select All")) {
+            m_SelectedCells.clear();
+            for (int i = 0; i < m_GridColumns * m_GridRows; ++i) {
+                m_SelectedCells.insert(i);
+            }
+            UpdateFramesFromSelection();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear")) {
+            m_SelectedCells.clear();
+            UpdateFramesFromSelection();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Invert")) {
+            std::set<int> newSelection;
+            for (int i = 0; i < m_GridColumns * m_GridRows; ++i) {
+                if (m_SelectedCells.find(i) == m_SelectedCells.end()) {
+                    newSelection.insert(i);
+                }
+            }
+            m_SelectedCells = newSelection;
+            UpdateFramesFromSelection();
+        }
+
+        if (ImGui::Button("Apply Selection")) {
+            UpdateFramesFromSelection();
+        }
+    } else {
+        if (ImGui::Button("Auto-Generate All Frames")) {
+            UpdateFramesFromGrid();
+        }
+    }
+
+    ImGui::Separator();
     ImGui::Checkbox("Show Grid", &m_ShowGrid);
     ImGui::Checkbox("Show Pivots", &m_ShowPivots);
 }
@@ -325,6 +375,34 @@ void SpriteSheetEditorPanel::RenderPreview() {
         }
     }
 
+    if (m_SelectionMode == SelectionMode::Manual) {
+        float cellWidth = displayWidth / static_cast<float>(m_GridColumns);
+        float cellHeight = displayHeight / static_cast<float>(m_GridRows);
+
+        for (int cellIndex : m_SelectedCells) {
+            int row = cellIndex / m_GridColumns;
+            int col = cellIndex % m_GridColumns;
+
+            float x = imagePos.x + col * cellWidth;
+            float y = imagePos.y + row * cellHeight;
+
+            drawList->AddRectFilled(
+                ImVec2{x, y},
+                ImVec2{x + cellWidth, y + cellHeight},
+                IM_COL32(0, 255, 255, 80)
+            );
+
+            drawList->AddRect(
+                ImVec2{x, y},
+                ImVec2{x + cellWidth, y + cellHeight},
+                IM_COL32(0, 255, 255, 255),
+                0.0f,
+                0,
+                2.0f
+            );
+        }
+    }
+
     if (m_SelectedFrameIndex >= 0 && m_SelectedFrameIndex < static_cast<int>(m_SpriteSheet->GetFrames().size())) {
         const SpriteFrame* frame = m_SpriteSheet->GetFrame(static_cast<size_t>(m_SelectedFrameIndex));
         if (frame) {
@@ -358,6 +436,21 @@ void SpriteSheetEditorPanel::RenderPreview() {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
         m_PreviewOffset.x += delta.x;
         m_PreviewOffset.y += delta.y;
+    }
+
+    if (m_SelectionMode == SelectionMode::Manual && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        ImVec2 mousePos = ImGui::GetMousePos();
+        float cellWidth = displayWidth / static_cast<float>(m_GridColumns);
+        float cellHeight = displayHeight / static_cast<float>(m_GridRows);
+        int cellIndex = GetCellIndexFromMousePos(mousePos, imagePos, cellWidth, cellHeight);
+
+        if (cellIndex >= 0) {
+            if (m_SelectedCells.find(cellIndex) != m_SelectedCells.end()) {
+                m_SelectedCells.erase(cellIndex);
+            } else {
+                m_SelectedCells.insert(cellIndex);
+            }
+        }
     }
 }
 
@@ -400,6 +493,62 @@ void SpriteSheetEditorPanel::UpdateFramesFromGrid() {
     }
 
     m_SpriteSheet->SetFrames(frames);
+}
+
+void SpriteSheetEditorPanel::UpdateFramesFromSelection() {
+    if (m_SelectedTextureUUID.Get() == 0) {
+        return;
+    }
+
+    std::shared_ptr<Asset> texAsset = AssetRegistry::Instance().GetAsset(m_SelectedTextureUUID);
+    if (!texAsset) {
+        return;
+    }
+
+    TextureAsset* tex = dynamic_cast<TextureAsset*>(texAsset.get());
+    if (!tex) {
+        return;
+    }
+
+    float texWidth = static_cast<float>(tex->GetWidth());
+    float texHeight = static_cast<float>(tex->GetHeight());
+    float cellWidth = texWidth / static_cast<float>(m_GridColumns);
+    float cellHeight = texHeight / static_cast<float>(m_GridRows);
+
+    std::vector<SpriteFrame> frames;
+    for (int cellIndex : m_SelectedCells) {
+        int row = cellIndex / m_GridColumns;
+        int col = cellIndex % m_GridColumns;
+
+        SpriteFrame frame{};
+        char frameName[64];
+        snprintf(frameName, sizeof(frameName), "frame_%d_%d", row, col);
+        frame.name = frameName;
+        frame.sourceRect = Rectangle{
+            col * cellWidth,
+            row * cellHeight,
+            cellWidth,
+            cellHeight
+        };
+        frame.pivot = Vector2{0.5f, 0.5f};
+        frames.push_back(frame);
+    }
+
+    m_SpriteSheet->SetFrames(frames);
+}
+
+int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight) {
+    float relX = mousePos.x - imagePos.x;
+    float relY = mousePos.y - imagePos.y;
+
+    int col = static_cast<int>(relX / cellWidth);
+    int row = static_cast<int>(relY / cellHeight);
+
+    if (col < 0 || col >= m_GridColumns || row < 0 || row >= m_GridRows) {
+        return -1;
+    }
+
+    return row * m_GridColumns + col;
 }
 
 void SpriteSheetEditorPanel::Save() {
