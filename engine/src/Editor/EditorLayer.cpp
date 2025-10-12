@@ -705,7 +705,13 @@ void EditorLayer::RenderInspector() {
 
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
 
-        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty()) {
+        bool isSceneFile = false;
+        if (m_SelectedAssetPath.size() >= 6) {
+            std::string extension = m_SelectedAssetPath.substr(m_SelectedAssetPath.size() - 6);
+            isSceneFile = (extension == ".scene");
+        }
+
+        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty() && !isSceneFile) {
             auto result = AssetRegistry::Instance().LoadAssetFromPath(m_SelectedAssetPath);
             if (result) {
                 asset = result;

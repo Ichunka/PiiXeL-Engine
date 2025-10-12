@@ -372,6 +372,43 @@
                 ]
             },
             "uuid": 13873715024828058877
+        },
+        {
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 7378705258678345267,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    -256.0,
+                    -55.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 2842565345122057063
         }
     ],
     "scene": "Default Scene"
