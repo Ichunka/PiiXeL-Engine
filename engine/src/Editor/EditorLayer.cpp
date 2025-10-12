@@ -2435,13 +2435,16 @@ void EditorLayer::RenderProjectSettings() {
                 ImGui::TextDisabled("(?)");
                 if (ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Path to icon file (relative to game directory)\n\n"
-                                     "IMPORTANT: Use PNG format for window icon\n"
-                                     "Supported formats: .png, .jpg, .bmp\n\n"
-                                     "Icon system:\n"
-                                     "- Window icon (runtime): Use .png (this setting)\n"
-                                     "- Exe icon (Windows): Provide .ico in same path\n"
-                                     "  CMake will automatically embed it in the .exe\n\n"
-                                     "Example: content/assets/icon.png");
+                                     "Recommended: Use .ico format for both window and exe icon\n\n"
+                                     "How it works:\n"
+                                     "1. Set path to .ico file (e.g., content/assets/icon.ico)\n"
+                                     "2. Engine tries to load .ico for window icon\n"
+                                     "3. If .ico fails, automatically uses .png fallback\n"
+                                     "4. Windows exe icon is embedded via CMake\n\n"
+                                     "Fallback: If .ico doesn't work for window icon,\n"
+                                     "create icon.png in same directory\n\n"
+                                     "Any pixel format works (RGBA, RGB, Grayscale)\n"
+                                     "- Engine auto-converts to required format");
                 }
 
                 ImGui::Spacing();

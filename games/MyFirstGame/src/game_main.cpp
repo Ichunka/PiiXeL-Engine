@@ -1,26 +1,35 @@
 #include "Core/Application.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/ReflectionInit.hpp"
+#include "Build/GamePackageLoader.hpp"
+#include "Build/GamePackage.hpp"
 #include <iostream>
 
 int main() {
     try {
         PiiXeL::Reflection::InitializeReflection();
 
-        // Load project settings from game.config.json
         PiiXeL::ProjectSettings& settings = PiiXeL::ProjectSettings::Instance();
         settings.Load("game.config.json");
 
-        // Apply settings to application config
+        PiiXeL::GamePackageLoader packageLoader{};
+        if (!packageLoader.LoadPackage("datas/game.package")) {
+            std::cerr << "Failed to load game package" << std::endl;
+            return 1;
+        }
+
+        const PiiXeL::GamePackage& package = packageLoader.GetPackage();
+        const nlohmann::json& packageConfig = package.GetConfig();
+
         PiiXeL::ApplicationConfig config{};
-        config.title = settings.projectName;
-        config.windowWidth = settings.window.width;
-        config.windowHeight = settings.window.height;
-        config.targetFPS = settings.window.targetFPS;
-        config.vsync = settings.window.vsync;
-        config.resizable = settings.window.resizable;
-        config.fullscreen = settings.window.fullscreen;
-        config.iconPath = settings.window.icon;
+        config.title = packageConfig.value("title", "PiiXeL Game");
+        config.windowWidth = packageConfig.value("windowWidth", 1280);
+        config.windowHeight = packageConfig.value("windowHeight", 720);
+        config.targetFPS = packageConfig.value("targetFPS", 60);
+        config.vsync = packageConfig.value("vsync", true);
+        config.resizable = packageConfig.value("resizable", true);
+        config.fullscreen = packageConfig.value("fullscreen", false);
+        config.iconPath = packageConfig.value("icon", "");
 
         PiiXeL::Application app{config};
         app.Run();

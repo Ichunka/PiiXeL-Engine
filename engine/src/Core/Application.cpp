@@ -55,7 +55,6 @@ void Application::Initialize() {
             if (iconImage.data != nullptr) {
                 if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
                     ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                    TraceLog(LOG_INFO, "Converted icon to RGBA format for window display");
                 }
                 SetWindowIcon(iconImage);
                 UnloadImage(iconImage);

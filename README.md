@@ -365,28 +365,34 @@ Configure your game's icon from the editor:
 
 1. Open **Project Settings** from the menu
 2. Go to the **Window** tab
-3. Set the **Icon Path** field (e.g., `content/assets/icon.png`)
+3. Set the **Icon Path** field (e.g., `content/assets/icon.ico`)
 
-**Icon system explained:**
+**Simplified workflow - Just use .ico:**
 
-PiiXeL Engine uses a dual icon system:
+PiiXeL Engine intelligently handles icons with automatic fallback:
 
-1. **Window Icon (Runtime)** - The icon shown in the window title bar
-   - Format: `.png`, `.jpg`, or `.bmp`
-   - Loaded at runtime via Raylib
-   - Set via Project Settings → Window → Icon Path
-   - Example: `content/assets/icon.png`
+1. **Set the icon path to your .ico file** in Project Settings
+   - Example: `content/assets/icon.ico`
 
-2. **Executable Icon (Windows only)** - The icon shown in file explorer
-   - Format: `.ico` (Windows icon format)
-   - Embedded during build via CMake resource file
-   - Automatically detected if `.ico` exists in same path
-   - Example: If you set `content/assets/icon.png`, CMake will also look for `content/assets/icon.ico` and embed it
+2. **What happens automatically:**
+   - **Exe Icon (Windows)**: CMake embeds the `.ico` into the executable (for file explorer)
+   - **Window Icon**: Engine tries to load the `.ico` for the window title bar
+   - **Auto-fallback**: If `.ico` fails to load, engine automatically looks for `.png` with same name
 
-**Recommended workflow:**
-- Create both `icon.png` (for window) and `icon.ico` (for exe)
-- Set only the `.png` path in Project Settings
-- CMake will automatically handle the `.ico` for the executable
+3. **Best practice:**
+   - Create `icon.ico` (32x32 or 64x64 recommended) for both exe and window
+   - Optionally create `icon.png` as fallback (if `.ico` doesn't load at runtime)
+   - Set path to `.ico` in Project Settings - everything is automatic
+
+**Smart format handling:**
+- Engine auto-converts any pixel format (Grayscale, RGB, RGBA) to required format
+- No need to worry about pixel format compatibility
+- Works with any standard image format supported by
+- Raylib
+
+**Cross-platform notes:**
+- **Windows**: Both `.ico` (exe) and window icon work seamlessly
+- **Linux/Mac**: Only window icon matters (use `.png` on these platforms)
 
 ## Understanding the Asset Systems
 
