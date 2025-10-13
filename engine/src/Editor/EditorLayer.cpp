@@ -19,6 +19,7 @@
 #include "Scene/SceneSerializer.hpp"
 #include "Scene/EntityRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
+#include "Systems/AnimationSystem.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
@@ -83,9 +84,17 @@ EditorLayer::EditorLayer(Engine* engine)
     m_SpriteSheetEditor = std::make_unique<SpriteSheetEditorPanel>();
     m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
     m_AnimatorControllerEditor = std::make_unique<AnimatorControllerEditorPanel>();
+
+    m_AnimatorControllerEditor->SetOnSelectionChangedCallback([this]() {
+        m_SelectedEntity = entt::null;
+        m_SelectedAssetUUID = UUID{0};
+        m_SelectedAssetPath.clear();
+    });
+
     SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
+    m_Engine->SetAnimationEnabled(false);
 
     SetTraceLogCallback(ConsoleLogger::RaylibLogCallback);
 
@@ -170,6 +179,10 @@ void EditorLayer::SetupDarkTheme() {
 
 void EditorLayer::OnUpdate(float deltaTime) {
     (void)deltaTime;
+
+    if (m_EditorState == EditorState::Edit) {
+        UpdateAnimatorPreviewInEditMode();
+    }
 }
 
 void EditorLayer::OnRender() {
@@ -802,6 +815,9 @@ void EditorLayer::RenderHierarchy() {
                 if (!m_InspectorLocked) {
                     m_SelectedEntity = entity;
                     m_SelectedAssetUUID = UUID{0};
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
                     m_SelectedAssetPath.clear();
                 }
             }
@@ -837,7 +853,11 @@ void EditorLayer::RenderInspector() {
     PROFILE_FUNCTION();
     ImGui::Begin("Inspector");
 
-    if (m_AnimatorControllerEditor && m_AnimatorControllerEditor->IsOpen() && m_AnimatorControllerEditor->HasSelection()) {
+    entt::entity previewEntity = m_InspectorLocked ? m_LockedEntity : m_SelectedEntity;
+    bool hasEntitySelection = (previewEntity != entt::null);
+    bool hasAssetSelection = (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty());
+
+    if (!hasEntitySelection && !hasAssetSelection && m_AnimatorControllerEditor && m_AnimatorControllerEditor->IsOpen() && m_AnimatorControllerEditor->HasSelection()) {
         m_AnimatorControllerEditor->RenderInspector();
         ImGui::End();
         return;
@@ -1621,6 +1641,9 @@ void EditorLayer::RenderContentBrowser() {
 
                     if (ImGui::ImageButton("##texture", texId, imageSize)) {
                         m_SelectedAssetPath = asset.path;
+                        if (m_AnimatorControllerEditor) {
+                            m_AnimatorControllerEditor->ClearSelection();
+                        }
 
                         UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
                         std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
@@ -1702,6 +1725,9 @@ void EditorLayer::RenderContentBrowser() {
                     m_SelectedAssetPath = asset.path;
                     m_SelectedAssetUUID = UUID{0};
                     m_SelectedEntity = entt::null;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
                 }
 
                 if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
@@ -1768,6 +1794,9 @@ void EditorLayer::RenderContentBrowser() {
                 if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
                     m_SelectedAssetPath = asset.path;
                     m_SelectedEntity = entt::null;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
 
                     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
                     std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
@@ -1834,6 +1863,9 @@ void EditorLayer::RenderContentBrowser() {
                 std::string buttonLabel = asset.type == "audio" ? "AUDIO" : "FILE";
                 if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
                     m_SelectedAssetPath = asset.path;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
 
                     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
                     std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
@@ -2786,6 +2818,9 @@ void EditorLayer::OnPlayButtonPressed() {
         m_Engine->CreatePhysicsBodies();
         m_Engine->SetPhysicsEnabled(true);
         m_Engine->SetScriptsEnabled(true);
+        m_Engine->SetAnimationEnabled(true);
+
+        AnimationSystem::ResetAnimators(scene->GetRegistry());
 
         TraceLog(LOG_INFO, "Play mode started with memory snapshot");
     }
@@ -2795,6 +2830,7 @@ void EditorLayer::OnStopButtonPressed() {
     if (m_Engine && m_Engine->GetActiveScene()) {
         m_Engine->SetPhysicsEnabled(false);
         m_Engine->SetScriptsEnabled(false);
+        m_Engine->SetAnimationEnabled(false);
         m_Engine->DestroyAllPhysicsBodies();
 
         if (!m_PlayModeSnapshot.empty()) {
@@ -3243,9 +3279,6 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
     std::string preview = "None";
     if (uuid->Get() != 0) {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*uuid);
-        if (!asset) {
-            asset = AssetRegistry::Instance().LoadAsset(*uuid);
-        }
         if (asset) {
             preview = asset->GetMetadata().name;
         } else {
@@ -3263,9 +3296,6 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
         const auto& allKnownPaths = AssetRegistry::Instance().GetAllKnownAssetPaths();
         for (const auto& [assetUUID, assetPath] : allKnownPaths) {
             std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(assetUUID);
-            if (!asset) {
-                asset = AssetRegistry::Instance().LoadAsset(assetUUID);
-            }
 
             if (asset) {
                 AssetType assetTypeEnum = asset->GetMetadata().type;
@@ -3284,6 +3314,8 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
                 }
 
                 if (matchesFilter) {
+                    ImGui::PushID(static_cast<int>(assetUUID.Get()));
+
                     bool isSelected = (uuid->Get() == assetUUID.Get());
                     std::string itemLabel = asset->GetMetadata().name;
 
@@ -3295,6 +3327,8 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
                     if (isSelected) {
                         ImGui::SetItemDefaultFocus();
                     }
+
+                    ImGui::PopID();
                 }
             }
         }
@@ -3383,6 +3417,57 @@ void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
         }
     } catch (const std::exception& e) {
         TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+    }
+}
+
+void EditorLayer::UpdateAnimatorPreviewInEditMode() {
+    if (!m_Engine || !m_Engine->GetActiveScene()) {
+        return;
+    }
+
+    Scene* scene = m_Engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+
+    auto view = registry.view<Animator, Sprite>();
+    for (entt::entity entity : view) {
+        Animator& animator = view.get<Animator>(entity);
+        Sprite& sprite = view.get<Sprite>(entity);
+
+        if (animator.controllerUUID.Get() == 0) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> controllerAsset = AssetRegistry::Instance().GetAsset(animator.controllerUUID);
+        AnimatorController* controller = dynamic_cast<AnimatorController*>(controllerAsset.get());
+        if (!controller) {
+            continue;
+        }
+
+        std::string defaultStateName = controller->GetDefaultState();
+        const AnimatorState* defaultState = controller->GetState(defaultStateName);
+        if (!defaultState || defaultState->animationClipUUID.Get() == 0) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(defaultState->animationClipUUID);
+        AnimationClip* clip = dynamic_cast<AnimationClip*>(clipAsset.get());
+        if (!clip || clip->GetFrames().empty()) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> sheetAsset = AssetRegistry::Instance().GetAsset(clip->GetSpriteSheetUUID());
+        SpriteSheet* sheet = dynamic_cast<SpriteSheet*>(sheetAsset.get());
+        if (!sheet) {
+            continue;
+        }
+
+        const AnimationFrame& firstFrame = clip->GetFrames()[0];
+        const SpriteFrame* spriteFrame = sheet->GetFrame(firstFrame.frameIndex);
+        if (spriteFrame) {
+            sprite.textureAssetUUID = sheet->GetTextureUUID();
+            sprite.sourceRect = spriteFrame->sourceRect;
+            sprite.origin = spriteFrame->pivot;
+        }
     }
 }
 

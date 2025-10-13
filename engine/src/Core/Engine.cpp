@@ -74,7 +74,7 @@ void Engine::Update(float deltaTime) {
 
     {
         PROFILE_SCOPE("AnimationSystem::Update");
-        if (m_ActiveScene) {
+        if (m_AnimationEnabled && m_ActiveScene) {
             AnimationSystem::Update(m_ActiveScene->GetRegistry(), deltaTime);
         }
     }

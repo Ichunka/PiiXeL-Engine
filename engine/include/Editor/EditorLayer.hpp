@@ -99,6 +99,7 @@ private:
     bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
 
     void RestoreScriptPropertiesFromFile(const std::string& filepath);
+    void UpdateAnimatorPreviewInEditMode();
 
 private:
     Engine* m_Engine;

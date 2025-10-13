@@ -16,6 +16,22 @@ void AnimationSystem::Update(entt::registry& registry, float deltaTime) {
     }
 }
 
+void AnimationSystem::ResetAnimators(entt::registry& registry) {
+    auto view = registry.view<Animator>();
+    for (entt::entity entity : view) {
+        Animator& animator = view.get<Animator>(entity);
+        animator.currentState.clear();
+        animator.stateTime = 0.0f;
+        animator.currentFrameIndex = 0;
+        animator.frameTime = 0.0f;
+        animator.isTransitioning = false;
+        animator.transitionToState.clear();
+        animator.transitionTime = 0.0f;
+        animator.transitionDuration = 0.0f;
+        animator.triggers.clear();
+    }
+}
+
 void AnimationSystem::UpdateAnimator(entt::registry& registry, entt::entity entity, float deltaTime) {
     Animator& animator = registry.get<Animator>(entity);
 

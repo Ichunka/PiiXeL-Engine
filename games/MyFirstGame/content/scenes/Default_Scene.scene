@@ -374,6 +374,11 @@
             "uuid": 13873715024828058877
         },
         {
+            "Animator": {
+                "controllerUUID": 9497018237499991909,
+                "isPlaying": true,
+                "playbackSpeed": 1.0
+            },
             "Sprite": {
                 "layer": 0,
                 "origin": [
@@ -381,12 +386,12 @@
                     0.5
                 ],
                 "sourceRect": [
+                    78.0,
                     0.0,
-                    0.0,
-                    16.0,
-                    16.0
+                    26.0,
+                    36.0
                 ],
-                "textureAssetUUID": 7378705258678345267,
+                "textureAssetUUID": 1296712247380956697,
                 "tint": [
                     255,
                     255,
@@ -404,8 +409,8 @@
                 ],
                 "rotation": 0.0,
                 "scale": [
-                    1.0,
-                    1.0
+                    4.0,
+                    4.0
                 ]
             },
             "uuid": 2842565345122057063

@@ -104,6 +104,12 @@ std::shared_ptr<Asset> AssetRegistry::GetAsset(UUID uuid) {
     if (it != m_Assets.end()) {
         return it->second;
     }
+
+    auto pathIt = m_UUIDToPath.find(uuid);
+    if (pathIt != m_UUIDToPath.end()) {
+        return LoadAsset(uuid);
+    }
+
     return nullptr;
 }
 

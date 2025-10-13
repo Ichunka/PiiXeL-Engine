@@ -35,6 +35,7 @@ public:
     void SetActiveScene(std::unique_ptr<Scene> scene);
     void SetPhysicsEnabled(bool enabled) { m_PhysicsEnabled = enabled; }
     void SetScriptsEnabled(bool enabled) { m_ScriptsEnabled = enabled; }
+    void SetAnimationEnabled(bool enabled) { m_AnimationEnabled = enabled; }
     void CreatePhysicsBodies();
     void DestroyAllPhysicsBodies();
 
@@ -54,6 +55,7 @@ private:
     std::unique_ptr<GamePackageLoader> m_PackageLoader;
     bool m_PhysicsEnabled{false};
     bool m_ScriptsEnabled{true};
+    bool m_AnimationEnabled{false};
 
     entt::entity m_PrimaryCamera{entt::null};
     bool m_PrimaryCameraCached{false};

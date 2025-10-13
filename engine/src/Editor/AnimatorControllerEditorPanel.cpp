@@ -79,17 +79,27 @@ void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
 
     m_CurrentPath = controllerPath;
 
+    TraceLog(LOG_INFO, "Opening AnimatorController: %s", controllerPath.c_str());
+
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(controllerPath);
     if (existingUUID.Get() != 0) {
+        TraceLog(LOG_INFO, "Loading from AssetRegistry with UUID: %llu", existingUUID.Get());
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     } else {
+        TraceLog(LOG_INFO, "Loading from path (no UUID in registry)");
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(controllerPath);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     }
 
     if (!m_Controller) {
         TraceLog(LOG_ERROR, "Failed to load AnimatorController: %s", controllerPath.c_str());
+    } else {
+        TraceLog(LOG_INFO, "AnimatorController loaded successfully");
+        const std::vector<AnimatorState>& states = m_Controller->GetStates();
+        for (size_t i = 0; i < states.size(); ++i) {
+            TraceLog(LOG_INFO, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+        }
     }
 
     m_IsOpen = true;
@@ -221,6 +231,9 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
         if (rightClickedStateIndex >= 0) {
             m_SelectedStateIndex = rightClickedStateIndex;
             m_SelectedTransitionIndex = -1;
+            if (m_OnSelectionChanged) {
+                m_OnSelectionChanged();
+            }
             ImGui::OpenPopup("NodeContextMenu");
         } else {
             m_OpenContextMenu = true;
@@ -264,11 +277,17 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
             m_SelectedStateIndex = clickedState;
             m_SelectedTransitionIndex = -1;
             m_DraggingStateIndex = clickedState;
+            if (m_OnSelectionChanged) {
+                m_OnSelectionChanged();
+            }
         } else {
             int clickedTransition = GetTransitionIndexAtPosition(mousePos, canvasPos, scrolling);
             if (clickedTransition >= 0) {
                 m_SelectedTransitionIndex = clickedTransition;
                 m_SelectedStateIndex = -1;
+                if (m_OnSelectionChanged) {
+                    m_OnSelectionChanged();
+                }
             } else {
                 m_SelectedStateIndex = -1;
                 m_SelectedTransitionIndex = -1;
@@ -457,46 +476,77 @@ void AnimatorControllerEditorPanel::RenderInspector() {
 
             ImGui::DragFloat("Speed", &state.speed, 0.1f, 0.0f, 10.0f);
 
-            if (ImGui::Button("Set as Default State", ImVec2{-1, 0})) {
-                m_Controller->SetDefaultState(state.name);
+            const bool isDefault = (state.name == m_Controller->GetDefaultState());
+            if (!isDefault) {
+                if (ImGui::Button("Set as Default State", ImVec2{-1, 0})) {
+                    m_Controller->SetDefaultState(state.name);
+                }
+            } else {
+                ImGui::BeginDisabled();
+                ImGui::Button("Already Default State", ImVec2{-1, 0});
+                ImGui::EndDisabled();
             }
 
             ImGui::Separator();
             ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Animation Clip:");
 
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0.15f, 0.15f, 0.15f, 1.0f});
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4{0.4f, 0.4f, 0.4f, 1.0f});
+            ImGui::BeginChild("AnimClipDropZone", ImVec2{-1, 50}, true);
+
+            ImVec2 childSize = ImGui::GetContentRegionAvail();
+            ImGui::InvisibleButton("DropZoneButton", childSize);
+
+            ImVec2 textPos = ImGui::GetItemRectMin();
+            textPos.y += 15;
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
             if (state.animationClipUUID.Get() != 0) {
                 std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(state.animationClipUUID);
                 std::shared_ptr<AnimationClip> clip = std::dynamic_pointer_cast<AnimationClip>(clipAsset);
                 if (clip) {
-                    ImGui::Button(clip->GetName().c_str(), ImVec2{-1, 0});
-
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
-                            const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
-                            if (assetInfo && assetInfo->type == "animclip") {
-                                state.animationClipUUID = assetInfo->uuid;
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-
-                    if (ImGui::Button("Clear##ClipClear", ImVec2{-1, 0})) {
-                        state.animationClipUUID = UUID{0};
-                    }
+                    textPos.x += 10;
+                    drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), clip->GetName().c_str());
                 } else {
-                    ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  [Missing]");
+                    textPos.x += 10;
+                    drawList->AddText(textPos, IM_COL32(255, 128, 128, 255), "[Missing Clip]");
                 }
             } else {
-                ImGui::Button("Drag AnimationClip here", ImVec2{-1, 0});
+                textPos.x += 10;
+                drawList->AddText(textPos, IM_COL32(128, 128, 128, 255), "Drop AnimationClip here");
+            }
 
-                if (ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
-                        const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
-                        if (assetInfo && assetInfo->type == "animclip") {
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
+                    AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
+                    if (assetInfo && assetInfo->type == "animclip") {
+                        TraceLog(LOG_INFO, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
+
+                        if (assetInfo->uuid.Get() != 0) {
                             state.animationClipUUID = assetInfo->uuid;
+                            TraceLog(LOG_INFO, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
+                            Save();
+                        } else {
+                            TraceLog(LOG_WARNING, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
+                            std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                            if (asset) {
+                                state.animationClipUUID = asset->GetUUID();
+                                TraceLog(LOG_INFO, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
+                                Save();
+                            }
                         }
                     }
-                    ImGui::EndDragDropTarget();
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::EndChild();
+            ImGui::PopStyleColor(2);
+
+            if (state.animationClipUUID.Get() != 0) {
+                if (ImGui::Button("Clear##ClipClear", ImVec2{-1, 0})) {
+                    state.animationClipUUID = UUID{0};
+                    Save();
                 }
             }
 
@@ -681,8 +731,17 @@ void AnimatorControllerEditorPanel::Save() {
         return;
     }
 
+    TraceLog(LOG_INFO, "Saving AnimatorController to: %s", m_CurrentPath.c_str());
+
+    const std::vector<AnimatorState>& states = m_Controller->GetStates();
+    for (size_t i = 0; i < states.size(); ++i) {
+        TraceLog(LOG_INFO, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+    }
+
     if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
-        TraceLog(LOG_INFO, "AnimatorController saved successfully");
+        TraceLog(LOG_INFO, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
+    } else {
+        TraceLog(LOG_ERROR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
     }
 }
 

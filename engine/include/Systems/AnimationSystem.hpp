@@ -8,6 +8,7 @@ namespace PiiXeL {
 class AnimationSystem {
 public:
     static void Update(entt::registry& registry, float deltaTime);
+    static void ResetAnimators(entt::registry& registry);
 
 private:
     static void UpdateAnimator(entt::registry& registry, entt::entity entity, float deltaTime);
