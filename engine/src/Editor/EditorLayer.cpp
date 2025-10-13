@@ -1300,6 +1300,9 @@ void EditorLayer::RenderContentBrowser() {
     static bool showNewScenePopup = false;
     static bool showNewFolderPopup = false;
     static bool showRenamePopup = false;
+    static bool showNewSpriteSheetPopup = false;
+    static bool showNewAnimClipPopup = false;
+    static bool showNewAnimControllerPopup = false;
     static char newItemName[256] = "";
 
     if (needsRefresh) {
@@ -1424,6 +1427,15 @@ void EditorLayer::RenderContentBrowser() {
                 needsRefresh = true;
             }
 
+            if (ImGui::IsItemHovered() && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                rightClickedItem = dirPath;
+                isRightClickFolder = true;
+                showRenamePopup = true;
+                std::string itemName = dirName;
+                std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                newItemName[sizeof(newItemName) - 1] = '\0';
+            }
+
             if (ImGui::BeginPopupContextItem()) {
                 rightClickedItem = dirPath;
                 isRightClickFolder = true;
@@ -1436,14 +1448,13 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 if (ImGui::MenuItem("Delete")) {
-                    #ifdef _WIN32
-                    std::string cmd = "rmdir /s /q \"" + dirPath + "\"";
-                    #else
-                    std::string cmd = "rm -rf \"" + dirPath + "\"";
-                    #endif
-                    system(cmd.c_str());
-                    needsRefresh = true;
-                    TraceLog(LOG_INFO, "Deleted: %s", dirPath.c_str());
+                    try {
+                        std::filesystem::remove_all(dirPath);
+                        needsRefresh = true;
+                        TraceLog(LOG_INFO, "Deleted: %s", dirPath.c_str());
+                    } catch (const std::filesystem::filesystem_error& e) {
+                        TraceLog(LOG_ERROR, "Failed to delete folder: %s", e.what());
+                    }
                 }
 
                 ImGui::EndPopup();
@@ -1500,6 +1511,19 @@ void EditorLayer::RenderContentBrowser() {
                         m_SelectedEntity = entt::null;
                     }
 
+                    if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                        rightClickedItem = asset.path;
+                        isRightClickFolder = false;
+                        showRenamePopup = true;
+                        std::string itemName = asset.filename;
+                        size_t dotPos = itemName.find_last_of('.');
+                        if (dotPos != std::string::npos) {
+                            itemName = itemName.substr(0, dotPos);
+                        }
+                        std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                        newItemName[sizeof(newItemName) - 1] = '\0';
+                    }
+
                     if (ImGui::BeginPopupContextItem()) {
                         rightClickedItem = asset.path;
                         isRightClickFolder = false;
@@ -1516,14 +1540,13 @@ void EditorLayer::RenderContentBrowser() {
                         }
 
                         if (ImGui::MenuItem("Delete")) {
-                            #ifdef _WIN32
-                            std::string cmd = "del /f \"" + asset.path + "\"";
-                            #else
-                            std::string cmd = "rm -f \"" + asset.path + "\"";
-                            #endif
-                            system(cmd.c_str());
-                            needsRefresh = true;
-                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                            try {
+                                std::filesystem::remove(asset.path);
+                                needsRefresh = true;
+                                TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                            } catch (const std::filesystem::filesystem_error& e) {
+                                TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+                            }
                         }
 
                         ImGui::EndPopup();
@@ -1558,6 +1581,19 @@ void EditorLayer::RenderContentBrowser() {
                     m_SelectedEntity = entt::null;
                 }
 
+                if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+                    showRenamePopup = true;
+                    std::string itemName = asset.filename;
+                    size_t dotPos = itemName.find_last_of('.');
+                    if (dotPos != std::string::npos) {
+                        itemName = itemName.substr(0, dotPos);
+                    }
+                    std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                    newItemName[sizeof(newItemName) - 1] = '\0';
+                }
+
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (m_Engine && m_Engine->GetActiveScene()) {
                         Scene* scene = m_Engine->GetActiveScene();
@@ -1588,14 +1624,13 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        #ifdef _WIN32
-                        std::string cmd = "del /f \"" + asset.path + "\"";
-                        #else
-                        std::string cmd = "rm -f \"" + asset.path + "\"";
-                        #endif
-                        system(cmd.c_str());
-                        needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        try {
+                            std::filesystem::remove(asset.path);
+                            needsRefresh = true;
+                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        } catch (const std::filesystem::filesystem_error& e) {
+                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+                        }
                     }
 
                     ImGui::EndPopup();
@@ -1666,14 +1701,13 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        #ifdef _WIN32
-                        std::string cmd = "del /f \"" + asset.path + "\"";
-                        #else
-                        std::string cmd = "rm -f \"" + asset.path + "\"";
-                        #endif
-                        system(cmd.c_str());
-                        needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        try {
+                            std::filesystem::remove(asset.path);
+                            needsRefresh = true;
+                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        } catch (const std::filesystem::filesystem_error& e) {
+                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+                        }
                     }
 
                     ImGui::EndPopup();
@@ -1705,6 +1739,19 @@ void EditorLayer::RenderContentBrowser() {
                     m_SelectedEntity = entt::null;
                 }
 
+                if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+                    showRenamePopup = true;
+                    std::string itemName = asset.filename;
+                    size_t dotPos = itemName.find_last_of('.');
+                    if (dotPos != std::string::npos) {
+                        itemName = itemName.substr(0, dotPos);
+                    }
+                    std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                    newItemName[sizeof(newItemName) - 1] = '\0';
+                }
+
                 ImGui::PopStyleColor();
 
                 if (ImGui::BeginPopupContextItem()) {
@@ -1723,14 +1770,13 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        #ifdef _WIN32
-                        std::string cmd = "del /f \"" + asset.path + "\"";
-                        #else
-                        std::string cmd = "rm -f \"" + asset.path + "\"";
-                        #endif
-                        system(cmd.c_str());
-                        needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        try {
+                            std::filesystem::remove(asset.path);
+                            needsRefresh = true;
+                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                        } catch (const std::filesystem::filesystem_error& e) {
+                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+                        }
                     }
 
                     ImGui::EndPopup();
@@ -1746,7 +1792,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::Columns(1);
     }
 
-    if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight)) {
+    if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
         rightClickedItem.clear();
 
         if (ImGui::BeginMenu("Scene")) {
@@ -1759,24 +1805,18 @@ void EditorLayer::RenderContentBrowser() {
 
         if (ImGui::BeginMenu("Animation")) {
             if (ImGui::MenuItem("Sprite Sheet")) {
-                std::string newPath = currentPath + "/NewSpriteSheet.spritesheet";
-                SpriteSheet spriteSheet{UUID{}, "NewSpriteSheet"};
-                AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
-                needsRefresh = true;
+                showNewSpriteSheetPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
             }
 
             if (ImGui::MenuItem("Animation Clip")) {
-                std::string newPath = currentPath + "/NewAnimationClip.animclip";
-                AnimationClip clip{UUID{}, "NewAnimationClip"};
-                AnimationSerializer::SerializeAnimationClip(clip, newPath);
-                needsRefresh = true;
+                showNewAnimClipPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
             }
 
             if (ImGui::MenuItem("Animator Controller")) {
-                std::string newPath = currentPath + "/NewAnimatorController.animcontroller";
-                AnimatorController controller{UUID{}, "NewAnimatorController"};
-                AnimationSerializer::SerializeAnimatorController(controller, newPath);
-                needsRefresh = true;
+                showNewAnimControllerPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
             }
             ImGui::EndMenu();
         }
@@ -1852,15 +1892,112 @@ void EditorLayer::RenderContentBrowser() {
                 std::string folderName = std::string(newItemName);
                 std::string newFolderPath = currentPath + "/" + folderName;
 
-                #ifdef _WIN32
-                std::string cmd = "mkdir \"" + newFolderPath + "\"";
-                #else
-                std::string cmd = "mkdir -p \"" + newFolderPath + "\"";
-                #endif
+                try {
+                    std::filesystem::create_directory(newFolderPath);
+                    needsRefresh = true;
+                    TraceLog(LOG_INFO, "Created folder: %s", newFolderPath.c_str());
+                } catch (const std::filesystem::filesystem_error& e) {
+                    TraceLog(LOG_ERROR, "Failed to create folder: %s", e.what());
+                }
+                ImGui::CloseCurrentPopup();
+            }
+        }
 
-                system(cmd.c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewSpriteSheetPopup) {
+        ImGui::OpenPopup("New Sprite Sheet");
+        showNewSpriteSheetPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Sprite Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter sprite sheet name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##SpriteSheetName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".spritesheet";
+                SpriteSheet spriteSheet{UUID{}, name};
+                AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
                 needsRefresh = true;
-                TraceLog(LOG_INFO, "Created folder: %s", newFolderPath.c_str());
+                TraceLog(LOG_INFO, "Created sprite sheet: %s", newPath.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewAnimClipPopup) {
+        ImGui::OpenPopup("New Animation Clip");
+        showNewAnimClipPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Animation Clip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter animation clip name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##AnimClipName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".animclip";
+                AnimationClip clip{UUID{}, name};
+                AnimationSerializer::SerializeAnimationClip(clip, newPath);
+                needsRefresh = true;
+                TraceLog(LOG_INFO, "Created animation clip: %s", newPath.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewAnimControllerPopup) {
+        ImGui::OpenPopup("New Animator Controller");
+        showNewAnimControllerPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Animator Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter animator controller name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##AnimControllerName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".animcontroller";
+                AnimatorController controller{UUID{}, name};
+                AnimationSerializer::SerializeAnimatorController(controller, newPath);
+                needsRefresh = true;
+                TraceLog(LOG_INFO, "Created animator controller: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
             }
         }

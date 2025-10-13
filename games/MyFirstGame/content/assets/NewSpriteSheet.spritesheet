@@ -10,11 +10,19 @@
         },
         {
             "frameIndices": [
-                0,
-                1,
-                2
+                3,
+                4,
+                5
             ],
             "name": "NewGroup2"
+        },
+        {
+            "frameIndices": [
+                6,
+                7,
+                8
+            ],
+            "name": "NewGroup"
         }
     ],
     "frames": [

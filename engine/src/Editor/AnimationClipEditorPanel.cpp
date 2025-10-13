@@ -113,14 +113,22 @@ void AnimationClipEditorPanel::RenderSettings() {
     ImGui::Separator();
 
     if (m_SelectedSpriteSheetUUID.Get() == 0) {
-        ImGui::TextColored(ImVec4{1.0f, 0.8f, 0.2f, 1.0f}, "No SpriteSheet selected!");
-        ImGui::TextWrapped("Drag a SHEET from Content Browser here:");
+        ImGui::Text("SpriteSheet:");
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "None");
 
-        ImVec2 buttonSize{ImGui::GetContentRegionAvail().x, 60};
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.3f, 0.3f, 0.3f, 1.0f});
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.4f, 0.6f, 0.4f, 1.0f});
-        ImGui::Button("DROP SPRITESHEET HERE", buttonSize);
-        ImGui::PopStyleColor(2);
+        ImVec2 regionSize = ImGui::GetContentRegionAvail();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
+
+        ImGui::BeginChild("DropZone", ImVec2{regionSize.x, 80}, true, ImGuiWindowFlags_NoScrollbar);
+        ImVec2 dropSize = ImGui::GetContentRegionAvail();
+        ImVec2 textSize = ImGui::CalcTextSize("Drop SpriteSheet here");
+        ImGui::SetCursorPosX((dropSize.x - textSize.x) * 0.5f);
+        ImGui::SetCursorPosY((dropSize.y - textSize.y) * 0.5f);
+        ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "Drop SpriteSheet here");
+
+        ImGui::SetCursorPos(ImVec2{0, 0});
+        ImGui::InvisibleButton("##dropzone", dropSize);
 
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
@@ -166,6 +174,8 @@ void AnimationClipEditorPanel::RenderSettings() {
             }
             ImGui::EndDragDropTarget();
         }
+
+        ImGui::EndChild();
     } else {
         ImGui::Text("SpriteSheet:");
 
@@ -563,7 +573,19 @@ void AnimationClipEditorPanel::Save() {
     if (AnimationSerializer::SerializeAnimationClip(*m_AnimationClip, m_CurrentPath)) {
         TraceLog(LOG_INFO, "Saved animation clip: %s", m_CurrentPath.c_str());
 
+        UUID animClipUUID = m_AnimationClip->GetUUID();
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
+
+        std::shared_ptr<Asset> reloadedAsset = AssetRegistry::Instance().LoadAsset(animClipUUID);
+        m_AnimationClip = std::dynamic_pointer_cast<AnimationClip>(reloadedAsset);
+
+        if (m_AnimationClip) {
+            m_SelectedSpriteSheetUUID = m_AnimationClip->GetSpriteSheetUUID();
+            if (m_SelectedSpriteSheetUUID.Get() != 0 && !m_SpriteSheet) {
+                std::shared_ptr<Asset> spriteSheetAsset = AssetRegistry::Instance().LoadAsset(m_SelectedSpriteSheetUUID);
+                m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(spriteSheetAsset);
+            }
+        }
     } else {
         TraceLog(LOG_ERROR, "Failed to save animation clip: %s", m_CurrentPath.c_str());
     }

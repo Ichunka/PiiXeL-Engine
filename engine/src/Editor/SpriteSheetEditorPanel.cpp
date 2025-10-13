@@ -66,6 +66,15 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         if (m_SelectedTextureUUID.Get() != 0) {
             AssetRegistry::Instance().LoadAsset(m_SelectedTextureUUID);
         }
+
+        if (m_SpriteSheet->GetFrameGroupCount() > 0) {
+            size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
+            if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
+                TraceLog(LOG_WARNING, "SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames from grid.",
+                    m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
+                UpdateFramesFromGrid();
+            }
+        }
     }
 }
 
@@ -202,11 +211,26 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
             for (int i = 0; i < m_GridColumns * m_GridRows; ++i) {
                 m_SelectedCells.insert(i);
             }
+            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+                if (group) {
+                    group->frameIndices.clear();
+                    for (int cell : m_SelectedCells) {
+                        group->frameIndices.push_back(static_cast<size_t>(cell));
+                    }
+                }
+            }
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Clear")) {
             m_SelectedCells.clear();
+            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+                if (group) {
+                    group->frameIndices.clear();
+                }
+            }
         }
 
         ImGui::SameLine();
@@ -218,10 +242,27 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
                 }
             }
             m_SelectedCells = newSelection;
+            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+                if (group) {
+                    group->frameIndices.clear();
+                    for (int cell : m_SelectedCells) {
+                        group->frameIndices.push_back(static_cast<size_t>(cell));
+                    }
+                }
+            }
         }
 
-        if (ImGui::Button("Apply Selection")) {
-            UpdateFramesFromSelection();
+        if (m_SpriteSheet->GetFrameGroupCount() > 0) {
+            ImGui::BeginDisabled();
+            ImGui::Button("Apply Selection");
+            ImGui::EndDisabled();
+            ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  Cannot use with groups!");
+            ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Delete all groups first");
+        } else {
+            if (ImGui::Button("Apply Selection")) {
+                UpdateFramesFromSelection();
+            }
         }
     } else {
         if (ImGui::Button("Auto-Generate All Frames")) {
@@ -462,6 +503,16 @@ void SpriteSheetEditorPanel::RenderPreview() {
             } else {
                 m_SelectedCells.insert(cellIndex);
             }
+
+            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
+                if (group) {
+                    group->frameIndices.clear();
+                    for (int cell : m_SelectedCells) {
+                        group->frameIndices.push_back(static_cast<size_t>(cell));
+                    }
+                }
+            }
         }
     }
 }
@@ -563,11 +614,17 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
 
     ImGui::BeginChild("FrameGroupsScroll", ImVec2{0, m_SelectedGroupIndex >= 0 ? 100.0f : 150.0f}, false);
 
-    const std::vector<FrameGroup>& groups = m_SpriteSheet->GetFrameGroups();
     int groupToDelete = -1;
+    size_t groupCount = m_SpriteSheet->GetFrameGroupCount();
 
-    for (size_t i = 0; i < groups.size(); ++i) {
+    for (size_t i = 0; i < groupCount; ++i) {
         ImGui::PushID(static_cast<int>(i));
+
+        const FrameGroup* group = m_SpriteSheet->GetFrameGroup(i);
+        if (!group) {
+            ImGui::PopID();
+            continue;
+        }
 
         bool isSelected = (static_cast<int>(i) == m_SelectedGroupIndex);
         if (isSelected) {
@@ -577,9 +634,9 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
         if (isSelected && m_IsEditingGroupName) {
             ImGui::SetKeyboardFocusHere();
             if (ImGui::InputText("##edit", m_EditGroupName, sizeof(m_EditGroupName), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                FrameGroup* group = m_SpriteSheet->GetFrameGroup(i);
-                if (group) {
-                    group->name = m_EditGroupName;
+                FrameGroup* editGroup = m_SpriteSheet->GetFrameGroup(i);
+                if (editGroup) {
+                    editGroup->name = m_EditGroupName;
                 }
                 m_IsEditingGroupName = false;
             }
@@ -588,36 +645,25 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
             }
         } else {
             char label[128];
-            snprintf(label, sizeof(label), "%s (%zu frames)", groups[i].name.c_str(), groups[i].frameIndices.size());
-
-            bool wasDoubleClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+            snprintf(label, sizeof(label), "%s (%zu frames)", group->name.c_str(), group->frameIndices.size());
 
             if (ImGui::Selectable(label, isSelected)) {
-                if (wasDoubleClicked && isSelected) {
-                    m_IsEditingGroupName = true;
+                m_SelectedGroupIndex = static_cast<int>(i);
+
+                const FrameGroup* currentGroup = m_SpriteSheet->GetFrameGroup(i);
+                if (currentGroup) {
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #endif
-                    strncpy(m_EditGroupName, groups[i].name.c_str(), sizeof(m_EditGroupName) - 1);
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-                    m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
-                } else {
-                    m_SelectedGroupIndex = static_cast<int>(i);
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 4996)
-#endif
-                    strncpy(m_EditGroupName, groups[i].name.c_str(), sizeof(m_EditGroupName) - 1);
+                    strncpy(m_EditGroupName, currentGroup->name.c_str(), sizeof(m_EditGroupName) - 1);
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
                     m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
 
                     m_SelectedCells.clear();
-                    for (size_t cellIdx : groups[i].frameIndices) {
+                    for (size_t cellIdx : currentGroup->frameIndices) {
                         m_SelectedCells.insert(static_cast<int>(cellIdx));
                     }
 
@@ -625,6 +671,39 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
                         m_SelectionMode = SelectionMode::Manual;
                     }
                 }
+            }
+
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem("Rename")) {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+                    strncpy(m_EditGroupName, group->name.c_str(), sizeof(m_EditGroupName) - 1);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+                    m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
+                    m_IsEditingGroupName = true;
+                    ImGui::CloseCurrentPopup();
+                }
+                if (ImGui::MenuItem("Delete")) {
+                    groupToDelete = static_cast<int>(i);
+                }
+                ImGui::EndPopup();
+            }
+
+            if (isSelected && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                m_IsEditingGroupName = true;
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+                strncpy(m_EditGroupName, group->name.c_str(), sizeof(m_EditGroupName) - 1);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+                m_EditGroupName[sizeof(m_EditGroupName) - 1] = '\0';
             }
         }
 
@@ -660,20 +739,6 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
             ImGui::Separator();
             ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Selected Group:");
             ImGui::Text("  %s (%zu cells)", selectedGroup->name.c_str(), selectedGroup->frameIndices.size());
-            ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Double-click to rename");
-
-            if (m_SelectionMode == SelectionMode::Manual) {
-                if (ImGui::Button("Update Group from Selection", ImVec2{-1, 0})) {
-                    FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
-                    if (group) {
-                        group->frameIndices.clear();
-                        for (int cell : m_SelectedCells) {
-                            group->frameIndices.push_back(static_cast<size_t>(cell));
-                        }
-                    }
-                }
-                ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Modify selection, then click button");
-            }
         }
     }
 }
@@ -725,10 +790,34 @@ void SpriteSheetEditorPanel::Save() {
     }
 
     TraceLog(LOG_INFO, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
+    TraceLog(LOG_INFO, "Before save - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
 
     if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
         TraceLog(LOG_INFO, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
+
+        UUID spriteSheetUUID = m_SpriteSheet->GetUUID();
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
+
+        std::shared_ptr<Asset> reloadedAsset = AssetRegistry::Instance().LoadAsset(spriteSheetUUID);
+        m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(reloadedAsset);
+
+        if (m_SpriteSheet) {
+            TraceLog(LOG_INFO, "After reload - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
+            m_SelectedTextureUUID = m_SpriteSheet->GetTextureUUID();
+            m_GridColumns = m_SpriteSheet->GetGridColumns();
+            m_GridRows = m_SpriteSheet->GetGridRows();
+
+            if (m_SpriteSheet->GetFrameGroupCount() > 0) {
+                size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
+                if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
+                    TraceLog(LOG_WARNING, "After reload: SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames.",
+                        m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
+                    UpdateFramesFromGrid();
+                }
+            }
+        } else {
+            TraceLog(LOG_ERROR, "Failed to reload sprite sheet after save");
+        }
     } else {
         TraceLog(LOG_ERROR, "Failed to save sprite sheet: %s", m_CurrentPath.c_str());
     }
