@@ -231,15 +231,6 @@
                 {
                     "enabled": true,
                     "properties": {
-                        "jumpForce": 600.0,
-                        "moveSpeed": 300.0,
-                        "playerTexture": {}
-                    },
-                    "scriptName": "PlayerController"
-                },
-                {
-                    "enabled": true,
-                    "properties": {
                         "groundCheckDistance": 5.0,
                         "jumpForce": 500.0,
                         "moveSpeed": 200.0

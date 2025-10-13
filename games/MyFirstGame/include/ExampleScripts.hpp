@@ -18,7 +18,6 @@ public:
 
     float moveSpeed{300.0f};
     float jumpForce{600.0f};
-    PiiXeL::AssetRef<Texture2D> playerTexture;
 
 protected:
     void OnAwake() override {
@@ -84,7 +83,6 @@ protected:
 BEGIN_REFLECT(PlayerController)
     FIELD_RANGE(moveSpeed, 0.0f, 1000.0f, 10.0f)
     FIELD_RANGE(jumpForce, 0.0f, 2000.0f, 10.0f)
-    FIELD(playerTexture)
 END_REFLECT(PlayerController)
 
 class RotatingPlatform : public PiiXeL::ScriptComponent {
