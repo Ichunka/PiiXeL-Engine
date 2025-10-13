@@ -247,7 +247,7 @@ void RenderSystem::RenderColliders(entt::registry& registry) {
 
         Color colliderColor = collider.isTrigger ? Color{0, 255, 255, 180} : Color{0, 255, 0, 180};
 
-        DrawCircleLines(centerPos.x, centerPos.y, scaledRadius, colliderColor);
+        DrawCircleLines(static_cast<int>(centerPos.x), static_cast<int>(centerPos.y), scaledRadius, colliderColor);
     });
 }
 
