@@ -11,8 +11,8 @@ struct CircleCollider2D {
     bool isTrigger{false};
     void* box2dFixture{nullptr};
     CircleCollider2D() = default;
-    CircleCollider2D(const float r) : radius{r} {}
-    CircleCollider2D(const float r, const Vector2& o) : radius{r}, offset{o} {}
+    CircleCollider2D(float r) : radius{r} {}
+    CircleCollider2D(float r, const Vector2& o) : radius{r}, offset{o} {}
 };
 
 } // namespace PiiXeL

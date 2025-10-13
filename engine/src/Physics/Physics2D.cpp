@@ -150,7 +150,7 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
     }
     if (registry.all_of<CircleCollider2D>(entity)) {
         CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
-        colliderHalfHeight = (collider.radius * transform.scale.x) / PIXELS_TO_METERS;
+        colliderHalfHeight = (collider.radius * (transform.scale.x + transform.scale.y) * 0.5f) / PIXELS_TO_METERS;
     }
 
     b2Vec2 position = b2Body_GetPosition(rb.box2dBodyId);

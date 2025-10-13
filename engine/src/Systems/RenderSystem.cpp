@@ -238,7 +238,7 @@ void RenderSystem::RenderColliders(entt::registry& registry) {
         DrawLineV(corners[3], corners[0], colliderColor);
     });
     registry.view<Transform, CircleCollider2D>().each([](const Transform& transform, const CircleCollider2D& collider) {
-        float scaledRadius = collider.radius * transform.scale.x;
+        float scaledRadius = collider.radius * (transform.scale.x + transform.scale.y) * 0.5f;
 
         Vector2 centerPos{
             transform.position.x + collider.offset.x * transform.scale.x,

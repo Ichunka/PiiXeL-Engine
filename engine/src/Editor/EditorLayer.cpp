@@ -1283,8 +1283,7 @@ void EditorLayer::RenderInspector() {
                         if (ImGui::Button("Fit to Sprite")) {
                             const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
                             Vector2 spriteSize = sprite.GetSize();
-                            collider.radius = spriteSize.x > spriteSize.y ? spriteSize.x * 0.5f : spriteSize.y * 0.5f;
-                            collider.offset = Vector2{0.0f, 0.0f};
+                            collider.radius = std::max(spriteSize.x, spriteSize.y) * 0.5f;                            collider.offset = Vector2{0.0f, 0.0f};
                         }
                     }
 

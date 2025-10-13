@@ -7,7 +7,6 @@
 #include "Components/CircleCollider2D.hpp"
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
-#include <iostream>
 
 namespace PiiXeL {
 
@@ -116,11 +115,10 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
     }
-    if (registry.all_of<CircleCollider2D>(entity))
-    {
+    if (registry.all_of<CircleCollider2D>(entity)) {
         CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
 
-        const float scaledRadius = collider.radius * transform.scale.x;
+        const float scaledRadius = collider.radius * (transform.scale.x + transform.scale.y) * 0.5f;
 
         b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters,
         collider.offset.y / m_PixelsToMeters}
@@ -128,7 +126,7 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
-        float radiusMeters = scaledRadius / m_PixelsToMeters;
+        float radiusMeters = collider.radius;
         float areaMeters = PI * radiusMeters * radiusMeters;
         shapeDef.density = areaMeters > 0.0f ? (rb.mass / areaMeters) : 1.0f;
 
