@@ -1,4 +1,5 @@
 #include "Systems/PhysicsSystem.hpp"
+#include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
 #include "Components/Transform.hpp"
 #include "Components/RigidBody2D.hpp"
@@ -153,7 +154,7 @@ void PhysicsSystem::DestroyAllBodies(entt::registry& registry) {
 void PhysicsSystem::SetGravity(const Vector2& gravity) {
     if (B2_IS_NON_NULL(m_WorldId)) {
         b2World_SetGravity(m_WorldId, b2Vec2{gravity.x, gravity.y});
-        TraceLog(LOG_INFO, "Physics gravity set to: (%.2f, %.2f)", gravity.x, gravity.y);
+        PX_LOG_INFO(PHYSICS, "Physics gravity set to: (%.2f, %.2f)", gravity.x, gravity.y);
     }
 }
 

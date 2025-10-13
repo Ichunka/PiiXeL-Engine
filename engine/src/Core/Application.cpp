@@ -1,5 +1,6 @@
 #include "Core/Application.hpp"
 #include "Core/Engine.hpp"
+#include "Core/Logger.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/PathManager.hpp"
 #include "Project/ProjectSettings.hpp"
@@ -69,23 +70,23 @@ void Application::Initialize() {
             if (iconAsset && iconAsset->type == "texture") {
                 iconImage = LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
                 if (iconImage.data != nullptr) {
-                    TraceLog(LOG_INFO, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
+                    PX_LOG_INFO(ENGINE, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
                 } else {
-                    TraceLog(LOG_WARNING, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
+                    PX_LOG_WARNING(ENGINE, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
                 }
             } else {
-                TraceLog(LOG_WARNING, "Window icon not found in package: %s", m_Config.iconPath.c_str());
+                PX_LOG_WARNING(ENGINE, "Window icon not found in package: %s", m_Config.iconPath.c_str());
             }
         } else {
             if (FileExists(m_Config.iconPath.c_str())) {
                 iconImage = LoadImage(m_Config.iconPath.c_str());
                 if (iconImage.data != nullptr) {
-                    TraceLog(LOG_INFO, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
+                    PX_LOG_INFO(ENGINE, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
                 } else {
-                    TraceLog(LOG_WARNING, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+                    PX_LOG_WARNING(ENGINE, "Failed to load window icon: %s", m_Config.iconPath.c_str());
                 }
             } else {
-                TraceLog(LOG_WARNING, "Window icon file not found: %s", m_Config.iconPath.c_str());
+                PX_LOG_WARNING(ENGINE, "Window icon file not found: %s", m_Config.iconPath.c_str());
             }
         }
 
@@ -95,7 +96,7 @@ void Application::Initialize() {
             }
             SetWindowIcon(iconImage);
             UnloadImage(iconImage);
-            TraceLog(LOG_INFO, "Window icon set successfully");
+            PX_LOG_INFO(ENGINE, "Window icon set successfully");
         }
     }
 
@@ -264,9 +265,9 @@ void Application::Update(float deltaTime) {
     if (IsKeyPressed(KEY_F11)) {
         ToggleFullscreen();
         if (IsWindowFullscreen()) {
-            TraceLog(LOG_INFO, "Switched to FULLSCREEN mode (F11 to exit)");
+            PX_LOG_INFO(ENGINE, "Switched to FULLSCREEN mode (F11 to exit)");
         } else {
-            TraceLog(LOG_INFO, "Switched to WINDOWED mode (F11 for fullscreen)");
+            PX_LOG_INFO(ENGINE, "Switched to WINDOWED mode (F11 for fullscreen)");
         }
     }
 

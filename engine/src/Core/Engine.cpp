@@ -1,11 +1,14 @@
 #include "Core/Engine.hpp"
+#include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
+#include "Scene/ComponentRegistry.hpp"
 #include "Build/GamePackageLoader.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Systems/PhysicsSystem.hpp"
 #include "Systems/ScriptSystem.hpp"
+#include "Systems/AnimationSystem.hpp"
 #include "Components/Transform.hpp"
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
@@ -30,6 +33,8 @@ Engine::~Engine() {
 }
 
 void Engine::Initialize() {
+    RegisterAllComponents();
+
     m_RenderSystem = std::make_unique<RenderSystem>();
     m_PhysicsSystem = std::make_unique<PhysicsSystem>();
     m_PhysicsSystem->Initialize();
@@ -39,16 +44,25 @@ void Engine::Initialize() {
 #ifdef BUILD_WITH_EDITOR
     m_ActiveScene = std::make_unique<Scene>("Default Scene");
 #else
+    m_PhysicsEnabled = true;
+    m_ScriptsEnabled = true;
+    m_AnimationEnabled = true;
+
     if (FileExists("datas/game.package")) {
         if (LoadFromPackage("datas/game.package", "Default_Scene")) {
-            TraceLog(LOG_INFO, "✓ Game package loaded successfully - all assets embedded");
+            PX_LOG_INFO(ENGINE, "✓ Game package loaded successfully - all assets embedded");
+
+            if (m_ActiveScene) {
+                AnimationSystem::ResetAnimators(m_ActiveScene->GetRegistry());
+                CreatePhysicsBodies();
+            }
         } else {
-            TraceLog(LOG_ERROR, "✗ Failed to load datas/game.package");
+            PX_LOG_ERROR(ENGINE, "✗ Failed to load datas/game.package");
             m_ActiveScene = std::make_unique<Scene>("Empty Scene");
         }
     } else {
-        TraceLog(LOG_ERROR, "✗ datas/game.package not found! Cannot run without package.");
-        TraceLog(LOG_ERROR, "   Build the package first using: build_package.bat");
+        PX_LOG_ERROR(ENGINE, "✗ datas/game.package not found! Cannot run without package.");
+        PX_LOG_ERROR(ENGINE, "   Build the package first using: build_package.bat");
         m_ActiveScene = std::make_unique<Scene>("Empty Scene");
     }
 #endif
@@ -68,6 +82,13 @@ void Engine::Update(float deltaTime) {
         PROFILE_SCOPE("ScriptSystem::OnUpdate");
         if (m_ScriptsEnabled && m_ScriptSystem && m_ActiveScene) {
             m_ScriptSystem->OnUpdate(m_ActiveScene.get(), deltaTime);
+        }
+    }
+
+    {
+        PROFILE_SCOPE("AnimationSystem::Update");
+        if (m_AnimationEnabled && m_ActiveScene) {
+            AnimationSystem::Update(m_ActiveScene->GetRegistry(), deltaTime);
         }
     }
 
@@ -233,7 +254,7 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
         size_t scriptCount = registry.view<Script>().size();
         size_t cameraCount = registry.view<Camera>().size();
 
-        TraceLog(LOG_INFO, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
+        PX_LOG_INFO(ENGINE, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
 
         return true;
     }

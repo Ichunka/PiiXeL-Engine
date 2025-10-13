@@ -1,4 +1,116 @@
 {
-    "entities": [],
+    "entities": [
+        {
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 3566349391407876688,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    -75.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 17942665668524570254
+        },
+        {
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 7378705258678345267,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    150.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 5269426482425236462
+        },
+        {
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0
+                ],
+                "textureAssetUUID": 3566349391407876688,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    0.0,
+                    0.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 3266298687628624102
+        }
+    ],
     "scene": "New_Scene"
 }

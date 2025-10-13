@@ -1,4 +1,5 @@
 #include "Systems/RenderSystem.hpp"
+#include "Core/Logger.hpp"
 #include "Components/Transform.hpp"
 #include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
@@ -28,9 +29,9 @@ RenderSystem::RenderSystem()
 
     if (m_DefaultWhiteTexture.id != 0) {
         SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
-        TraceLog(LOG_INFO, "RenderSystem: Default white texture created (64x64)");
+        PX_LOG_INFO(RENDER, "RenderSystem: Default white texture created (64x64)");
     } else {
-        TraceLog(LOG_ERROR, "RenderSystem: Failed to create default white texture");
+        PX_LOG_ERROR(RENDER, "RenderSystem: Failed to create default white texture");
     }
 }
 

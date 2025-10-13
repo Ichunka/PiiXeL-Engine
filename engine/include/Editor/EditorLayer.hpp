@@ -18,6 +18,9 @@ namespace PiiXeL {
 class Engine;
 class Scene;
 class BuildPanel;
+class SpriteSheetEditorPanel;
+class AnimationClipEditorPanel;
+class AnimatorControllerEditorPanel;
 
 enum class EditorState {
     Edit,
@@ -59,6 +62,7 @@ private:
     void SetupDockingLayout();
     void BeginDockspace();
     void EndDockspace();
+    void DeleteAssetWithPackage(const std::string& assetPath);
 
     void RenderMenuBar();
     void RenderToolbar();
@@ -95,6 +99,7 @@ private:
     bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
 
     void RestoreScriptPropertiesFromFile(const std::string& filepath);
+    void UpdateAnimatorPreviewInEditMode();
 
 private:
     Engine* m_Engine;
@@ -145,6 +150,17 @@ private:
     bool m_ConsoleShowInfo{true};
     bool m_ConsoleShowWarning{true};
     bool m_ConsoleShowError{true};
+    bool m_ConsoleShowCategoryEngine{true};
+    bool m_ConsoleShowCategoryAsset{true};
+    bool m_ConsoleShowCategoryEditor{true};
+    bool m_ConsoleShowCategoryPhysics{true};
+    bool m_ConsoleShowCategoryRender{true};
+    bool m_ConsoleShowCategoryScene{true};
+    bool m_ConsoleShowCategoryScript{true};
+    bool m_ConsoleShowCategoryAnimation{true};
+    bool m_ConsoleShowCategoryBuild{true};
+    bool m_ConsoleShowCategoryGame{true};
+    bool m_ConsoleShowCategoryUnknown{true};
     bool m_ConsoleAutoScroll{true};
     int m_ConsoleSelectedTab{0}; // 0=All, 1=Engine, 2=Game
     std::vector<int> m_ConsoleSelectedLines;
@@ -160,6 +176,9 @@ private:
     float m_ProfilerFlameGraphScroll{0.0f};
 
     std::unique_ptr<BuildPanel> m_BuildPanel;
+    std::unique_ptr<SpriteSheetEditorPanel> m_SpriteSheetEditor;
+    std::unique_ptr<AnimationClipEditorPanel> m_AnimationClipEditor;
+    std::unique_ptr<AnimatorControllerEditorPanel> m_AnimatorControllerEditor;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;

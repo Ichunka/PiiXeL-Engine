@@ -1,0 +1,100 @@
+{
+    "frameGroups": [
+        {
+            "frameIndices": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "name": "NewGroup2"
+        }
+    ],
+    "frames": [
+        {
+            "name": "frame_0_0",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                0.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_1",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                64.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_2",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                128.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_3",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                192.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_4",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                256.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_5",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                320.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        }
+    ],
+    "gridColumns": 6,
+    "gridRows": 1,
+    "name": "walk_sheet",
+    "textureUUID": 4169095510697929209,
+    "uuid": 14159915717418947819
+}

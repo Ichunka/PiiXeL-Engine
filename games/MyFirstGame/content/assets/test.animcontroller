@@ -1,0 +1,18 @@
+{
+    "defaultState": "NewState2",
+    "name": "test",
+    "parameters": [],
+    "states": [
+        {
+            "animationClipUUID": 5834419731261374628,
+            "editorPosition": [
+                165.0,
+                45.0
+            ],
+            "name": "NewState2",
+            "speed": 1.0
+        }
+    ],
+    "transitions": [],
+    "uuid": 8934075254886344568
+}

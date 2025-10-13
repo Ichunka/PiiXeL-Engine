@@ -30,10 +30,14 @@ public:
 
     void SaveUUIDCache();
     void LoadUUIDCache();
+    void ForceUUID(const std::string& sourcePath, UUID uuid);
 
 private:
     ImportResult ImportTexture(const std::string& sourcePath, UUID uuid);
     ImportResult ImportAudio(const std::string& sourcePath, UUID uuid);
+    ImportResult ImportSpriteSheet(const std::string& sourcePath, UUID uuid);
+    ImportResult ImportAnimationClip(const std::string& sourcePath, UUID uuid);
+    ImportResult ImportAnimatorController(const std::string& sourcePath, UUID uuid);
 
     UUID GetOrCreateUUID(const std::string& sourcePath);
     std::chrono::system_clock::time_point GetFileLastWriteTime(const std::string& path);

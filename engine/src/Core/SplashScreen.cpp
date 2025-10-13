@@ -1,4 +1,5 @@
 #include "Core/SplashScreen.hpp"
+#include "Core/Logger.hpp"
 #include "Resources/EmbeddedAssetLoader.hpp"
 #include <raylib.h>
 
@@ -90,7 +91,7 @@ void SplashScreen::ShowEmbedded(const std::string& assetName, float duration) {
 
     m_EmbeddedTexture = EmbeddedAssetLoader::LoadTextureFromEmbedded(assetName);
     if (m_EmbeddedTexture.id == 0) {
-        TraceLog(LOG_WARNING, "Failed to load embedded splash screen texture: %s", assetName.c_str());
+        PX_LOG_WARNING(ENGINE, "Failed to load embedded splash screen texture: %s", assetName.c_str());
     }
 }
 

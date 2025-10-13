@@ -46,13 +46,14 @@ public:
 
     [[nodiscard]] std::vector<AssetMetadata> GetAllAssetMetadata() const;
     [[nodiscard]] const std::unordered_map<UUID, std::shared_ptr<Asset>>& GetAllAssets() const;
+    [[nodiscard]] const std::unordered_map<UUID, std::string>& GetAllKnownAssetPaths() const;
     [[nodiscard]] size_t GetTotalMemoryUsage() const;
 
     static AssetRegistry& Instance();
 
 private:
     std::shared_ptr<Asset> CreateAsset(AssetType type, UUID uuid, const std::string& name);
-    std::shared_ptr<Asset> LoadAssetFromPackage(const std::string& packagePath);
+    std::shared_ptr<Asset> LoadAssetFromPackage(const std::string& packagePath, const std::string& sourcePath);
 
     std::unordered_map<UUID, std::shared_ptr<Asset>> m_Assets;
     std::unordered_map<UUID, std::string> m_UUIDToPath;

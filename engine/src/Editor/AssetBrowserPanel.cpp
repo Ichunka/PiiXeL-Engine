@@ -4,6 +4,7 @@
 #include "Resources/AssetRegistry.hpp"
 #include <imgui.h>
 #include <filesystem>
+#include <algorithm>
 
 namespace PiiXeL {
 
@@ -32,6 +33,36 @@ void AssetBrowserPanel::Render() {
 }
 
 void AssetBrowserPanel::RefreshAssetList() {
+    std::vector<std::string> sourceFiles;
+
+    if (std::filesystem::exists(m_CurrentDirectory)) {
+        for (const auto& entry : std::filesystem::recursive_directory_iterator{m_CurrentDirectory}) {
+            if (!entry.is_regular_file()) continue;
+
+            std::string ext = entry.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
+                ext == ".wav" || ext == ".mp3" || ext == ".ogg" ||
+                ext == ".spritesheet" || ext == ".animclip" || ext == ".animcontroller") {
+
+                std::string pxaPath = entry.path().string();
+                pxaPath = pxaPath.substr(0, pxaPath.find_last_of('.')) + ".pxa";
+
+                if (!std::filesystem::exists(pxaPath)) {
+                    sourceFiles.push_back(entry.path().string());
+                }
+            }
+        }
+    }
+
+    if (!sourceFiles.empty()) {
+        AssetRegistry& registry = AssetRegistry::Instance();
+        for (const auto& sourcePath : sourceFiles) {
+            registry.LoadAssetFromPath(sourcePath);
+        }
+    }
+
     m_CurrentAssets = AssetRegistry::Instance().GetAllAssetMetadata();
 }
 

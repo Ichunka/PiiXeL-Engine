@@ -1,4 +1,5 @@
 #include "Resources/TextureAsset.hpp"
+#include "Core/Logger.hpp"
 #include <cstring>
 
 namespace PiiXeL {
@@ -17,10 +18,10 @@ bool TextureAsset::Load(const void* data, size_t size) {
     }
 
     const char* fileExt = ".png";
-    Image image = LoadImageFromMemory(fileExt, static_cast<const unsigned char*>(data), size);
+    Image image = LoadImageFromMemory(fileExt, static_cast<const unsigned char*>(data), static_cast<int>(size));
 
     if (image.data == nullptr) {
-        TraceLog(LOG_ERROR, "Failed to load texture from memory");
+        PX_LOG_ERROR(ASSET, "Failed to load texture from memory");
         return false;
     }
 
@@ -28,14 +29,14 @@ bool TextureAsset::Load(const void* data, size_t size) {
     UnloadImage(image);
 
     if (m_Texture.id == 0) {
-        TraceLog(LOG_ERROR, "Failed to create texture from image");
+        PX_LOG_ERROR(ASSET, "Failed to create texture from image");
         return false;
     }
 
     SetTextureWrap(m_Texture, TEXTURE_WRAP_CLAMP);
 
     m_IsLoaded = true;
-    TraceLog(LOG_INFO, "Texture asset loaded: %s (%dx%d)", m_Metadata.name.c_str(),
+    PX_LOG_INFO(ASSET, "Texture asset loaded: %s (%dx%d)", m_Metadata.name.c_str(),
              m_Texture.width, m_Texture.height);
     return true;
 }
@@ -67,7 +68,7 @@ size_t TextureAsset::GetMemoryUsage() const {
 std::vector<uint8_t> TextureAsset::EncodeToMemory(const std::string& sourcePath) {
     Image image = LoadImage(sourcePath.c_str());
     if (image.data == nullptr) {
-        TraceLog(LOG_ERROR, "Failed to load image from: %s", sourcePath.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to load image from: %s", sourcePath.c_str());
         return {};
     }
 
@@ -76,7 +77,7 @@ std::vector<uint8_t> TextureAsset::EncodeToMemory(const std::string& sourcePath)
     UnloadImage(image);
 
     if (fileData == nullptr || dataSize == 0) {
-        TraceLog(LOG_ERROR, "Failed to encode image to memory");
+        PX_LOG_ERROR(ASSET, "Failed to encode image to memory");
         return {};
     }
 

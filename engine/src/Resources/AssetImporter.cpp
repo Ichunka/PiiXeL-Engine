@@ -1,6 +1,7 @@
 #include "Resources/AssetImporter.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Core/Logger.hpp"
 #include <raylib.h>
 #include <fstream>
 #include <chrono>
@@ -13,13 +14,13 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
 
     if (!std::filesystem::exists(sourcePath)) {
         result.errorMessage = "Source file does not exist: " + sourcePath;
-        TraceLog(LOG_ERROR, "%s", result.errorMessage.c_str());
+        PX_LOG_ERROR(ASSET, "%s", result.errorMessage.c_str());
         return result;
     }
 
     if (!forceReimport && AssetPackage::PackageExists(sourcePath)) {
         if (!AssetPackage::NeedsReimport(sourcePath)) {
-            TraceLog(LOG_INFO, "Asset is up to date: %s", sourcePath.c_str());
+            PX_LOG_INFO(ASSET, "Asset is up to date: %s", sourcePath.c_str());
             result.success = true;
             result.packagePath = AssetPackage::GetPackagePath(sourcePath);
             return result;
@@ -29,7 +30,7 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
     AssetType type = DetectAssetType(sourcePath);
     if (type == AssetType::Unknown) {
         result.errorMessage = "Unknown asset type: " + sourcePath;
-        TraceLog(LOG_WARNING, "%s", result.errorMessage.c_str());
+        PX_LOG_WARNING(ASSET, "%s", result.errorMessage.c_str());
         return result;
     }
 
@@ -41,6 +42,15 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
             break;
         case AssetType::Audio:
             result = ImportAudio(sourcePath, uuid);
+            break;
+        case AssetType::SpriteSheet:
+            result = ImportSpriteSheet(sourcePath, uuid);
+            break;
+        case AssetType::AnimationClip:
+            result = ImportAnimationClip(sourcePath, uuid);
+            break;
+        case AssetType::AnimatorController:
+            result = ImportAnimatorController(sourcePath, uuid);
             break;
         default:
             result.errorMessage = "Unsupported asset type";
@@ -59,7 +69,7 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
     std::vector<ImportResult> results;
 
     if (!std::filesystem::exists(directory)) {
-        TraceLog(LOG_ERROR, "Directory does not exist: %s", directory.c_str());
+        PX_LOG_ERROR(ASSET, "Directory does not exist: %s", directory.c_str());
         return results;
     }
 
@@ -100,7 +110,7 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
     int successCount = static_cast<int>(std::count_if(results.begin(), results.end(),
                                                        [](const ImportResult& r) { return r.success; }));
 
-    TraceLog(LOG_INFO, "Imported %d/%d assets from: %s", successCount,
+    PX_LOG_INFO(ASSET, "Imported %d/%d assets from: %s", successCount,
              static_cast<int>(results.size()), directory.c_str());
 
     return results;
@@ -124,6 +134,18 @@ AssetType AssetImporter::DetectAssetType(const std::string& path) const {
         return AssetType::Scene;
     }
 
+    if (ext == ".spritesheet") {
+        return AssetType::SpriteSheet;
+    }
+
+    if (ext == ".animclip") {
+        return AssetType::AnimationClip;
+    }
+
+    if (ext == ".animcontroller") {
+        return AssetType::AnimatorController;
+    }
+
     return AssetType::Unknown;
 }
 
@@ -137,7 +159,7 @@ void AssetImporter::SaveUUIDCache() {
 
     std::ofstream file{cachePath, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_WARNING, "Failed to save UUID cache");
+        PX_LOG_WARNING(ASSET, "Failed to save UUID cache");
         return;
     }
 
@@ -171,6 +193,13 @@ void AssetImporter::LoadUUIDCache() {
     uint32_t count = 0;
     file.read(reinterpret_cast<char*>(&count), sizeof(count));
 
+    if (!file || count > 1000000) {
+        PX_LOG_WARNING(ASSET, "UUID cache corrupted or invalid count: %u", count);
+        file.close();
+        std::filesystem::remove(cachePath);
+        return;
+    }
+
     m_UUIDCache.clear();
     m_UUIDCache.reserve(count);
 
@@ -178,18 +207,43 @@ void AssetImporter::LoadUUIDCache() {
         uint32_t pathLen = 0;
         file.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
 
+        if (!file || pathLen > 8192) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         std::vector<char> pathBuffer(pathLen + 1, '\0');
         file.read(pathBuffer.data(), pathLen);
+
+        if (!file) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted reading path at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         std::string path{pathBuffer.data()};
 
         uint64_t uuidValue = 0;
         file.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
 
+        if (!file) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted reading UUID at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         m_UUIDCache[path] = UUID{uuidValue};
     }
 
     file.close();
-    TraceLog(LOG_INFO, "Loaded UUID cache: %u entries", count);
+    PX_LOG_INFO(ASSET, "Loaded UUID cache: %llu entries", static_cast<unsigned long long>(m_UUIDCache.size()));
 }
 
 AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sourcePath, UUID uuid) {
@@ -207,6 +261,7 @@ AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sour
     metadata.type = AssetType::Texture;
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
     metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -224,7 +279,7 @@ AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sour
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported texture: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported texture: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -244,6 +299,7 @@ AssetImporter::ImportResult AssetImporter::ImportAudio(const std::string& source
     metadata.type = AssetType::Audio;
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
     metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -261,7 +317,7 @@ AssetImporter::ImportResult AssetImporter::ImportAudio(const std::string& source
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported audio: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported audio: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -277,6 +333,10 @@ UUID AssetImporter::GetOrCreateUUID(const std::string& sourcePath) {
     return newUUID;
 }
 
+void AssetImporter::ForceUUID(const std::string& sourcePath, UUID uuid) {
+    m_UUIDCache[sourcePath] = uuid;
+}
+
 std::chrono::system_clock::time_point AssetImporter::GetFileLastWriteTime(const std::string& path) {
     try {
         auto ftime = std::filesystem::last_write_time(path);
@@ -286,6 +346,144 @@ std::chrono::system_clock::time_point AssetImporter::GetFileLastWriteTime(const 
     } catch (...) {
         return std::chrono::system_clock::now();
     }
+}
+
+AssetImporter::ImportResult AssetImporter::ImportSpriteSheet(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open sprite sheet file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Sprite sheet file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::SpriteSheet;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save sprite sheet package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    PX_LOG_INFO(ASSET, "Imported sprite sheet: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
+}
+
+AssetImporter::ImportResult AssetImporter::ImportAnimationClip(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open animation clip file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Animation clip file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::AnimationClip;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save animation clip package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    PX_LOG_INFO(ASSET, "Imported animation clip: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
+}
+
+AssetImporter::ImportResult AssetImporter::ImportAnimatorController(const std::string& sourcePath, UUID uuid) {
+    ImportResult result{};
+    result.uuid = uuid;
+
+    std::ifstream file{sourcePath, std::ios::binary};
+    if (!file.is_open()) {
+        result.errorMessage = "Failed to open animator controller file";
+        return result;
+    }
+
+    std::vector<uint8_t> data{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    file.close();
+
+    if (data.empty()) {
+        result.errorMessage = "Animator controller file is empty";
+        return result;
+    }
+
+    AssetMetadata metadata{};
+    metadata.uuid = uuid;
+    metadata.type = AssetType::AnimatorController;
+    metadata.name = std::filesystem::path{sourcePath}.stem().string();
+    metadata.sourceFile = sourcePath;
+    metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
+    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto fileTime = GetFileLastWriteTime(sourcePath);
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+        fileTime.time_since_epoch()).count();
+
+    std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
+    AssetPackage package{};
+
+    if (!package.SaveToFile(packagePath, metadata, data.data(), data.size())) {
+        result.errorMessage = "Failed to save animator controller package";
+        return result;
+    }
+
+    result.success = true;
+    result.packagePath = packagePath;
+    PX_LOG_INFO(ASSET, "Imported animator controller: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+
+    return result;
 }
 
 } // namespace PiiXeL

@@ -1,4 +1,5 @@
 #include "Resources/AudioAsset.hpp"
+#include "Core/Logger.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -18,23 +19,23 @@ bool AudioAsset::Load(const void* data, size_t size) {
     }
 
     const char* fileExt = ".wav";
-    m_Wave = LoadWaveFromMemory(fileExt, static_cast<const unsigned char*>(data), size);
+    m_Wave = LoadWaveFromMemory(fileExt, static_cast<const unsigned char*>(data), static_cast<int>(size));
 
     if (m_Wave.data == nullptr) {
-        TraceLog(LOG_ERROR, "Failed to load audio from memory");
+        PX_LOG_ERROR(ASSET, "Failed to load audio from memory");
         return false;
     }
 
     m_Sound = LoadSoundFromWave(m_Wave);
 
     if (m_Sound.frameCount == 0) {
-        TraceLog(LOG_ERROR, "Failed to create sound from wave");
+        PX_LOG_ERROR(ASSET, "Failed to create sound from wave");
         UnloadWave(m_Wave);
         return false;
     }
 
     m_IsLoaded = true;
-    TraceLog(LOG_INFO, "Audio asset loaded: %s (%u frames)", m_Metadata.name.c_str(),
+    PX_LOG_INFO(ASSET, "Audio asset loaded: %s (%u frames)", m_Metadata.name.c_str(),
              m_Sound.frameCount);
     return true;
 }
@@ -61,7 +62,7 @@ size_t AudioAsset::GetMemoryUsage() const {
 std::vector<uint8_t> AudioAsset::EncodeToMemory(const std::string& sourcePath) {
     std::ifstream file{sourcePath, std::ios::binary | std::ios::ate};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open audio file: %s", sourcePath.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to open audio file: %s", sourcePath.c_str());
         return {};
     }
 
@@ -70,7 +71,7 @@ std::vector<uint8_t> AudioAsset::EncodeToMemory(const std::string& sourcePath) {
 
     std::vector<uint8_t> buffer(size);
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        TraceLog(LOG_ERROR, "Failed to read audio file: %s", sourcePath.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to read audio file: %s", sourcePath.c_str());
         return {};
     }
 

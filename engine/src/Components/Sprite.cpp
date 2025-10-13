@@ -16,6 +16,7 @@ END_REFLECT(Sprite)
 
 Texture2D Sprite::GetTexture() const {
     if (textureAssetUUID.Get() == 0) {
+        m_LastLoadedTextureUUID = UUID{0};
         return Texture2D{};
     }
 
@@ -29,7 +30,19 @@ Texture2D Sprite::GetTexture() const {
         return Texture2D{};
     }
 
-    return texAsset->GetTexture();
+    Texture2D texture = texAsset->GetTexture();
+
+    if (texture.id != 0) {
+        Sprite* mutableThis = const_cast<Sprite*>(this);
+
+        if (m_LastLoadedTextureUUID != textureAssetUUID ||
+            (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f)) {
+            mutableThis->sourceRect = {0.0f, 0.0f, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+            m_LastLoadedTextureUUID = textureAssetUUID;
+        }
+    }
+
+    return texture;
 }
 
 bool Sprite::IsValid() const {
@@ -51,14 +64,12 @@ Vector2 Sprite::GetSize() const {
 
 void Sprite::SetTexture(UUID assetUUID) {
     textureAssetUUID = assetUUID;
+    m_LastLoadedTextureUUID = UUID{0};
 
     Texture2D tex = GetTexture();
     if (tex.id != 0) {
-        if (sourceRect.width == 0.0f && sourceRect.height == 0.0f) {
-            sourceRect = {0.0f, 0.0f, static_cast<float>(tex.width), static_cast<float>(tex.height)};
-            TraceLog(LOG_INFO, "Sprite texture set: %" PRIu64 ", size: %dx%d, sourceRect: %.0fx%.0f",
-                     assetUUID.Get(), tex.width, tex.height, sourceRect.width, sourceRect.height);
-        }
+        TraceLog(LOG_INFO, "Sprite texture set: %" PRIu64 ", size: %dx%d, sourceRect: %.0fx%.0f",
+                 assetUUID.Get(), tex.width, tex.height, sourceRect.width, sourceRect.height);
     } else {
         TraceLog(LOG_WARNING, "Sprite SetTexture: texture not loaded for UUID %" PRIu64, assetUUID.Get());
     }

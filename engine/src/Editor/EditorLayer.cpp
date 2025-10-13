@@ -1,16 +1,26 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorLayer.hpp"
+#include "Core/Logger.hpp"
 #include "Editor/ConsoleLogger.hpp"
 #include "Editor/BuildPanel.hpp"
+#include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Editor/AnimationClipEditorPanel.hpp"
+#include "Editor/AnimatorControllerEditorPanel.hpp"
 #include "Resources/AssetRegistry.hpp"
+#include "Resources/AssetImporter.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Animation/AnimationSerializer.hpp"
+#include "Animation/SpriteSheet.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimatorController.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
 #include "Scene/EntityRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
+#include "Systems/AnimationSystem.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
@@ -19,6 +29,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Animator.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/ScriptSystem.hpp"
 #include "Scripting/ScriptRegistry.hpp"
@@ -65,15 +76,26 @@ EditorLayer::EditorLayer(Engine* engine)
 
     if (m_DefaultWhiteTexture.id != 0) {
         SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
-        TraceLog(LOG_INFO, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
+        PX_LOG_INFO(EDITOR, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
     } else {
-        TraceLog(LOG_ERROR, "Failed to create default white texture");
+        PX_LOG_ERROR(EDITOR, "Failed to create default white texture");
     }
 
     m_BuildPanel = std::make_unique<BuildPanel>();
+    m_SpriteSheetEditor = std::make_unique<SpriteSheetEditorPanel>();
+    m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
+    m_AnimatorControllerEditor = std::make_unique<AnimatorControllerEditorPanel>();
+
+    m_AnimatorControllerEditor->SetOnSelectionChangedCallback([this]() {
+        m_SelectedEntity = entt::null;
+        m_SelectedAssetUUID = UUID{0};
+        m_SelectedAssetPath.clear();
+    });
+
     SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
+    m_Engine->SetAnimationEnabled(false);
 
     SetTraceLogCallback(ConsoleLogger::RaylibLogCallback);
 
@@ -82,9 +104,9 @@ EditorLayer::EditorLayer(Engine* engine)
     LOG_GAME_INFO("Game subsystem ready");
     LOG_GAME_DEBUG("Physics engine enabled");
 
-    TraceLog(LOG_TRACE, "Trace level message from Raylib");
-    TraceLog(LOG_WARNING, "This is a warning test");
-    TraceLog(LOG_ERROR, "This is an error test (not a real error)");
+    PX_LOG_INFO(EDITOR, "Trace level message from Raylib");
+    PX_LOG_WARNING(EDITOR, "This is a warning test");
+    PX_LOG_ERROR(EDITOR, "This is an error test (not a real error)");
 
     ProjectSettings& settings = ProjectSettings::Instance();
     settings.Load("game.config.json");
@@ -96,7 +118,7 @@ EditorLayer::EditorLayer(Engine* engine)
         if (serializer.Deserialize(defaultScenePath)) {
             m_CurrentScenePath = defaultScenePath;
             RestoreScriptPropertiesFromFile(defaultScenePath);
-            TraceLog(LOG_INFO, "Loaded default scene: %s", defaultScenePath.c_str());
+            PX_LOG_INFO(EDITOR, "Loaded default scene: %s", defaultScenePath.c_str());
         }
     }
 }
@@ -158,6 +180,10 @@ void EditorLayer::SetupDarkTheme() {
 
 void EditorLayer::OnUpdate(float deltaTime) {
     (void)deltaTime;
+
+    if (m_EditorState == EditorState::Edit) {
+        UpdateAnimatorPreviewInEditMode();
+    }
 }
 
 void EditorLayer::OnRender() {
@@ -222,7 +248,37 @@ void EditorLayer::OnImGuiRender() {
     RenderProfiler();
     RenderBuildPanel();
 
+    if (m_SpriteSheetEditor) {
+        m_SpriteSheetEditor->Render();
+    }
+
+    if (m_AnimationClipEditor) {
+        m_AnimationClipEditor->Render();
+    }
+
+    if (m_AnimatorControllerEditor) {
+        m_AnimatorControllerEditor->Render();
+    }
+
     EndDockspace();
+}
+
+void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
+    try {
+        std::filesystem::remove(assetPath);
+
+        std::filesystem::path pxaPath{assetPath};
+        pxaPath.replace_extension(".pxa");
+
+        if (std::filesystem::exists(pxaPath)) {
+            std::filesystem::remove(pxaPath);
+            PX_LOG_INFO(EDITOR, "Deleted package: %s", pxaPath.string().c_str());
+        }
+
+        PX_LOG_INFO(EDITOR, "Deleted: %s", assetPath.c_str());
+    } catch (const std::filesystem::filesystem_error& e) {
+        PX_LOG_ERROR(EDITOR, "Failed to delete: %s", e.what());
+    }
 }
 
 void EditorLayer::BeginDockspace() {
@@ -276,6 +332,7 @@ void EditorLayer::SetupDockingLayout() {
     ImGui::DockBuilderDockWindow("Inspector", dock_id_right);
     ImGui::DockBuilderDockWindow("Scene", dockspace_id);
     ImGui::DockBuilderDockWindow("Game", dockspace_id);
+    ImGui::DockBuilderDockWindow("Animator Controller Editor", dockspace_id);
     ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Build & Export", dock_id_bottom);
@@ -572,12 +629,112 @@ void EditorLayer::RenderViewport() {
 
                         m_SelectedEntity = newEntity;
 
-                        TraceLog(LOG_INFO, "Entity created from texture: %s at (%.0f, %.0f)",
+                        PX_LOG_INFO(EDITOR, "Entity created from texture: %s at (%.0f, %.0f)",
                                 assetInfo->filename.c_str(), worldPos.x, worldPos.y);
                     }
                 }
             }
             ImGui::EndDragDropTarget();
+        }
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
+
+void EditorLayer::RenderGameViewport() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+    ImGui::Begin("Game");
+
+    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+    entt::entity primaryCameraEntity = GetPrimaryCamera();
+
+    if (primaryCameraEntity == entt::null) {
+        ImVec2 windowSize = ImGui::GetWindowSize();
+        const char* message = "No Primary Camera";
+        ImVec2 textSize = ImGui::CalcTextSize(message);
+        ImGui::SetCursorPos(ImVec2{
+            (windowSize.x - textSize.x) * 0.5f,
+            (windowSize.y - textSize.y) * 0.5f
+        });
+        ImGui::TextDisabled("%s", message);
+    }
+    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
+        if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture.texture.width ||
+            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture.texture.height) {
+            UnloadRenderTexture(m_GameViewportTexture);
+            m_GameViewportTexture = LoadRenderTexture(
+                static_cast<int>(viewportPanelSize.x),
+                static_cast<int>(viewportPanelSize.y)
+            );
+        }
+
+        BeginTextureMode(m_GameViewportTexture);
+        ClearBackground(Color{45, 45, 48, 255});
+
+        Camera2D camera{};
+        camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
+        camera.target = Vector2{0.0f, 0.0f};
+        camera.rotation = 0.0f;
+        camera.zoom = 1.0f;
+
+        if (m_Engine && m_Engine->GetActiveScene()) {
+            Scene* scene = m_Engine->GetActiveScene();
+            entt::registry& registry = scene->GetRegistry();
+
+            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity)) {
+                const Camera& cameraComp = registry.get<Camera>(primaryCameraEntity);
+                const Transform& transform = registry.get<Transform>(primaryCameraEntity);
+
+                camera = cameraComp.ToRaylib(transform.position);
+                camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
+            }
+        }
+
+        BeginMode2D(camera);
+
+        if (m_Engine) {
+            RenderSystem* renderSystem = m_Engine->GetRenderSystem();
+            bool savedShowColliders = false;
+            bool savedShowDebug = false;
+
+            if (renderSystem) {
+                savedShowColliders = renderSystem->GetShowColliders();
+                savedShowDebug = renderSystem->GetShowDebug();
+                renderSystem->SetShowColliders(false);
+                renderSystem->SetShowDebug(false);
+            }
+
+            m_Engine->Render();
+
+            if (renderSystem) {
+                renderSystem->SetShowColliders(savedShowColliders);
+                renderSystem->SetShowDebug(savedShowDebug);
+            }
+        }
+
+        EndMode2D();
+
+        EndTextureMode();
+
+        Rectangle sourceRec{
+            0.0f, 0.0f,
+            static_cast<float>(m_GameViewportTexture.texture.width),
+            -static_cast<float>(m_GameViewportTexture.texture.height)
+        };
+
+        rlImGuiImageRect(&m_GameViewportTexture.texture,
+                        static_cast<int>(viewportPanelSize.x),
+                        static_cast<int>(viewportPanelSize.y),
+                        sourceRec);
+    }
+
+    if (m_EditorState == EditorState::Play) {
+        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
+            ImGuiIO& io = ImGui::GetIO();
+            io.WantCaptureMouse = false;
+            io.WantCaptureKeyboard = false;
         }
     }
 
@@ -659,6 +816,9 @@ void EditorLayer::RenderHierarchy() {
                 if (!m_InspectorLocked) {
                     m_SelectedEntity = entity;
                     m_SelectedAssetUUID = UUID{0};
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
                     m_SelectedAssetPath.clear();
                 }
             }
@@ -694,13 +854,29 @@ void EditorLayer::RenderInspector() {
     PROFILE_FUNCTION();
     ImGui::Begin("Inspector");
 
+    entt::entity previewEntity = m_InspectorLocked ? m_LockedEntity : m_SelectedEntity;
+    bool hasEntitySelection = (previewEntity != entt::null);
+    bool hasAssetSelection = (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty());
+
+    if (!hasEntitySelection && !hasAssetSelection && m_AnimatorControllerEditor && m_AnimatorControllerEditor->IsOpen() && m_AnimatorControllerEditor->HasSelection()) {
+        m_AnimatorControllerEditor->RenderInspector();
+        ImGui::End();
+        return;
+    }
+
     if (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty()) {
         ImGui::TextColored(ImVec4{0.4f, 0.8f, 1.0f, 1.0f}, "Asset");
         ImGui::Separator();
 
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
 
-        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty()) {
+        bool isSceneFile = false;
+        if (m_SelectedAssetPath.size() >= 6) {
+            std::string extension = m_SelectedAssetPath.substr(m_SelectedAssetPath.size() - 6);
+            isSceneFile = (extension == ".scene");
+        }
+
+        if (!asset && m_SelectedAssetUUID.Get() == 0 && !m_SelectedAssetPath.empty() && !isSceneFile) {
             auto result = AssetRegistry::Instance().LoadAssetFromPath(m_SelectedAssetPath);
             if (result) {
                 asset = result;
@@ -713,8 +889,19 @@ void EditorLayer::RenderInspector() {
 
             ImGui::Text("Name: %s", metadata.name.c_str());
             ImGui::Text("UUID: %" PRIu64, metadata.uuid.Get());
-            ImGui::Text("Type: %s", metadata.type == AssetType::Texture ? "Texture" :
-                                     metadata.type == AssetType::Audio ? "Audio" : "Unknown");
+
+            const char* typeStr = "Unknown";
+            switch (metadata.type) {
+                case AssetType::Texture: typeStr = "Texture"; break;
+                case AssetType::Audio: typeStr = "Audio"; break;
+                case AssetType::SpriteSheet: typeStr = "Sprite Sheet"; break;
+                case AssetType::AnimationClip: typeStr = "Animation Clip"; break;
+                case AssetType::AnimatorController: typeStr = "Animator Controller"; break;
+                case AssetType::Scene: typeStr = "Scene"; break;
+                default: break;
+            }
+            ImGui::Text("Type: %s", typeStr);
+
             ImGui::Text("Source: %s", metadata.sourceFile.c_str());
             ImGui::Text("Memory: %zu bytes", asset->GetMemoryUsage());
             ImGui::Text("Loaded: %s", asset->IsLoaded() ? "Yes" : "No");
@@ -765,6 +952,37 @@ void EditorLayer::RenderInspector() {
                             StopSound(sound);
                         }
                     }
+                }
+            } else if (metadata.type == AssetType::SpriteSheet) {
+                SpriteSheet* spriteSheet = dynamic_cast<SpriteSheet*>(asset.get());
+                if (spriteSheet) {
+                    ImGui::Text("Texture UUID: %" PRIu64, spriteSheet->GetTextureUUID().Get());
+                    ImGui::Text("Grid: %dx%d", spriteSheet->GetGridColumns(), spriteSheet->GetGridRows());
+                    ImGui::Text("Frame Count: %zu", spriteSheet->GetFrames().size());
+                }
+            } else if (metadata.type == AssetType::AnimationClip) {
+                AnimationClip* animClip = dynamic_cast<AnimationClip*>(asset.get());
+                if (animClip) {
+                    ImGui::Text("Sprite Sheet UUID: %" PRIu64, animClip->GetSpriteSheetUUID().Get());
+                    ImGui::Text("Frame Count: %zu", animClip->GetFrames().size());
+                    ImGui::Text("Frame Rate: %.1f fps", animClip->GetFrameRate());
+                    ImGui::Text("Duration: %.2f seconds", animClip->GetTotalDuration());
+
+                    const char* wrapModeStr = "Unknown";
+                    switch (animClip->GetWrapMode()) {
+                        case AnimationWrapMode::Once: wrapModeStr = "Once"; break;
+                        case AnimationWrapMode::Loop: wrapModeStr = "Loop"; break;
+                        case AnimationWrapMode::PingPong: wrapModeStr = "Ping Pong"; break;
+                    }
+                    ImGui::Text("Wrap Mode: %s", wrapModeStr);
+                }
+            } else if (metadata.type == AssetType::AnimatorController) {
+                AnimatorController* controller = dynamic_cast<AnimatorController*>(asset.get());
+                if (controller) {
+                    ImGui::Text("Default State: %s", controller->GetDefaultState().c_str());
+                    ImGui::Text("Parameters: %zu", controller->GetParameters().size());
+                    ImGui::Text("States: %zu", controller->GetStates().size());
+                    ImGui::Text("Transitions: %zu", controller->GetTransitions().size());
                 }
             }
 
@@ -931,7 +1149,7 @@ void EditorLayer::RenderInspector() {
                                     std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
                                     if (asset && asset->GetMetadata().type == AssetType::Texture) {
                                         sprite.SetTexture(asset->GetUUID());
-                                        TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
+                                        PX_LOG_INFO(EDITOR, "Texture assigned: %s", assetInfo->path.c_str());
                                     }
                                 }
                             }
@@ -1106,6 +1324,43 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
+            if (registry.all_of<Animator>(inspectedEntity)) {
+                ImGui::Separator();
+                bool removeAnimator = false;
+
+                ImGui::AlignTextToFramePadding();
+                bool animatorOpen = ImGui::TreeNodeEx("Animator", ImGuiTreeNodeFlags_DefaultOpen);
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
+                if (ImGui::SmallButton("X##RemoveAnimator")) {
+                    removeAnimator = true;
+                }
+
+                if (animatorOpen) {
+                    Animator& animator = registry.get<Animator>(inspectedEntity);
+
+                    if (RenderAssetPicker("Controller", &animator.controllerUUID, "AnimatorController")) {
+                    }
+
+                    ImGui::Checkbox("Is Playing", &animator.isPlaying);
+                    ImGui::DragFloat("Playback Speed", &animator.playbackSpeed, 0.01f, 0.0f, 10.0f);
+
+                    if (animator.controllerUUID.Get() != 0) {
+                        ImGui::Separator();
+                        ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "State: %s", animator.currentState.empty() ? "(None)" : animator.currentState.c_str());
+                        ImGui::Text("Time: %.2f", animator.stateTime);
+                        ImGui::Text("Frame: %zu", animator.currentFrameIndex);
+                    }
+
+                    ImGui::TreePop();
+                }
+
+                if (removeAnimator) {
+                    m_CommandHistory.ExecuteCommand(
+                        std::make_unique<RemoveComponentCommand<Animator>>(&registry, inspectedEntity)
+                    );
+                }
+            }
+
             ImGui::Separator();
 
             if (ImGui::Button("Add Component")) {
@@ -1162,6 +1417,13 @@ void EditorLayer::RenderInspector() {
                         registry.emplace<Script>(inspectedEntity);
                     }
                 }
+                if (ImGui::MenuItem("Animator")) {
+                    if (!registry.all_of<Animator>(inspectedEntity)) {
+                        m_CommandHistory.ExecuteCommand(
+                            std::make_unique<AddComponentCommand<Animator>>(&registry, inspectedEntity, Animator{})
+                        );
+                    }
+                }
                 ImGui::EndPopup();
             }
         }
@@ -1185,6 +1447,9 @@ void EditorLayer::RenderContentBrowser() {
     static bool showNewScenePopup = false;
     static bool showNewFolderPopup = false;
     static bool showRenamePopup = false;
+    static bool showNewSpriteSheetPopup = false;
+    static bool showNewAnimClipPopup = false;
+    static bool showNewAnimControllerPopup = false;
     static char newItemName[256] = "";
 
     if (needsRefresh) {
@@ -1225,9 +1490,17 @@ void EditorLayer::RenderContentBrowser() {
                         info.type = "audio";
                     } else if (info.extension == ".scene") {
                         info.type = "scene";
+                    } else if (info.extension == ".spritesheet") {
+                        info.type = "spritesheet";
+                    } else if (info.extension == ".animclip") {
+                        info.type = "animclip";
+                    } else if (info.extension == ".animcontroller") {
+                        info.type = "animcontroller";
                     } else {
                         info.type = "unknown";
                     }
+
+                    info.uuid = AssetRegistry::Instance().GetUUIDFromPath(info.path);
 
                     files.push_back(info);
                 }
@@ -1303,6 +1576,15 @@ void EditorLayer::RenderContentBrowser() {
                 needsRefresh = true;
             }
 
+            if (ImGui::IsItemHovered() && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                rightClickedItem = dirPath;
+                isRightClickFolder = true;
+                showRenamePopup = true;
+                std::string itemName = dirName;
+                std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                newItemName[sizeof(newItemName) - 1] = '\0';
+            }
+
             if (ImGui::BeginPopupContextItem()) {
                 rightClickedItem = dirPath;
                 isRightClickFolder = true;
@@ -1315,14 +1597,13 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 if (ImGui::MenuItem("Delete")) {
-                    #ifdef _WIN32
-                    std::string cmd = "rmdir /s /q \"" + dirPath + "\"";
-                    #else
-                    std::string cmd = "rm -rf \"" + dirPath + "\"";
-                    #endif
-                    system(cmd.c_str());
-                    needsRefresh = true;
-                    TraceLog(LOG_INFO, "Deleted: %s", dirPath.c_str());
+                    try {
+                        std::filesystem::remove_all(dirPath);
+                        needsRefresh = true;
+                        PX_LOG_INFO(EDITOR, "Deleted: %s", dirPath.c_str());
+                    } catch (const std::filesystem::filesystem_error& e) {
+                        PX_LOG_ERROR(EDITOR, "Failed to delete folder: %s", e.what());
+                    }
                 }
 
                 ImGui::EndPopup();
@@ -1361,6 +1642,9 @@ void EditorLayer::RenderContentBrowser() {
 
                     if (ImGui::ImageButton("##texture", texId, imageSize)) {
                         m_SelectedAssetPath = asset.path;
+                        if (m_AnimatorControllerEditor) {
+                            m_AnimatorControllerEditor->ClearSelection();
+                        }
 
                         UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
                         std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
@@ -1379,6 +1663,19 @@ void EditorLayer::RenderContentBrowser() {
                         m_SelectedEntity = entt::null;
                     }
 
+                    if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                        rightClickedItem = asset.path;
+                        isRightClickFolder = false;
+                        showRenamePopup = true;
+                        std::string itemName = asset.filename;
+                        size_t dotPos = itemName.find_last_of('.');
+                        if (dotPos != std::string::npos) {
+                            itemName = itemName.substr(0, dotPos);
+                        }
+                        std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                        newItemName[sizeof(newItemName) - 1] = '\0';
+                    }
+
                     if (ImGui::BeginPopupContextItem()) {
                         rightClickedItem = asset.path;
                         isRightClickFolder = false;
@@ -1395,14 +1692,8 @@ void EditorLayer::RenderContentBrowser() {
                         }
 
                         if (ImGui::MenuItem("Delete")) {
-                            #ifdef _WIN32
-                            std::string cmd = "del /f \"" + asset.path + "\"";
-                            #else
-                            std::string cmd = "rm -f \"" + asset.path + "\"";
-                            #endif
-                            system(cmd.c_str());
+                            DeleteAssetWithPackage(asset.path);
                             needsRefresh = true;
-                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
                         }
 
                         ImGui::EndPopup();
@@ -1435,6 +1726,22 @@ void EditorLayer::RenderContentBrowser() {
                     m_SelectedAssetPath = asset.path;
                     m_SelectedAssetUUID = UUID{0};
                     m_SelectedEntity = entt::null;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
+                }
+
+                if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+                    showRenamePopup = true;
+                    std::string itemName = asset.filename;
+                    size_t dotPos = itemName.find_last_of('.');
+                    if (dotPos != std::string::npos) {
+                        itemName = itemName.substr(0, dotPos);
+                    }
+                    std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                    newItemName[sizeof(newItemName) - 1] = '\0';
                 }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -1446,7 +1753,7 @@ void EditorLayer::RenderContentBrowser() {
                             m_SelectedEntity = entt::null;
                             m_CommandHistory.Clear();
                             RestoreScriptPropertiesFromFile(asset.path);
-                            TraceLog(LOG_INFO, "Loaded scene: %s", asset.path.c_str());
+                            PX_LOG_INFO(EDITOR, "Loaded scene: %s", asset.path.c_str());
                         }
                     }
                 }
@@ -1467,14 +1774,83 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        #ifdef _WIN32
-                        std::string cmd = "del /f \"" + asset.path + "\"";
-                        #else
-                        std::string cmd = "rm -f \"" + asset.path + "\"";
-                        #endif
-                        system(cmd.c_str());
+                        DeleteAssetWithPackage(asset.path);
                         needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                ImGui::PopStyleColor(3);
+            } else if (asset.type == "spritesheet" || asset.type == "animclip" || asset.type == "animcontroller") {
+                ImVec4 animColor = asset.type == "spritesheet" ? ImVec4{0.4f, 0.8f, 0.6f, 1.0f} :
+                                   asset.type == "animclip" ? ImVec4{0.6f, 0.8f, 0.4f, 1.0f} :
+                                   ImVec4{0.8f, 0.6f, 0.4f, 1.0f};
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.3f, 0.3f, 1.0f});
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.4f, 1.0f});
+                ImGui::PushStyleColor(ImGuiCol_Text, animColor);
+
+                std::string buttonLabel = asset.type == "spritesheet" ? "SHEET" :
+                                         asset.type == "animclip" ? "CLIP" : "CTRL";
+                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
+                    m_SelectedAssetPath = asset.path;
+                    m_SelectedEntity = entt::null;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
+
+                    UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
+                        ? AssetRegistry::Instance().GetAsset(existingUUID)
+                        : nullptr;
+
+                    if (!existingAsset) {
+                        std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                        if (loadedAsset) {
+                            m_SelectedAssetUUID = loadedAsset->GetUUID();
+                        } else {
+                            m_SelectedAssetUUID = UUID{0};
+                        }
+                    } else {
+                        m_SelectedAssetUUID = existingUUID;
+                    }
+                }
+
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                    draggedAsset = &asset;
+                    ImGui::SetDragDropPayload("ASSET_ANIM", &draggedAsset, sizeof(AssetInfo*));
+                    ImGui::Text("%s: %s", buttonLabel.c_str(), asset.filename.c_str());
+                    ImGui::EndDragDropSource();
+                }
+
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    if (asset.type == "spritesheet" && m_SpriteSheetEditor) {
+                        m_SpriteSheetEditor->Open(asset.path);
+                    } else if (asset.type == "animclip" && m_AnimationClipEditor) {
+                        m_AnimationClipEditor->Open(asset.path);
+                    } else if (asset.type == "animcontroller" && m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->Open(asset.path);
+                    }
+                }
+
+                if (ImGui::BeginPopupContextItem()) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+
+                    if (ImGui::MenuItem("Rename")) {
+                        showRenamePopup = true;
+                        std::string itemName = asset.filename;
+                        size_t dotPos = itemName.find_last_of('.');
+                        if (dotPos != std::string::npos) {
+                            itemName = itemName.substr(0, dotPos);
+                        }
+                        std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                        newItemName[sizeof(newItemName) - 1] = '\0';
+                    }
+
+                    if (ImGui::MenuItem("Delete")) {
+                        DeleteAssetWithPackage(asset.path);
+                        needsRefresh = true;
                     }
 
                     ImGui::EndPopup();
@@ -1488,6 +1864,9 @@ void EditorLayer::RenderContentBrowser() {
                 std::string buttonLabel = asset.type == "audio" ? "AUDIO" : "FILE";
                 if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(thumbnailSize), static_cast<float>(thumbnailSize)})) {
                     m_SelectedAssetPath = asset.path;
+                    if (m_AnimatorControllerEditor) {
+                        m_AnimatorControllerEditor->ClearSelection();
+                    }
 
                     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
                     std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
@@ -1504,6 +1883,19 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     m_SelectedEntity = entt::null;
+                }
+
+                if (m_SelectedAssetPath == asset.path && ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                    rightClickedItem = asset.path;
+                    isRightClickFolder = false;
+                    showRenamePopup = true;
+                    std::string itemName = asset.filename;
+                    size_t dotPos = itemName.find_last_of('.');
+                    if (dotPos != std::string::npos) {
+                        itemName = itemName.substr(0, dotPos);
+                    }
+                    std::memcpy(newItemName, itemName.c_str(), std::min(itemName.size(), sizeof(newItemName) - 1));
+                    newItemName[sizeof(newItemName) - 1] = '\0';
                 }
 
                 ImGui::PopStyleColor();
@@ -1524,21 +1916,16 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        #ifdef _WIN32
-                        std::string cmd = "del /f \"" + asset.path + "\"";
-                        #else
-                        std::string cmd = "rm -f \"" + asset.path + "\"";
-                        #endif
-                        system(cmd.c_str());
+                        DeleteAssetWithPackage(asset.path);
                         needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
                     }
 
                     ImGui::EndPopup();
                 }
             }
 
-            ImGui::TextWrapped("%s", asset.filename.c_str());
+            std::string displayName = std::filesystem::path(asset.filename).stem().string();
+            ImGui::TextWrapped("%s", displayName.c_str());
             ImGui::EndGroup();
             ImGui::NextColumn();
             ImGui::PopID();
@@ -1550,10 +1937,33 @@ void EditorLayer::RenderContentBrowser() {
     if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
         rightClickedItem.clear();
 
-        if (ImGui::MenuItem("New Scene")) {
-            showNewScenePopup = true;
-            std::memset(newItemName, 0, sizeof(newItemName));
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("New Scene")) {
+                showNewScenePopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
+            }
+            ImGui::EndMenu();
         }
+
+        if (ImGui::BeginMenu("Animation")) {
+            if (ImGui::MenuItem("Sprite Sheet")) {
+                showNewSpriteSheetPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
+            }
+
+            if (ImGui::MenuItem("Animation Clip")) {
+                showNewAnimClipPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
+            }
+
+            if (ImGui::MenuItem("Animator Controller")) {
+                showNewAnimControllerPopup = true;
+                std::memset(newItemName, 0, sizeof(newItemName));
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
 
         if (ImGui::MenuItem("New Folder")) {
             showNewFolderPopup = true;
@@ -1592,7 +2002,7 @@ void EditorLayer::RenderContentBrowser() {
 
                     m_CurrentScenePath = newScenePath;
                     needsRefresh = true;
-                    TraceLog(LOG_INFO, "Created new scene: %s", newScenePath.c_str());
+                    PX_LOG_INFO(EDITOR, "Created new scene: %s", newScenePath.c_str());
                 }
                 ImGui::CloseCurrentPopup();
             }
@@ -1624,15 +2034,151 @@ void EditorLayer::RenderContentBrowser() {
                 std::string folderName = std::string(newItemName);
                 std::string newFolderPath = currentPath + "/" + folderName;
 
-                #ifdef _WIN32
-                std::string cmd = "mkdir \"" + newFolderPath + "\"";
-                #else
-                std::string cmd = "mkdir -p \"" + newFolderPath + "\"";
-                #endif
+                try {
+                    std::filesystem::create_directory(newFolderPath);
+                    needsRefresh = true;
+                    PX_LOG_INFO(EDITOR, "Created folder: %s", newFolderPath.c_str());
+                } catch (const std::filesystem::filesystem_error& e) {
+                    PX_LOG_ERROR(EDITOR, "Failed to create folder: %s", e.what());
+                }
+                ImGui::CloseCurrentPopup();
+            }
+        }
 
-                system(cmd.c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewSpriteSheetPopup) {
+        ImGui::OpenPopup("New Sprite Sheet");
+        showNewSpriteSheetPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Sprite Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter sprite sheet name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##SpriteSheetName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".spritesheet";
+
+                UUID newUUID{};
+                SpriteSheet spriteSheet{newUUID, name};
+                AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
+
+                AssetImporter importer{};
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
+
                 needsRefresh = true;
-                TraceLog(LOG_INFO, "Created folder: %s", newFolderPath.c_str());
+                PX_LOG_INFO(EDITOR, "Created sprite sheet: %s", newPath.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewAnimClipPopup) {
+        ImGui::OpenPopup("New Animation Clip");
+        showNewAnimClipPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Animation Clip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter animation clip name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##AnimClipName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".animclip";
+
+                UUID newUUID{};
+                AnimationClip clip{newUUID, name};
+                AnimationSerializer::SerializeAnimationClip(clip, newPath);
+
+                AssetImporter importer{};
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
+
+                needsRefresh = true;
+                PX_LOG_INFO(EDITOR, "Created animation clip: %s", newPath.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (showNewAnimControllerPopup) {
+        ImGui::OpenPopup("New Animator Controller");
+        showNewAnimControllerPopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Animator Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter animator controller name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##AnimControllerName", newItemName, sizeof(newItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(newItemName) > 0) {
+                std::string name = std::string(newItemName);
+                std::string newPath = currentPath + "/" + name + ".animcontroller";
+
+                UUID newUUID{};
+                AnimatorController controller{newUUID, name};
+                AnimationSerializer::SerializeAnimatorController(controller, newPath);
+
+                AssetImporter importer{};
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
+
+                needsRefresh = true;
+                PX_LOG_INFO(EDITOR, "Created animator controller: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -1683,10 +2229,10 @@ void EditorLayer::RenderContentBrowser() {
                 try {
                     std::filesystem::rename(rightClickedItem, newPath);
                     needsRefresh = true;
-                    TraceLog(LOG_INFO, "Renamed: %s -> %s", rightClickedItem.c_str(), newPath.c_str());
+                    PX_LOG_INFO(EDITOR, "Renamed: %s -> %s", rightClickedItem.c_str(), newPath.c_str());
                     rightClickedItem.clear();
                 } catch (const std::filesystem::filesystem_error& e) {
-                    TraceLog(LOG_ERROR, "Failed to rename: %s", e.what());
+                    PX_LOG_ERROR(EDITOR, "Failed to rename: %s", e.what());
                 }
 
                 ImGui::CloseCurrentPopup();
@@ -1728,6 +2274,7 @@ void EditorLayer::RenderConsole() {
                     const auto& log = logs[selectedIdx];
 
                     const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
+                    const char* categoryStr = Logger::GetCategoryName(log.category);
                     const char* levelStr;
                     switch (log.level) {
                         case LogLevel::Trace:   levelStr = "[TRACE]"; break;
@@ -1740,6 +2287,9 @@ void EditorLayer::RenderConsole() {
 
                     clipboardText += sourceStr;
                     clipboardText += " ";
+                    clipboardText += "[";
+                    clipboardText += categoryStr;
+                    clipboardText += "] ";
                     clipboardText += levelStr;
                     clipboardText += " ";
                     clipboardText += log.message;
@@ -1752,28 +2302,148 @@ void EditorLayer::RenderConsole() {
     }
 
     ImGui::SameLine();
+    if (ImGui::Button("Copy All Filtered")) {
+        std::string clipboardText;
+        const auto& logs = ConsoleLogger::Instance().GetLogs();
+
+        for (size_t i = 0; i < logs.size(); ++i) {
+            const auto& log = logs[i];
+
+            bool showByLevel = false;
+            switch (log.level) {
+                case LogLevel::Trace:   showByLevel = m_ConsoleShowTrace; break;
+                case LogLevel::Debug:   showByLevel = m_ConsoleShowDebug; break;
+                case LogLevel::Info:    showByLevel = m_ConsoleShowInfo; break;
+                case LogLevel::Warning: showByLevel = m_ConsoleShowWarning; break;
+                case LogLevel::Error:   showByLevel = m_ConsoleShowError; break;
+            }
+
+            if (!showByLevel) continue;
+
+            bool showBySource = false;
+            if (m_ConsoleSelectedTab == 0) {
+                showBySource = true;
+            } else if (m_ConsoleSelectedTab == 1 && log.source == LogSource::Engine) {
+                showBySource = true;
+            } else if (m_ConsoleSelectedTab == 2 && log.source == LogSource::Game) {
+                showBySource = true;
+            }
+
+            if (!showBySource) continue;
+
+            bool showByCategory = false;
+            switch (log.category) {
+                case LogCategory::ENGINE:    showByCategory = m_ConsoleShowCategoryEngine; break;
+                case LogCategory::ASSET:     showByCategory = m_ConsoleShowCategoryAsset; break;
+                case LogCategory::EDITOR:    showByCategory = m_ConsoleShowCategoryEditor; break;
+                case LogCategory::PHYSICS:   showByCategory = m_ConsoleShowCategoryPhysics; break;
+                case LogCategory::RENDER:    showByCategory = m_ConsoleShowCategoryRender; break;
+                case LogCategory::SCENE:     showByCategory = m_ConsoleShowCategoryScene; break;
+                case LogCategory::SCRIPT:    showByCategory = m_ConsoleShowCategoryScript; break;
+                case LogCategory::ANIMATION: showByCategory = m_ConsoleShowCategoryAnimation; break;
+                case LogCategory::BUILD:     showByCategory = m_ConsoleShowCategoryBuild; break;
+                case LogCategory::GAME:      showByCategory = m_ConsoleShowCategoryGame; break;
+                case LogCategory::UNKNOWN:   showByCategory = m_ConsoleShowCategoryUnknown; break;
+            }
+
+            if (!showByCategory) continue;
+
+            const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
+            const char* categoryStr = Logger::GetCategoryName(log.category);
+            const char* levelStr;
+            switch (log.level) {
+                case LogLevel::Trace:   levelStr = "[TRACE]"; break;
+                case LogLevel::Debug:   levelStr = "[DEBUG]"; break;
+                case LogLevel::Info:    levelStr = "[INFO] "; break;
+                case LogLevel::Warning: levelStr = "[WARN] "; break;
+                case LogLevel::Error:   levelStr = "[ERROR]"; break;
+                default:                levelStr = "[?????]"; break;
+            }
+
+            clipboardText += sourceStr;
+            clipboardText += " ";
+            clipboardText += "[";
+            clipboardText += categoryStr;
+            clipboardText += "] ";
+            clipboardText += levelStr;
+            clipboardText += " ";
+            clipboardText += log.message;
+            clipboardText += "\n";
+        }
+
+        if (!clipboardText.empty()) {
+            ImGui::SetClipboardText(clipboardText.c_str());
+        }
+    }
+
+    ImGui::SameLine();
     ImGui::Checkbox("Auto-scroll", &m_ConsoleAutoScroll);
 
-    ImGui::SameLine();
     ImGui::Separator();
 
-    ImGui::SameLine();
-    ImGui::Text("Show:");
-
+    ImGui::Text("Level Filters:");
     ImGui::SameLine();
     ImGui::Checkbox("Trace", &m_ConsoleShowTrace);
-
     ImGui::SameLine();
     ImGui::Checkbox("Debug", &m_ConsoleShowDebug);
-
     ImGui::SameLine();
     ImGui::Checkbox("Info", &m_ConsoleShowInfo);
-
     ImGui::SameLine();
     ImGui::Checkbox("Warning", &m_ConsoleShowWarning);
-
     ImGui::SameLine();
     ImGui::Checkbox("Error", &m_ConsoleShowError);
+
+    ImGui::Text("Category Filters:");
+    ImGui::SameLine();
+    if (ImGui::SmallButton("All##Categories")) {
+        m_ConsoleShowCategoryEngine = true;
+        m_ConsoleShowCategoryAsset = true;
+        m_ConsoleShowCategoryEditor = true;
+        m_ConsoleShowCategoryPhysics = true;
+        m_ConsoleShowCategoryRender = true;
+        m_ConsoleShowCategoryScene = true;
+        m_ConsoleShowCategoryScript = true;
+        m_ConsoleShowCategoryAnimation = true;
+        m_ConsoleShowCategoryBuild = true;
+        m_ConsoleShowCategoryGame = true;
+        m_ConsoleShowCategoryUnknown = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("None##Categories")) {
+        m_ConsoleShowCategoryEngine = false;
+        m_ConsoleShowCategoryAsset = false;
+        m_ConsoleShowCategoryEditor = false;
+        m_ConsoleShowCategoryPhysics = false;
+        m_ConsoleShowCategoryRender = false;
+        m_ConsoleShowCategoryScene = false;
+        m_ConsoleShowCategoryScript = false;
+        m_ConsoleShowCategoryAnimation = false;
+        m_ConsoleShowCategoryBuild = false;
+        m_ConsoleShowCategoryGame = false;
+        m_ConsoleShowCategoryUnknown = false;
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox("ENGINE", &m_ConsoleShowCategoryEngine);
+    ImGui::SameLine();
+    ImGui::Checkbox("ASSET", &m_ConsoleShowCategoryAsset);
+    ImGui::SameLine();
+    ImGui::Checkbox("EDITOR", &m_ConsoleShowCategoryEditor);
+    ImGui::SameLine();
+    ImGui::Checkbox("PHYSICS", &m_ConsoleShowCategoryPhysics);
+    ImGui::SameLine();
+    ImGui::Checkbox("RENDER", &m_ConsoleShowCategoryRender);
+    ImGui::SameLine();
+    ImGui::Checkbox("SCENE", &m_ConsoleShowCategoryScene);
+    ImGui::SameLine();
+    ImGui::Checkbox("SCRIPT", &m_ConsoleShowCategoryScript);
+    ImGui::SameLine();
+    ImGui::Checkbox("ANIMATION", &m_ConsoleShowCategoryAnimation);
+    ImGui::SameLine();
+    ImGui::Checkbox("BUILD", &m_ConsoleShowCategoryBuild);
+    ImGui::SameLine();
+    ImGui::Checkbox("GAME", &m_ConsoleShowCategoryGame);
+    ImGui::SameLine();
+    ImGui::Checkbox("UNKNOWN", &m_ConsoleShowCategoryUnknown);
 
     ImGui::Separator();
 
@@ -1828,6 +2498,25 @@ void EditorLayer::RenderConsole() {
         }
 
         if (!showBySource) {
+            continue;
+        }
+
+        bool showByCategory = false;
+        switch (log.category) {
+            case LogCategory::ENGINE:    showByCategory = m_ConsoleShowCategoryEngine; break;
+            case LogCategory::ASSET:     showByCategory = m_ConsoleShowCategoryAsset; break;
+            case LogCategory::EDITOR:    showByCategory = m_ConsoleShowCategoryEditor; break;
+            case LogCategory::PHYSICS:   showByCategory = m_ConsoleShowCategoryPhysics; break;
+            case LogCategory::RENDER:    showByCategory = m_ConsoleShowCategoryRender; break;
+            case LogCategory::SCENE:     showByCategory = m_ConsoleShowCategoryScene; break;
+            case LogCategory::SCRIPT:    showByCategory = m_ConsoleShowCategoryScript; break;
+            case LogCategory::ANIMATION: showByCategory = m_ConsoleShowCategoryAnimation; break;
+            case LogCategory::BUILD:     showByCategory = m_ConsoleShowCategoryBuild; break;
+            case LogCategory::GAME:      showByCategory = m_ConsoleShowCategoryGame; break;
+            case LogCategory::UNKNOWN:   showByCategory = m_ConsoleShowCategoryUnknown; break;
+        }
+
+        if (!showByCategory) {
             continue;
         }
 
@@ -1903,13 +2592,20 @@ void EditorLayer::RenderConsole() {
         }
 
         ImVec4 sourceColor = (log.source == LogSource::Engine)
-            ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f}  // Blue for engine
-            : ImVec4{0.4f, 1.0f, 0.4f, 1.0f}; // Green for game
+            ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f}
+            : ImVec4{0.4f, 1.0f, 0.4f, 1.0f};
 
         const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
 
         ImGui::PushStyleColor(ImGuiCol_Text, sourceColor);
         ImGui::Text("%s", sourceStr);
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        ImVec4 categoryColor = ConsoleLogger::GetCategoryColor(log.category);
+        const char* categoryStr = Logger::GetCategoryName(log.category);
+        ImGui::PushStyleColor(ImGuiCol_Text, categoryColor);
+        ImGui::Text("[%s]", categoryStr);
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
@@ -2281,106 +2977,6 @@ entt::entity EditorLayer::GetPrimaryCamera() {
     return primaryCamera;
 }
 
-void EditorLayer::RenderGameViewport() {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-    ImGui::Begin("Game");
-
-    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-    entt::entity primaryCameraEntity = GetPrimaryCamera();
-
-    if (primaryCameraEntity == entt::null) {
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        const char* message = "No Primary Camera";
-        ImVec2 textSize = ImGui::CalcTextSize(message);
-        ImGui::SetCursorPos(ImVec2{
-            (windowSize.x - textSize.x) * 0.5f,
-            (windowSize.y - textSize.y) * 0.5f
-        });
-        ImGui::TextDisabled("%s", message);
-    }
-    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
-        if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture.texture.width ||
-            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture.texture.height) {
-            UnloadRenderTexture(m_GameViewportTexture);
-            m_GameViewportTexture = LoadRenderTexture(
-                static_cast<int>(viewportPanelSize.x),
-                static_cast<int>(viewportPanelSize.y)
-            );
-        }
-
-        BeginTextureMode(m_GameViewportTexture);
-        ClearBackground(Color{45, 45, 48, 255});
-
-        Camera2D camera{};
-        camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
-        camera.target = Vector2{0.0f, 0.0f};
-        camera.rotation = 0.0f;
-        camera.zoom = 1.0f;
-
-        if (m_Engine && m_Engine->GetActiveScene()) {
-            Scene* scene = m_Engine->GetActiveScene();
-            entt::registry& registry = scene->GetRegistry();
-
-            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity)) {
-                const Camera& cameraComp = registry.get<Camera>(primaryCameraEntity);
-                const Transform& transform = registry.get<Transform>(primaryCameraEntity);
-
-                camera = cameraComp.ToRaylib(transform.position);
-                camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
-            }
-        }
-
-        BeginMode2D(camera);
-
-        if (m_Engine) {
-            RenderSystem* renderSystem = m_Engine->GetRenderSystem();
-            bool savedShowColliders = false;
-            bool savedShowDebug = false;
-
-            if (renderSystem) {
-                savedShowColliders = renderSystem->GetShowColliders();
-                savedShowDebug = renderSystem->GetShowDebug();
-                renderSystem->SetShowColliders(false);
-                renderSystem->SetShowDebug(false);
-            }
-
-            m_Engine->Render();
-
-            if (renderSystem) {
-                renderSystem->SetShowColliders(savedShowColliders);
-                renderSystem->SetShowDebug(savedShowDebug);
-            }
-        }
-
-        EndMode2D();
-
-        EndTextureMode();
-
-        Rectangle sourceRec{
-            0.0f, 0.0f,
-            static_cast<float>(m_GameViewportTexture.texture.width),
-            -static_cast<float>(m_GameViewportTexture.texture.height)
-        };
-
-        rlImGuiImageRect(&m_GameViewportTexture.texture,
-                        static_cast<int>(viewportPanelSize.x),
-                        static_cast<int>(viewportPanelSize.y),
-                        sourceRec);
-    }
-
-    if (m_EditorState == EditorState::Play) {
-        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
-            ImGuiIO& io = ImGui::GetIO();
-            io.WantCaptureMouse = false;
-            io.WantCaptureKeyboard = false;
-        }
-    }
-
-    ImGui::End();
-    ImGui::PopStyleVar();
-}
-
 void EditorLayer::OnPlayButtonPressed() {
     if (m_Engine && m_Engine->GetActiveScene()) {
         if (m_CurrentScenePath.empty()) {
@@ -2400,8 +2996,11 @@ void EditorLayer::OnPlayButtonPressed() {
         m_Engine->CreatePhysicsBodies();
         m_Engine->SetPhysicsEnabled(true);
         m_Engine->SetScriptsEnabled(true);
+        m_Engine->SetAnimationEnabled(true);
 
-        TraceLog(LOG_INFO, "Play mode started with memory snapshot");
+        AnimationSystem::ResetAnimators(scene->GetRegistry());
+
+        PX_LOG_INFO(EDITOR, "Play mode started with memory snapshot");
     }
 }
 
@@ -2409,6 +3008,7 @@ void EditorLayer::OnStopButtonPressed() {
     if (m_Engine && m_Engine->GetActiveScene()) {
         m_Engine->SetPhysicsEnabled(false);
         m_Engine->SetScriptsEnabled(false);
+        m_Engine->SetAnimationEnabled(false);
         m_Engine->DestroyAllPhysicsBodies();
 
         if (!m_PlayModeSnapshot.empty()) {
@@ -2465,11 +3065,11 @@ void EditorLayer::OnStopButtonPressed() {
                             }
                         }
                     } catch (const nlohmann::json::exception& e) {
-                        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+                        PX_LOG_ERROR(EDITOR, "Failed to restore script properties: %s", e.what());
                     }
                 }
 
-                TraceLog(LOG_INFO, "Scene restored from memory snapshot - edit mode");
+                PX_LOG_INFO(EDITOR, "Scene restored from memory snapshot - edit mode");
             }
         } else {
             m_EditorState = EditorState::Edit;
@@ -2489,7 +3089,7 @@ void EditorLayer::NewScene() {
         m_SelectedEntity = entt::null;
         m_CommandHistory.Clear();
 
-        TraceLog(LOG_INFO, "New scene created");
+        PX_LOG_INFO(EDITOR, "New scene created");
     }
 }
 
@@ -2532,7 +3132,7 @@ void EditorLayer::LoadScene() {
     }
 
     if (m_CurrentScenePath.empty()) {
-        TraceLog(LOG_WARNING, "No scene path set. Save the scene first.");
+        PX_LOG_WARNING(EDITOR, "No scene path set. Save the scene first.");
         return;
     }
 
@@ -2871,19 +3471,42 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
             changed = true;
         }
 
-        const auto& allAssets = AssetRegistry::Instance().GetAllAssets();
-        for (const auto& [assetUUID, asset] : allAssets) {
-            if (asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
-                bool isSelected = (uuid->Get() == assetUUID.Get());
-                std::string itemLabel = asset->GetMetadata().name;
+        const auto& allKnownPaths = AssetRegistry::Instance().GetAllKnownAssetPaths();
+        for (const auto& [assetUUID, assetPath] : allKnownPaths) {
+            std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(assetUUID);
 
-                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                    *uuid = assetUUID;
-                    changed = true;
+            if (asset) {
+                AssetType assetTypeEnum = asset->GetMetadata().type;
+                bool matchesFilter = false;
+
+                if (assetType == "texture" && assetTypeEnum == AssetType::Texture) {
+                    matchesFilter = true;
+                } else if (assetType == "AnimatorController" && assetTypeEnum == AssetType::AnimatorController) {
+                    matchesFilter = true;
+                } else if (assetType == "SpriteSheet" && assetTypeEnum == AssetType::SpriteSheet) {
+                    matchesFilter = true;
+                } else if (assetType == "AnimationClip" && assetTypeEnum == AssetType::AnimationClip) {
+                    matchesFilter = true;
+                } else if (assetType == "Audio" && assetTypeEnum == AssetType::Audio) {
+                    matchesFilter = true;
                 }
 
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
+                if (matchesFilter) {
+                    ImGui::PushID(static_cast<int>(assetUUID.Get()));
+
+                    bool isSelected = (uuid->Get() == assetUUID.Get());
+                    std::string itemLabel = asset->GetMetadata().name;
+
+                    if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                        *uuid = assetUUID;
+                        changed = true;
+                    }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+
+                    ImGui::PopID();
                 }
             }
         }
@@ -2975,6 +3598,57 @@ void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
     }
 }
 
+void EditorLayer::UpdateAnimatorPreviewInEditMode() {
+    if (!m_Engine || !m_Engine->GetActiveScene()) {
+        return;
+    }
+
+    Scene* scene = m_Engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+
+    auto view = registry.view<Animator, Sprite>();
+    for (entt::entity entity : view) {
+        Animator& animator = view.get<Animator>(entity);
+        Sprite& sprite = view.get<Sprite>(entity);
+
+        if (animator.controllerUUID.Get() == 0) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> controllerAsset = AssetRegistry::Instance().GetAsset(animator.controllerUUID);
+        AnimatorController* controller = dynamic_cast<AnimatorController*>(controllerAsset.get());
+        if (!controller) {
+            continue;
+        }
+
+        std::string defaultStateName = controller->GetDefaultState();
+        const AnimatorState* defaultState = controller->GetState(defaultStateName);
+        if (!defaultState || defaultState->animationClipUUID.Get() == 0) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(defaultState->animationClipUUID);
+        AnimationClip* clip = dynamic_cast<AnimationClip*>(clipAsset.get());
+        if (!clip || clip->GetFrames().empty()) {
+            continue;
+        }
+
+        std::shared_ptr<Asset> sheetAsset = AssetRegistry::Instance().GetAsset(clip->GetSpriteSheetUUID());
+        SpriteSheet* sheet = dynamic_cast<SpriteSheet*>(sheetAsset.get());
+        if (!sheet) {
+            continue;
+        }
+
+        const AnimationFrame& firstFrame = clip->GetFrames()[0];
+        const SpriteFrame* spriteFrame = sheet->GetFrame(firstFrame.frameIndex);
+        if (spriteFrame) {
+            sprite.textureAssetUUID = sheet->GetTextureUUID();
+            sprite.sourceRect = spriteFrame->sourceRect;
+            sprite.origin = spriteFrame->pivot;
+        }
+    }
+}
+
 entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
     if (!m_Engine || !m_Engine->GetActiveScene()) {
         return entt::null;
@@ -3056,7 +3730,7 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         registry.emplace<Script>(newEntity, newScript);
     }
 
-    TraceLog(LOG_INFO, "Entity duplicated with all components");
+    PX_LOG_INFO(EDITOR, "Entity duplicated with all components");
 
     return newEntity;
 }
@@ -3074,7 +3748,7 @@ void EditorLayer::CopyEntity(entt::entity entity) {
     }
 
     m_CopiedEntity = entity;
-    TraceLog(LOG_INFO, "Entity copied to clipboard");
+    PX_LOG_INFO(EDITOR, "Entity copied to clipboard");
 }
 
 void EditorLayer::PasteEntity() {
@@ -3097,7 +3771,7 @@ void EditorLayer::PasteEntity() {
     entt::entity newEntity = DuplicateEntity(m_CopiedEntity);
     m_SelectedEntity = newEntity;
 
-    TraceLog(LOG_INFO, "Entity pasted");
+    PX_LOG_INFO(EDITOR, "Entity pasted");
 }
 
 void EditorLayer::RenderProfiler() {

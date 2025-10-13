@@ -1,6 +1,10 @@
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Animation/SpriteSheet.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimatorController.hpp"
+#include "Core/Logger.hpp"
 #include <raylib.h>
 #include <cinttypes>
 #include <cstring>
@@ -23,7 +27,7 @@ void AssetRegistry::Initialize() {
     m_Importer.LoadUUIDCache();
     m_IsInitialized = true;
 
-    TraceLog(LOG_INFO, "AssetRegistry initialized");
+    PX_LOG_INFO(ASSET, "AssetRegistry initialized");
 }
 
 void AssetRegistry::Shutdown() {
@@ -35,7 +39,7 @@ void AssetRegistry::Shutdown() {
     m_Importer.SaveUUIDCache();
     m_IsInitialized = false;
 
-    TraceLog(LOG_INFO, "AssetRegistry shutdown");
+    PX_LOG_INFO(ASSET, "AssetRegistry shutdown");
 }
 
 std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
@@ -48,7 +52,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
 
     auto pathIt = m_UUIDToPath.find(uuid);
     if (pathIt == m_UUIDToPath.end()) {
-        TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, uuid.Get());
+        PX_LOG_WARNING(ASSET, "Asset not found in registry: %" PRIu64, uuid.Get());
         return nullptr;
     }
 
@@ -61,6 +65,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
         if (package.LoadFromMemory(cacheIt->second.data(), cacheIt->second.size(), metadata, data)) {
             auto asset = CreateAsset(metadata.type, metadata.uuid, metadata.name);
             if (asset) {
+                metadata.sourceFile = pathIt->second;
                 asset->SetMetadata(metadata);
                 if (asset->Load(data.data(), data.size())) {
                     m_Assets[metadata.uuid] = asset;
@@ -71,7 +76,7 @@ std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
     }
 
     std::string packagePath = AssetPackage::GetPackagePath(pathIt->second);
-    return LoadAssetFromPackage(packagePath);
+    return LoadAssetFromPackage(packagePath, pathIt->second);
 }
 
 std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path) {
@@ -85,14 +90,14 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path)
 
     auto result = m_Importer.ImportAsset(path);
     if (!result.success) {
-        TraceLog(LOG_ERROR, "Failed to import asset: %s", path.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to import asset: %s", path.c_str());
         return nullptr;
     }
 
     m_PathToUUID[normalizedPath] = result.uuid;
     m_UUIDToPath[result.uuid] = normalizedPath;
 
-    return LoadAssetFromPackage(result.packagePath);
+    return LoadAssetFromPackage(result.packagePath, normalizedPath);
 }
 
 std::shared_ptr<Asset> AssetRegistry::GetAsset(UUID uuid) {
@@ -100,6 +105,12 @@ std::shared_ptr<Asset> AssetRegistry::GetAsset(UUID uuid) {
     if (it != m_Assets.end()) {
         return it->second;
     }
+
+    auto pathIt = m_UUIDToPath.find(uuid);
+    if (pathIt != m_UUIDToPath.end()) {
+        return LoadAsset(uuid);
+    }
+
     return nullptr;
 }
 
@@ -136,7 +147,7 @@ void AssetRegistry::ImportDirectory(const std::string& directory) {
         }
     }
 
-    TraceLog(LOG_INFO, "Imported directory: %s", directory.c_str());
+    PX_LOG_INFO(ASSET, "Imported directory: %s", directory.c_str());
 }
 
 void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
@@ -149,47 +160,48 @@ void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
             m_Assets.erase(it);
         }
 
-        TraceLog(LOG_INFO, "Reimported asset: %s", sourcePath.c_str());
+        std::string normalizedPath = sourcePath;
+        std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+        m_PathToUUID[normalizedPath] = result.uuid;
+        m_UUIDToPath[result.uuid] = normalizedPath;
+
+        PX_LOG_INFO(ASSET, "Reimported asset: %s (UUID: %" PRIu64 ")", sourcePath.c_str(), result.uuid.Get());
     }
 }
 
 void AssetRegistry::RegisterExtractedAssets() {
-    std::string cachePath = "datas/.asset_uuid_cache";
-    if (!std::filesystem::exists(cachePath)) {
-        TraceLog(LOG_WARNING, "UUID cache not found at: %s", cachePath.c_str());
-        return;
-    }
+    PX_LOG_INFO(ASSET, "Scanning for .pxa assets in content/...");
 
-    std::ifstream cacheFile{cachePath, std::ios::binary};
-    if (!cacheFile.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open UUID cache: %s", cachePath.c_str());
-        return;
+    std::vector<std::filesystem::path> pxaFiles;
+    try {
+        std::filesystem::path contentPath = "content";
+        if (std::filesystem::exists(contentPath)) {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(contentPath)) {
+                if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
+                    pxaFiles.push_back(entry.path());
+                }
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        PX_LOG_ERROR(ASSET, "Failed to scan content directory: %s", e.what());
     }
-
-    uint32_t count = 0;
-    cacheFile.read(reinterpret_cast<char*>(&count), sizeof(count));
 
     size_t registeredCount = 0;
-    for (uint32_t i = 0; i < count; ++i) {
-        uint32_t pathLen = 0;
-        cacheFile.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
+    for (const auto& pxaPath : pxaFiles) {
+        AssetMetadata metadata{};
+        AssetPackage package{};
 
-        std::string sourcePath(pathLen, '\0');
-        cacheFile.read(&sourcePath[0], pathLen);
+        if (package.LoadMetadataOnly(pxaPath.string(), metadata)) {
+            std::string normalizedPath = metadata.sourceFile;
+            std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
-        uint64_t uuidValue = 0;
-        cacheFile.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
-
-        std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
-
-        UUID uuid{uuidValue};
-        m_UUIDToPath[uuid] = sourcePath;
-        m_PathToUUID[sourcePath] = uuid;
-        registeredCount++;
+            m_UUIDToPath[metadata.uuid] = normalizedPath;
+            m_PathToUUID[normalizedPath] = metadata.uuid;
+            registeredCount++;
+        }
     }
 
-    cacheFile.close();
-    TraceLog(LOG_INFO, "Registered %zu assets from UUID cache", registeredCount);
+    PX_LOG_INFO(ASSET, "Registered %llu assets from .pxa files", static_cast<unsigned long long>(registeredCount));
 }
 
 void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallback callback) {
@@ -204,7 +216,7 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
             }
         }
     } catch (const fs::filesystem_error& e) {
-        TraceLog(LOG_ERROR, "Filesystem error during scan: %s", e.what());
+        PX_LOG_ERROR(ASSET, "Filesystem error during scan: %s", e.what());
         return;
     }
 
@@ -228,7 +240,7 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
         }
     }
 
-    TraceLog(LOG_INFO, "Scanned %zu .pxa files from %s", total, rootPath.c_str());
+    PX_LOG_INFO(ASSET, "Scanned %llu .pxa files from %s", static_cast<unsigned long long>(total), rootPath.c_str());
 }
 
 bool AssetRegistry::IsAssetLoaded(UUID uuid) const {
@@ -270,6 +282,10 @@ const std::unordered_map<UUID, std::shared_ptr<Asset>>& AssetRegistry::GetAllAss
     return m_Assets;
 }
 
+const std::unordered_map<UUID, std::string>& AssetRegistry::GetAllKnownAssetPaths() const {
+    return m_UUIDToPath;
+}
+
 size_t AssetRegistry::GetTotalMemoryUsage() const {
     size_t total = 0;
     for (const auto& [uuid, asset] : m_Assets) {
@@ -289,19 +305,25 @@ std::shared_ptr<Asset> AssetRegistry::CreateAsset(AssetType type, UUID uuid, con
             return std::make_shared<TextureAsset>(uuid, name);
         case AssetType::Audio:
             return std::make_shared<AudioAsset>(uuid, name);
+        case AssetType::SpriteSheet:
+            return std::make_shared<SpriteSheet>(uuid, name);
+        case AssetType::AnimationClip:
+            return std::make_shared<AnimationClip>(uuid, name);
+        case AssetType::AnimatorController:
+            return std::make_shared<AnimatorController>(uuid, name);
         default:
-            TraceLog(LOG_ERROR, "Unsupported asset type: %d", static_cast<int>(type));
+            PX_LOG_ERROR(ASSET, "Unsupported asset type: %d", static_cast<int>(type));
             return nullptr;
     }
 }
 
-std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath) {
+std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath, const std::string& sourcePath) {
     AssetMetadata metadata{};
     std::vector<uint8_t> data{};
 
     AssetPackage package{};
     if (!package.LoadFromFile(packagePath, metadata, data)) {
-        TraceLog(LOG_ERROR, "Failed to load package: %s", packagePath.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to load package: %s", packagePath.c_str());
         return nullptr;
     }
 
@@ -310,21 +332,22 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
         return nullptr;
     }
 
+    metadata.sourceFile = sourcePath;
     asset->SetMetadata(metadata);
 
     if (!asset->Load(data.data(), data.size())) {
-        TraceLog(LOG_ERROR, "Failed to load asset data: %s", metadata.name.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to load asset data: %s", metadata.name.c_str());
         return nullptr;
     }
 
-    std::string normalizedPath = metadata.sourceFile;
+    std::string normalizedPath = sourcePath;
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
     m_Assets[metadata.uuid] = asset;
     m_UUIDToPath[metadata.uuid] = normalizedPath;
     m_PathToUUID[normalizedPath] = metadata.uuid;
 
-    TraceLog(LOG_INFO, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
+    PX_LOG_INFO(ASSET, "Loaded asset: %s (UUID: %" PRIu64 ")", metadata.name.c_str(), metadata.uuid.Get());
     return asset;
 }
 
@@ -365,7 +388,7 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
         registeredCount++;
     }
 
-    TraceLog(LOG_INFO, "Loaded UUID cache from memory: %zu entries", registeredCount);
+    PX_LOG_INFO(ASSET, "Loaded UUID cache from memory: %llu entries", static_cast<unsigned long long>(registeredCount));
 }
 
 void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,

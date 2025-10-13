@@ -16,7 +16,10 @@ enum class AssetType : uint16_t {
     Prefab = 4,
     Material = 5,
     Shader = 6,
-    Font = 7
+    Font = 7,
+    SpriteSheet = 8,
+    AnimationClip = 9,
+    AnimatorController = 10
 };
 
 struct AssetMetadata {
@@ -24,6 +27,7 @@ struct AssetMetadata {
     AssetType type{AssetType::Unknown};
     std::string name;
     std::string sourceFile;
+    std::string sourceExtension;
     uint64_t importTimestamp{0};
     uint64_t sourceTimestamp{0};
     uint32_t version{1};
@@ -45,6 +49,7 @@ public:
     [[nodiscard]] const AssetMetadata& GetMetadata() const { return m_Metadata; }
 
     void SetMetadata(const AssetMetadata& metadata) { m_Metadata = metadata; }
+    void SetUUID(UUID uuid) { m_Metadata.uuid = uuid; }
 
     [[nodiscard]] bool IsLoaded() const { return m_IsLoaded; }
     [[nodiscard]] bool IsValid() const { return m_Metadata.uuid.Get() != 0; }

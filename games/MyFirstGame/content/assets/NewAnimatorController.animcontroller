@@ -1,0 +1,48 @@
+{
+    "defaultState": "NewState",
+    "name": "NewAnimatorController",
+    "parameters": [
+        {
+            "defaultValue": false,
+            "name": "NewParameter2",
+            "type": 3
+        }
+    ],
+    "states": [
+        {
+            "animationClipUUID": 5834419731261374628,
+            "editorPosition": [
+                88.0,
+                48.0
+            ],
+            "name": "NewState",
+            "speed": 1.0
+        },
+        {
+            "animationClipUUID": 0,
+            "editorPosition": [
+                487.0,
+                68.0
+            ],
+            "name": "NewState2",
+            "speed": 1.0
+        }
+    ],
+    "transitions": [
+        {
+            "conditions": [
+                {
+                    "parameterName": "NewParameter2",
+                    "type": 2,
+                    "value": false
+                }
+            ],
+            "exitTime": 0.75,
+            "fromState": "NewState",
+            "hasExitTime": false,
+            "toState": "NewState2",
+            "transitionDuration": 0.25
+        }
+    ],
+    "uuid": 9497018237499991909
+}

@@ -4,7 +4,9 @@
 #include "ScriptComponent.hpp"
 #include "Scene/Scene.hpp"
 #include "Components/RigidBody2D.hpp"
+#include "Components/Animator.hpp"
 #include "Physics/RigidBodyHandle.hpp"
+#include "Animation/AnimatorHandle.hpp"
 
 namespace PiiXeL {
 
@@ -27,6 +29,21 @@ inline std::optional<RigidBodyHandle> ScriptComponent::GetHandle<RigidBody2D>() 
 
     RigidBody2D* rb = &registry.get<RigidBody2D>(m_Entity);
     return RigidBodyHandle{m_Scene, m_Entity, rb};
+}
+
+template<>
+inline std::optional<AnimatorHandle> ScriptComponent::GetHandle<Animator>() {
+    if (!m_Scene || m_Entity == entt::null) {
+        return std::nullopt;
+    }
+
+    entt::registry& registry = m_Scene->GetRegistry();
+    if (!registry.all_of<Animator>(m_Entity)) {
+        return std::nullopt;
+    }
+
+    Animator* animator = &registry.get<Animator>(m_Entity);
+    return AnimatorHandle{m_Scene, m_Entity, animator};
 }
 
 } // namespace PiiXeL
