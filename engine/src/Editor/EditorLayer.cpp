@@ -7,6 +7,7 @@
 #include "Editor/AnimationClipEditorPanel.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
 #include "Resources/AssetRegistry.hpp"
+#include "Resources/AssetImporter.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
 #include "Animation/AnimationSerializer.hpp"
@@ -1930,6 +1931,10 @@ void EditorLayer::RenderContentBrowser() {
                 std::string newPath = currentPath + "/" + name + ".spritesheet";
                 SpriteSheet spriteSheet{UUID{}, name};
                 AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
+
+                AssetImporter importer{};
+                importer.ImportAsset(newPath);
+
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created sprite sheet: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
@@ -1963,6 +1968,10 @@ void EditorLayer::RenderContentBrowser() {
                 std::string newPath = currentPath + "/" + name + ".animclip";
                 AnimationClip clip{UUID{}, name};
                 AnimationSerializer::SerializeAnimationClip(clip, newPath);
+
+                AssetImporter importer{};
+                importer.ImportAsset(newPath);
+
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created animation clip: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
@@ -1996,6 +2005,10 @@ void EditorLayer::RenderContentBrowser() {
                 std::string newPath = currentPath + "/" + name + ".animcontroller";
                 AnimatorController controller{UUID{}, name};
                 AnimationSerializer::SerializeAnimatorController(controller, newPath);
+
+                AssetImporter importer{};
+                importer.ImportAsset(newPath);
+
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created animator controller: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
