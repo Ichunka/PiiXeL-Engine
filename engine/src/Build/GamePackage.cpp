@@ -158,8 +158,8 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
         m_Config = packageJson["config"];
     }
 
-    PX_LOG_INFO(BUILD, "Game package loaded: %s (%zu scenes, %zu assets)",
-             filepath.c_str(), m_Scenes.size(), m_Assets.size());
+    PX_LOG_INFO(BUILD, "Game package loaded: %s (%llu scenes, %llu assets)",
+             filepath.c_str(), static_cast<unsigned long long>(m_Scenes.size()), static_cast<unsigned long long>(m_Assets.size()));
     return true;
 }
 

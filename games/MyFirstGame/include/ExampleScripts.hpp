@@ -9,6 +9,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/Animator.hpp"
 #include "Reflection/Reflection.hpp"
+#include "Core/Logger.hpp"
 #include <raylib.h>
 
 class PlayerController : public PiiXeL::ScriptComponent {
@@ -21,11 +22,11 @@ public:
 
 protected:
     void OnAwake() override {
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Awake!");
+        PX_LOG_INFO(GAME, "PlayerController: Awake!");
     }
 
     void OnStart() override {
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Start!");
+        PX_LOG_INFO(GAME, "PlayerController: Start!");
     }
 
     void OnUpdate(float deltaTime) override {
@@ -53,7 +54,7 @@ protected:
 
     void OnCollisionEnter(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Enter!");
+        PX_LOG_INFO(GAME, "PlayerController: Collision Enter!");
     }
 
     void OnCollisionStay(entt::entity other) override {
@@ -62,12 +63,12 @@ protected:
 
     void OnCollisionExit(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Collision Exit!");
+        PX_LOG_INFO(GAME, "PlayerController: Collision Exit!");
     }
 
     void OnTriggerEnter(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Enter - Collected item!");
+        PX_LOG_INFO(GAME, "PlayerController: Trigger Enter - Collected item!");
     }
 
     void OnTriggerStay(entt::entity other) override {
@@ -76,7 +77,7 @@ protected:
 
     void OnTriggerExit(entt::entity other) override {
         (void)other;
-        TraceLog(LOG_INFO, "[GAME] PlayerController: Trigger Exit!");
+        PX_LOG_INFO(GAME, "PlayerController: Trigger Exit!");
     }
 };
 
@@ -178,7 +179,7 @@ protected:
 
         if (m_Animator) {
             m_Animator->Play();
-            TraceLog(LOG_INFO, "[AnimatedCharacter] Animator initialized");
+            PX_LOG_INFO(GAME, "AnimatedCharacter: Animator initialized");
         }
     }
 

@@ -213,7 +213,7 @@ void GamePackageLoader::InitializeAssetRegistry() {
         }
     }
 
-    PX_LOG_INFO(BUILD, "Registered %zu .pxa assets from package (in-memory)", registeredCount);
+    PX_LOG_INFO(BUILD, "Registered %llu .pxa assets from package (in-memory)", static_cast<unsigned long long>(registeredCount));
 }
 
 } // namespace PiiXeL

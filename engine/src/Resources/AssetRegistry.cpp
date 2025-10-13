@@ -201,7 +201,7 @@ void AssetRegistry::RegisterExtractedAssets() {
         }
     }
 
-    PX_LOG_INFO(ASSET, "Registered %zu assets from .pxa files", registeredCount);
+    PX_LOG_INFO(ASSET, "Registered %llu assets from .pxa files", static_cast<unsigned long long>(registeredCount));
 }
 
 void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallback callback) {
@@ -240,7 +240,7 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
         }
     }
 
-    PX_LOG_INFO(ASSET, "Scanned %zu .pxa files from %s", total, rootPath.c_str());
+    PX_LOG_INFO(ASSET, "Scanned %llu .pxa files from %s", static_cast<unsigned long long>(total), rootPath.c_str());
 }
 
 bool AssetRegistry::IsAssetLoaded(UUID uuid) const {
@@ -388,7 +388,7 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
         registeredCount++;
     }
 
-    PX_LOG_INFO(ASSET, "Loaded UUID cache from memory: %zu entries", registeredCount);
+    PX_LOG_INFO(ASSET, "Loaded UUID cache from memory: %llu entries", static_cast<unsigned long long>(registeredCount));
 }
 
 void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,

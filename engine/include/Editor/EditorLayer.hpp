@@ -150,6 +150,17 @@ private:
     bool m_ConsoleShowInfo{true};
     bool m_ConsoleShowWarning{true};
     bool m_ConsoleShowError{true};
+    bool m_ConsoleShowCategoryEngine{true};
+    bool m_ConsoleShowCategoryAsset{true};
+    bool m_ConsoleShowCategoryEditor{true};
+    bool m_ConsoleShowCategoryPhysics{true};
+    bool m_ConsoleShowCategoryRender{true};
+    bool m_ConsoleShowCategoryScene{true};
+    bool m_ConsoleShowCategoryScript{true};
+    bool m_ConsoleShowCategoryAnimation{true};
+    bool m_ConsoleShowCategoryBuild{true};
+    bool m_ConsoleShowCategoryGame{true};
+    bool m_ConsoleShowCategoryUnknown{true};
     bool m_ConsoleAutoScroll{true};
     int m_ConsoleSelectedTab{0}; // 0=All, 1=Engine, 2=Game
     std::vector<int> m_ConsoleSelectedLines;

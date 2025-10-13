@@ -1,18 +1,26 @@
 #include "Core/Logger.hpp"
+#include <cstdio>
+#include <cstdarg>
+
+#ifdef BUILD_WITH_EDITOR
+#include "Editor/ConsoleLogger.hpp"
+#include <raylib.h>
+#endif
 
 namespace PiiXeL {
 
-bool Logger::s_CategoryEnabled[11] = {
-    true,  // ENGINE
-    true,  // ASSET
-    true,  // EDITOR
-    true,  // PHYSICS
-    true,  // RENDER
-    true,  // SCENE
-    true,  // SCRIPT
-    true,  // ANIMATION
-    true,  // BUILD
-    true   // GAME
+bool Logger::s_CategoryEnabled[12] = {
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
 };
 
 bool Logger::IsCategoryEnabled(LogCategory category) {
@@ -35,8 +43,37 @@ const char* Logger::GetCategoryName(LogCategory category) {
         case LogCategory::ANIMATION: return "ANIMATION";
         case LogCategory::BUILD:     return "BUILD";
         case LogCategory::GAME:      return "GAME";
+        case LogCategory::UNKNOWN:   return "UNKNOWN";
         default:                     return "UNKNOWN";
     }
+}
+
+void Logger::LogMessage(LogLevel level, LogCategory category, const char* format, ...) {
+    const char* levelStr{};
+    FILE* output{stdout};
+
+    switch (level) {
+        case LogLevel::Trace:   levelStr = "TRACE"; break;
+        case LogLevel::Debug:   levelStr = "DEBUG"; break;
+        case LogLevel::Info:    levelStr = "INFO"; break;
+        case LogLevel::Warning: levelStr = "WARNING"; output = stderr; break;
+        case LogLevel::Error:   levelStr = "ERROR"; output = stderr; break;
+    }
+
+    const char* categoryStr{GetCategoryName(category)};
+
+    char buffer[4096];
+    std::va_list args;
+    va_start(args, format);
+    std::vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    std::fprintf(output, "%s: [%s] %s\n", levelStr, categoryStr, buffer);
+    std::fflush(output);
+
+#ifdef BUILD_WITH_EDITOR
+    ConsoleLogger::Instance().AddLog(buffer, level, LogSource::Runtime, category, static_cast<float>(GetTime()));
+#endif
 }
 
 } // namespace PiiXeL

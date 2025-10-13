@@ -193,6 +193,13 @@ void AssetImporter::LoadUUIDCache() {
     uint32_t count = 0;
     file.read(reinterpret_cast<char*>(&count), sizeof(count));
 
+    if (!file || count > 1000000) {
+        PX_LOG_WARNING(ASSET, "UUID cache corrupted or invalid count: %u", count);
+        file.close();
+        std::filesystem::remove(cachePath);
+        return;
+    }
+
     m_UUIDCache.clear();
     m_UUIDCache.reserve(count);
 
@@ -200,18 +207,43 @@ void AssetImporter::LoadUUIDCache() {
         uint32_t pathLen = 0;
         file.read(reinterpret_cast<char*>(&pathLen), sizeof(pathLen));
 
+        if (!file || pathLen > 8192) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         std::vector<char> pathBuffer(pathLen + 1, '\0');
         file.read(pathBuffer.data(), pathLen);
+
+        if (!file) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted reading path at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         std::string path{pathBuffer.data()};
 
         uint64_t uuidValue = 0;
         file.read(reinterpret_cast<char*>(&uuidValue), sizeof(uuidValue));
 
+        if (!file) {
+            PX_LOG_WARNING(ASSET, "UUID cache corrupted reading UUID at entry %u", i);
+            file.close();
+            std::filesystem::remove(cachePath);
+            m_UUIDCache.clear();
+            return;
+        }
+
         m_UUIDCache[path] = UUID{uuidValue};
     }
 
     file.close();
-    PX_LOG_INFO(ASSET, "Loaded UUID cache: %u entries", count);
+    PX_LOG_INFO(ASSET, "Loaded UUID cache: %llu entries", static_cast<unsigned long long>(m_UUIDCache.size()));
 }
 
 AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sourcePath, UUID uuid) {

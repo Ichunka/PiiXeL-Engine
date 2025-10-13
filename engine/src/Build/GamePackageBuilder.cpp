@@ -470,7 +470,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         }
     }
 
-    PX_LOG_INFO(BUILD, "UUID registry contains %zu entries", uuidToPath.size());
+    PX_LOG_INFO(BUILD, "UUID registry contains %llu entries", static_cast<unsigned long long>(uuidToPath.size()));
 
     std::vector<uint64_t> processingQueue = uuidsToProcess;
     size_t queueIndex = 0;

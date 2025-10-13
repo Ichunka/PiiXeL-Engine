@@ -2274,6 +2274,7 @@ void EditorLayer::RenderConsole() {
                     const auto& log = logs[selectedIdx];
 
                     const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
+                    const char* categoryStr = Logger::GetCategoryName(log.category);
                     const char* levelStr;
                     switch (log.level) {
                         case LogLevel::Trace:   levelStr = "[TRACE]"; break;
@@ -2286,6 +2287,9 @@ void EditorLayer::RenderConsole() {
 
                     clipboardText += sourceStr;
                     clipboardText += " ";
+                    clipboardText += "[";
+                    clipboardText += categoryStr;
+                    clipboardText += "] ";
                     clipboardText += levelStr;
                     clipboardText += " ";
                     clipboardText += log.message;
@@ -2298,28 +2302,148 @@ void EditorLayer::RenderConsole() {
     }
 
     ImGui::SameLine();
+    if (ImGui::Button("Copy All Filtered")) {
+        std::string clipboardText;
+        const auto& logs = ConsoleLogger::Instance().GetLogs();
+
+        for (size_t i = 0; i < logs.size(); ++i) {
+            const auto& log = logs[i];
+
+            bool showByLevel = false;
+            switch (log.level) {
+                case LogLevel::Trace:   showByLevel = m_ConsoleShowTrace; break;
+                case LogLevel::Debug:   showByLevel = m_ConsoleShowDebug; break;
+                case LogLevel::Info:    showByLevel = m_ConsoleShowInfo; break;
+                case LogLevel::Warning: showByLevel = m_ConsoleShowWarning; break;
+                case LogLevel::Error:   showByLevel = m_ConsoleShowError; break;
+            }
+
+            if (!showByLevel) continue;
+
+            bool showBySource = false;
+            if (m_ConsoleSelectedTab == 0) {
+                showBySource = true;
+            } else if (m_ConsoleSelectedTab == 1 && log.source == LogSource::Engine) {
+                showBySource = true;
+            } else if (m_ConsoleSelectedTab == 2 && log.source == LogSource::Game) {
+                showBySource = true;
+            }
+
+            if (!showBySource) continue;
+
+            bool showByCategory = false;
+            switch (log.category) {
+                case LogCategory::ENGINE:    showByCategory = m_ConsoleShowCategoryEngine; break;
+                case LogCategory::ASSET:     showByCategory = m_ConsoleShowCategoryAsset; break;
+                case LogCategory::EDITOR:    showByCategory = m_ConsoleShowCategoryEditor; break;
+                case LogCategory::PHYSICS:   showByCategory = m_ConsoleShowCategoryPhysics; break;
+                case LogCategory::RENDER:    showByCategory = m_ConsoleShowCategoryRender; break;
+                case LogCategory::SCENE:     showByCategory = m_ConsoleShowCategoryScene; break;
+                case LogCategory::SCRIPT:    showByCategory = m_ConsoleShowCategoryScript; break;
+                case LogCategory::ANIMATION: showByCategory = m_ConsoleShowCategoryAnimation; break;
+                case LogCategory::BUILD:     showByCategory = m_ConsoleShowCategoryBuild; break;
+                case LogCategory::GAME:      showByCategory = m_ConsoleShowCategoryGame; break;
+                case LogCategory::UNKNOWN:   showByCategory = m_ConsoleShowCategoryUnknown; break;
+            }
+
+            if (!showByCategory) continue;
+
+            const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
+            const char* categoryStr = Logger::GetCategoryName(log.category);
+            const char* levelStr;
+            switch (log.level) {
+                case LogLevel::Trace:   levelStr = "[TRACE]"; break;
+                case LogLevel::Debug:   levelStr = "[DEBUG]"; break;
+                case LogLevel::Info:    levelStr = "[INFO] "; break;
+                case LogLevel::Warning: levelStr = "[WARN] "; break;
+                case LogLevel::Error:   levelStr = "[ERROR]"; break;
+                default:                levelStr = "[?????]"; break;
+            }
+
+            clipboardText += sourceStr;
+            clipboardText += " ";
+            clipboardText += "[";
+            clipboardText += categoryStr;
+            clipboardText += "] ";
+            clipboardText += levelStr;
+            clipboardText += " ";
+            clipboardText += log.message;
+            clipboardText += "\n";
+        }
+
+        if (!clipboardText.empty()) {
+            ImGui::SetClipboardText(clipboardText.c_str());
+        }
+    }
+
+    ImGui::SameLine();
     ImGui::Checkbox("Auto-scroll", &m_ConsoleAutoScroll);
 
-    ImGui::SameLine();
     ImGui::Separator();
 
-    ImGui::SameLine();
-    ImGui::Text("Show:");
-
+    ImGui::Text("Level Filters:");
     ImGui::SameLine();
     ImGui::Checkbox("Trace", &m_ConsoleShowTrace);
-
     ImGui::SameLine();
     ImGui::Checkbox("Debug", &m_ConsoleShowDebug);
-
     ImGui::SameLine();
     ImGui::Checkbox("Info", &m_ConsoleShowInfo);
-
     ImGui::SameLine();
     ImGui::Checkbox("Warning", &m_ConsoleShowWarning);
-
     ImGui::SameLine();
     ImGui::Checkbox("Error", &m_ConsoleShowError);
+
+    ImGui::Text("Category Filters:");
+    ImGui::SameLine();
+    if (ImGui::SmallButton("All##Categories")) {
+        m_ConsoleShowCategoryEngine = true;
+        m_ConsoleShowCategoryAsset = true;
+        m_ConsoleShowCategoryEditor = true;
+        m_ConsoleShowCategoryPhysics = true;
+        m_ConsoleShowCategoryRender = true;
+        m_ConsoleShowCategoryScene = true;
+        m_ConsoleShowCategoryScript = true;
+        m_ConsoleShowCategoryAnimation = true;
+        m_ConsoleShowCategoryBuild = true;
+        m_ConsoleShowCategoryGame = true;
+        m_ConsoleShowCategoryUnknown = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("None##Categories")) {
+        m_ConsoleShowCategoryEngine = false;
+        m_ConsoleShowCategoryAsset = false;
+        m_ConsoleShowCategoryEditor = false;
+        m_ConsoleShowCategoryPhysics = false;
+        m_ConsoleShowCategoryRender = false;
+        m_ConsoleShowCategoryScene = false;
+        m_ConsoleShowCategoryScript = false;
+        m_ConsoleShowCategoryAnimation = false;
+        m_ConsoleShowCategoryBuild = false;
+        m_ConsoleShowCategoryGame = false;
+        m_ConsoleShowCategoryUnknown = false;
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox("ENGINE", &m_ConsoleShowCategoryEngine);
+    ImGui::SameLine();
+    ImGui::Checkbox("ASSET", &m_ConsoleShowCategoryAsset);
+    ImGui::SameLine();
+    ImGui::Checkbox("EDITOR", &m_ConsoleShowCategoryEditor);
+    ImGui::SameLine();
+    ImGui::Checkbox("PHYSICS", &m_ConsoleShowCategoryPhysics);
+    ImGui::SameLine();
+    ImGui::Checkbox("RENDER", &m_ConsoleShowCategoryRender);
+    ImGui::SameLine();
+    ImGui::Checkbox("SCENE", &m_ConsoleShowCategoryScene);
+    ImGui::SameLine();
+    ImGui::Checkbox("SCRIPT", &m_ConsoleShowCategoryScript);
+    ImGui::SameLine();
+    ImGui::Checkbox("ANIMATION", &m_ConsoleShowCategoryAnimation);
+    ImGui::SameLine();
+    ImGui::Checkbox("BUILD", &m_ConsoleShowCategoryBuild);
+    ImGui::SameLine();
+    ImGui::Checkbox("GAME", &m_ConsoleShowCategoryGame);
+    ImGui::SameLine();
+    ImGui::Checkbox("UNKNOWN", &m_ConsoleShowCategoryUnknown);
 
     ImGui::Separator();
 
@@ -2374,6 +2498,25 @@ void EditorLayer::RenderConsole() {
         }
 
         if (!showBySource) {
+            continue;
+        }
+
+        bool showByCategory = false;
+        switch (log.category) {
+            case LogCategory::ENGINE:    showByCategory = m_ConsoleShowCategoryEngine; break;
+            case LogCategory::ASSET:     showByCategory = m_ConsoleShowCategoryAsset; break;
+            case LogCategory::EDITOR:    showByCategory = m_ConsoleShowCategoryEditor; break;
+            case LogCategory::PHYSICS:   showByCategory = m_ConsoleShowCategoryPhysics; break;
+            case LogCategory::RENDER:    showByCategory = m_ConsoleShowCategoryRender; break;
+            case LogCategory::SCENE:     showByCategory = m_ConsoleShowCategoryScene; break;
+            case LogCategory::SCRIPT:    showByCategory = m_ConsoleShowCategoryScript; break;
+            case LogCategory::ANIMATION: showByCategory = m_ConsoleShowCategoryAnimation; break;
+            case LogCategory::BUILD:     showByCategory = m_ConsoleShowCategoryBuild; break;
+            case LogCategory::GAME:      showByCategory = m_ConsoleShowCategoryGame; break;
+            case LogCategory::UNKNOWN:   showByCategory = m_ConsoleShowCategoryUnknown; break;
+        }
+
+        if (!showByCategory) {
             continue;
         }
 
@@ -2449,13 +2592,20 @@ void EditorLayer::RenderConsole() {
         }
 
         ImVec4 sourceColor = (log.source == LogSource::Engine)
-            ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f}  // Blue for engine
-            : ImVec4{0.4f, 1.0f, 0.4f, 1.0f}; // Green for game
+            ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f}
+            : ImVec4{0.4f, 1.0f, 0.4f, 1.0f};
 
         const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
 
         ImGui::PushStyleColor(ImGuiCol_Text, sourceColor);
         ImGui::Text("%s", sourceStr);
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        ImVec4 categoryColor = ConsoleLogger::GetCategoryColor(log.category);
+        const char* categoryStr = Logger::GetCategoryName(log.category);
+        ImGui::PushStyleColor(ImGuiCol_Text, categoryColor);
+        ImGui::Text("[%s]", categoryStr);
         ImGui::PopStyleColor();
 
         ImGui::SameLine();

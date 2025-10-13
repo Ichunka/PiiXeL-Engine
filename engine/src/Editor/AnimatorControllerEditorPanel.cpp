@@ -522,7 +522,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             }
 
             if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID")) {
+                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID");
+                if (payload) {
                     UUID droppedUUID = *static_cast<const UUID*>(payload->Data);
                     std::string assetPath = AssetRegistry::Instance().GetPathFromUUID(droppedUUID);
                     if (!assetPath.empty() && assetPath.find(".animclip") != std::string::npos) {
@@ -531,22 +532,26 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                         Save();
                     }
                 }
-                else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
-                    AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
-                    if (assetInfo && assetInfo->type == "animclip") {
-                        PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
 
-                        if (assetInfo->uuid.Get() != 0) {
-                            state.animationClipUUID = assetInfo->uuid;
-                            PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
-                            Save();
-                        } else {
-                            PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
-                            std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
-                            if (asset) {
-                                state.animationClipUUID = asset->GetUUID();
-                                PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
+                if (!payload) {
+                    payload = ImGui::AcceptDragDropPayload("ASSET_ANIM");
+                    if (payload) {
+                        AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
+                        if (assetInfo && assetInfo->type == "animclip") {
+                            PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
+
+                            if (assetInfo->uuid.Get() != 0) {
+                                state.animationClipUUID = assetInfo->uuid;
+                                PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
                                 Save();
+                            } else {
+                                PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
+                                std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                                if (asset) {
+                                    state.animationClipUUID = asset->GetUUID();
+                                    PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
+                                    Save();
+                                }
                             }
                         }
                     }
