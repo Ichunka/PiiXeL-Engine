@@ -35,9 +35,13 @@ Texture2D Sprite::GetTexture() const {
     if (texture.id != 0) {
         Sprite* mutableThis = const_cast<Sprite*>(this);
 
-        if (m_LastLoadedTextureUUID != textureAssetUUID ||
-            (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f)) {
+        if ((m_LastLoadedTextureUUID != textureAssetUUID &&
+             (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f)) ||
+            (m_LastLoadedTextureUUID == UUID{0} &&
+             (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f))) {
             mutableThis->sourceRect = {0.0f, 0.0f, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+            m_LastLoadedTextureUUID = textureAssetUUID;
+        } else if (m_LastLoadedTextureUUID != textureAssetUUID) {
             m_LastLoadedTextureUUID = textureAssetUUID;
         }
     }

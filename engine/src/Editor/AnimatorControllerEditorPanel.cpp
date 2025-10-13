@@ -760,6 +760,18 @@ void AnimatorControllerEditorPanel::Save() {
     if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
         PX_LOG_INFO(EDITOR, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
+
+        UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(m_CurrentPath);
+        if (existingUUID.Get() != 0) {
+            std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
+            m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
+
+            if (m_Controller) {
+                PX_LOG_INFO(EDITOR, "AnimatorController reloaded after save");
+            } else {
+                PX_LOG_ERROR(EDITOR, "Failed to reload AnimatorController after save");
+            }
+        }
     } else {
         PX_LOG_ERROR(EDITOR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
     }

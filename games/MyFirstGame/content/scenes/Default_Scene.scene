@@ -138,16 +138,13 @@
             "uuid": 4612835490763123557
         },
         {
-            "BoxCollider2D": {
+            "CircleCollider2D": {
                 "isTrigger": false,
                 "offset": [
                     0.0,
                     0.0
                 ],
-                "size": [
-                    16.0,
-                    16.0
-                ]
+                "radius": 8.0
             },
             "RigidBody2D": {
                 "fixedRotation": false,
@@ -205,7 +202,7 @@
         },
         {
             "Animator": {
-                "controllerUUID": 12277132850455769561,
+                "controllerUUID": 14087063801697507855,
                 "isPlaying": true,
                 "playbackSpeed": 1.0
             },
@@ -227,6 +224,17 @@
                 "restitution": 0.0,
                 "type": 1
             },
+            "Scripts": [
+                {
+                    "enabled": true,
+                    "properties": {
+                        "groundCheckDistance": 5.0,
+                        "jumpForce": 500.0,
+                        "moveSpeed": 200.0
+                    },
+                    "scriptName": "AnimatedCharacter"
+                }
+            ],
             "Sprite": {
                 "layer": 0,
                 "origin": [

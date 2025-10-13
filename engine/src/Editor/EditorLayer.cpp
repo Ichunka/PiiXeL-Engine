@@ -28,6 +28,7 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Components/Script.hpp"
 #include "Components/Animator.hpp"
 #include "Scripting/ScriptComponent.hpp"
@@ -1260,6 +1261,42 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
+            if (registry.all_of<CircleCollider2D>(inspectedEntity)) {
+                ImGui::Separator();
+                bool removeCircleCollider = false;
+
+                ImGui::AlignTextToFramePadding();
+                bool circleColliderOpen = ImGui::TreeNodeEx("Circle Collider 2D", ImGuiTreeNodeFlags_DefaultOpen);
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
+                if (ImGui::SmallButton("X##RemoveCircleCollider")) {
+                    removeCircleCollider = true;
+                }
+
+                if (circleColliderOpen) {
+                    CircleCollider2D& collider = registry.get<CircleCollider2D>(inspectedEntity);
+
+                    Reflection::ImGuiRenderer::RenderProperties(collider, [this](const char* label, entt::entity* entity) {
+                        return RenderEntityPicker(label, entity);
+                    });
+
+                    if (registry.all_of<Sprite>(inspectedEntity)) {
+                        if (ImGui::Button("Fit to Sprite")) {
+                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
+                            Vector2 spriteSize = sprite.GetSize();
+                            collider.radius = std::max(spriteSize.x, spriteSize.y) * 0.5f;                            collider.offset = Vector2{0.0f, 0.0f};
+                        }
+                    }
+
+                    ImGui::TreePop();
+                }
+
+                if (removeCircleCollider) {
+                    m_CommandHistory.ExecuteCommand(
+                        std::make_unique<RemoveComponentCommand<CircleCollider2D>>(&registry, inspectedEntity)
+                    );
+                }
+            }
+
             if (registry.all_of<Script>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeScriptComponent = false;
@@ -1446,6 +1483,21 @@ void EditorLayer::RenderInspector() {
                         );
                     }
                 }
+                if (ImGui::MenuItem("Circle Collider 2D")) {
+                    if (!registry.all_of<CircleCollider2D>(inspectedEntity)) {
+                        CircleCollider2D collider{};
+
+                        if (registry.all_of<Sprite>(inspectedEntity)) {
+                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
+                            collider.radius = sprite.sourceRect.width * 0.5f;
+                        }
+
+                        m_CommandHistory.ExecuteCommand(
+                            std::make_unique<AddComponentCommand<CircleCollider2D>>(&registry, inspectedEntity, collider)
+                        );
+                    }
+                }
+
                 if (ImGui::MenuItem("Script")) {
                     if (!registry.all_of<Script>(inspectedEntity)) {
                         registry.emplace<Script>(inspectedEntity);
@@ -1652,6 +1704,14 @@ void EditorLayer::RenderContentBrowser() {
 
         for (size_t fileIdx = 0; fileIdx < files.size(); ++fileIdx) {
             AssetInfo& asset = files[fileIdx];
+
+            if (asset.uuid.Get() == 0) {
+                UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
+                if (existingUUID.Get() != 0) {
+                    asset.uuid = existingUUID;
+                }
+            }
+
             ImGui::PushID(static_cast<int>(directories.size() + fileIdx));
             ImGui::BeginGroup();
 
@@ -2007,7 +2067,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewScenePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewScenePopup) {
         ImGui::OpenPopup("New Scene");
         showNewScenePopup = false;
     }
@@ -2050,7 +2110,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewFolderPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewFolderPopup) {
         ImGui::OpenPopup("New Folder");
         showNewFolderPopup = false;
     }
@@ -2087,7 +2147,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewSpriteSheetPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewSpriteSheetPopup) {
         ImGui::OpenPopup("New Sprite Sheet");
         showNewSpriteSheetPopup = false;
     }
@@ -2133,7 +2193,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimClipPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewAnimClipPopup) {
         ImGui::OpenPopup("New Animation Clip");
         showNewAnimClipPopup = false;
     }
@@ -2179,7 +2239,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimControllerPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewAnimControllerPopup) {
         ImGui::OpenPopup("New Animator Controller");
         showNewAnimControllerPopup = false;
     }
@@ -2225,7 +2285,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showRenamePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showRenamePopup) {
         ImGui::OpenPopup("Rename");
         showRenamePopup = false;
     }
@@ -3540,41 +3600,38 @@ bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::st
 
         const auto& allKnownPaths = AssetRegistry::Instance().GetAllKnownAssetPaths();
         for (const auto& [assetUUID, assetPath] : allKnownPaths) {
-            std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(assetUUID);
+            std::string extension = std::filesystem::path{assetPath}.extension().string();
+            bool matchesFilter = false;
 
-            if (asset) {
-                AssetType assetTypeEnum = asset->GetMetadata().type;
-                bool matchesFilter = false;
+            if (assetType == "texture" && (extension == ".png" || extension == ".jpg" || extension == ".jpeg")) {
+                matchesFilter = true;
+            } else if (assetType == "AnimatorController" && extension == ".animcontroller") {
+                matchesFilter = true;
+            } else if (assetType == "SpriteSheet" && extension == ".spritesheet") {
+                matchesFilter = true;
+            } else if (assetType == "AnimationClip" && extension == ".animclip") {
+                matchesFilter = true;
+            } else if (assetType == "Audio" && (extension == ".wav" || extension == ".mp3" || extension == ".ogg")) {
+                matchesFilter = true;
+            }
 
-                if (assetType == "texture" && assetTypeEnum == AssetType::Texture) {
-                    matchesFilter = true;
-                } else if (assetType == "AnimatorController" && assetTypeEnum == AssetType::AnimatorController) {
-                    matchesFilter = true;
-                } else if (assetType == "SpriteSheet" && assetTypeEnum == AssetType::SpriteSheet) {
-                    matchesFilter = true;
-                } else if (assetType == "AnimationClip" && assetTypeEnum == AssetType::AnimationClip) {
-                    matchesFilter = true;
-                } else if (assetType == "Audio" && assetTypeEnum == AssetType::Audio) {
-                    matchesFilter = true;
+            if (matchesFilter) {
+                ImGui::PushID(static_cast<int>(assetUUID.Get()));
+
+                bool isSelected = (uuid->Get() == assetUUID.Get());
+                std::filesystem::path fsPath{assetPath};
+                std::string itemLabel = fsPath.stem().string();
+
+                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                    *uuid = assetUUID;
+                    changed = true;
                 }
 
-                if (matchesFilter) {
-                    ImGui::PushID(static_cast<int>(assetUUID.Get()));
-
-                    bool isSelected = (uuid->Get() == assetUUID.Get());
-                    std::string itemLabel = asset->GetMetadata().name;
-
-                    if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                        *uuid = assetUUID;
-                        changed = true;
-                    }
-
-                    if (isSelected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-
-                    ImGui::PopID();
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
                 }
+
+                ImGui::PopID();
             }
         }
 
@@ -3823,6 +3880,15 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         newCollider.offset = originalCollider.offset;
         newCollider.isTrigger = originalCollider.isTrigger;
         registry.emplace<BoxCollider2D>(newEntity, newCollider);
+    }
+
+    if (registry.all_of<CircleCollider2D>(entity)) {
+        const CircleCollider2D& originalCollider = registry.get<CircleCollider2D>(entity);
+        CircleCollider2D newCollider;
+        newCollider.radius = originalCollider.radius;
+        newCollider.offset = originalCollider.offset;
+        newCollider.isTrigger = originalCollider.isTrigger;
+        registry.emplace<CircleCollider2D>(newEntity, newCollider);
     }
 
     if (registry.all_of<Script>(entity)) {
