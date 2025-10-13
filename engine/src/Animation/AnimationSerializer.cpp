@@ -121,6 +121,8 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
     json["textureUUID"] = spriteSheet.GetTextureUUID().Get();
     json["gridColumns"] = spriteSheet.GetGridColumns();
     json["gridRows"] = spriteSheet.GetGridRows();
+    json["gridSpacingX"] = spriteSheet.GetGridSpacingX();
+    json["gridSpacingY"] = spriteSheet.GetGridSpacingY();
 
     json["frames"] = nlohmann::json::array();
     for (const SpriteFrame& frame : spriteSheet.GetFrames()) {
@@ -149,6 +151,10 @@ void AnimationSerializer::JsonToSpriteSheet(const nlohmann::json& json, SpriteSh
 
     if (json.contains("gridColumns") && json.contains("gridRows")) {
         spriteSheet.SetGridSize(json["gridColumns"].get<int>(), json["gridRows"].get<int>());
+    }
+
+    if (json.contains("gridSpacingX") && json.contains("gridSpacingY")) {
+        spriteSheet.SetGridSpacing(json["gridSpacingX"].get<int>(), json["gridSpacingY"].get<int>());
     }
 
     if (json.contains("frames") && json["frames"].is_array()) {

@@ -31,18 +31,20 @@
                 "rotation": 0.0,
                 "zoom": 1.0
             },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "offset": {
-                        "x": 0.0,
-                        "y": 0.0
+            "Scripts": [
+                {
+                    "enabled": true,
+                    "properties": {
+                        "offset": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "smoothSpeed": 5.0,
+                        "target": 12268626963706819014
                     },
-                    "smoothSpeed": 5.0,
-                    "target": 12268626963706819014
-                },
-                "scriptName": "FollowCamera"
-            },
+                    "scriptName": "FollowCamera"
+                }
+            ],
             "Tag": {
                 "name": "Camera"
             },
@@ -154,15 +156,17 @@
                 "restitution": 0.0,
                 "type": 2
             },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "amplitude": 100.0,
-                    "frequency": 1.0,
-                    "rotationSpeed": 90.0
-                },
-                "scriptName": "RotatingPlatform"
-            },
+            "Scripts": [
+                {
+                    "enabled": true,
+                    "properties": {
+                        "amplitude": 100.0,
+                        "frequency": 1.0,
+                        "rotationSpeed": 90.0
+                    },
+                    "scriptName": "RotatingPlatform"
+                }
+            ],
             "Sprite": {
                 "layer": 0,
                 "origin": [
@@ -212,7 +216,7 @@
                     0.0
                 ],
                 "size": [
-                    64.0,
+                    29.0,
                     64.0
                 ]
             },
@@ -223,15 +227,6 @@
                 "restitution": 0.0,
                 "type": 1
             },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "jumpForce": 600.0,
-                    "moveSpeed": 300.0,
-                    "playerTexture": {}
-                },
-                "scriptName": "PlayerController"
-            },
             "Sprite": {
                 "layer": 0,
                 "origin": [
@@ -239,9 +234,9 @@
                     0.5
                 ],
                 "sourceRect": [
+                    17.5,
                     0.0,
-                    0.0,
-                    64.0,
+                    29.0,
                     64.0
                 ],
                 "textureAssetUUID": 13809637883915166777,

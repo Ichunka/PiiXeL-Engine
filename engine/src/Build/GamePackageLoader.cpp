@@ -91,10 +91,27 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                     continue;
                 }
 
+                if (componentName == "Scripts" && componentData.is_array()) {
+                    Script script{};
+                    for (const nlohmann::json& scriptJson : componentData) {
+                        std::string scriptName = scriptJson.value("scriptName", "");
+                        if (!scriptName.empty()) {
+                            script.AddScript(scriptName);
+                        }
+                    }
+                    if (script.GetScriptCount() > 0) {
+                        registry.emplace<Script>(entity, script);
+                    }
+                    continue;
+                }
+
                 if (componentName == "Script") {
                     Script script{};
-                    script.scriptName = componentData.value("scriptName", "");
-                    registry.emplace<Script>(entity, script);
+                    std::string scriptName = componentData.value("scriptName", "");
+                    if (!scriptName.empty()) {
+                        script.AddScript(scriptName);
+                        registry.emplace<Script>(entity, script);
+                    }
                     continue;
                 }
 
@@ -112,32 +129,70 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
 
             const nlohmann::json& entityJson = (*sceneData)["entities"][entityIndex];
 
-            if (entityJson.contains("Script") && registry.all_of<Script>(entity)) {
-                const nlohmann::json& scriptJson = entityJson["Script"];
-                Script& script = registry.get<Script>(entity);
+            if (registry.all_of<Script>(entity)) {
+                Script& scriptComponent = registry.get<Script>(entity);
 
-                if (!script.scriptName.empty() && !script.instance) {
-                    script.instance = scriptSystem->CreateScript(script.scriptName);
+                if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
+                    const nlohmann::json& scriptsArray = entityJson["Scripts"];
+                    for (size_t i = 0; i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i) {
+                        const nlohmann::json& scriptJson = scriptsArray[i];
+                        ScriptInstance& script = scriptComponent.scripts[i];
 
-                    if (script.instance) {
-                        script.instance->Initialize(entity, scene.get());
+                        if (!script.scriptName.empty() && !script.instance) {
+                            script.instance = scriptSystem->CreateScript(script.scriptName);
 
-                        if (scriptJson.contains("properties")) {
-                            const nlohmann::json& propertiesJson = scriptJson["properties"];
-                            const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                            if (script.instance) {
+                                script.instance->Initialize(entity, scene.get());
 
-                            if (typeInfo) {
-                                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                    if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
-                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                        Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                if (scriptJson.contains("properties")) {
+                                    const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                    if (typeInfo) {
+                                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                            }
+                                        }
                                     }
+                                }
+
+                                if (scriptJson.contains("enabled")) {
+                                    script.instance->m_Enabled = scriptJson["enabled"].get<bool>();
                                 }
                             }
                         }
+                    }
+                } else if (entityJson.contains("Script")) {
+                    const nlohmann::json& scriptJson = entityJson["Script"];
+                    if (scriptComponent.scripts.size() > 0) {
+                        ScriptInstance& script = scriptComponent.scripts[0];
 
-                        if (scriptJson.contains("enabled")) {
-                            script.instance->m_Enabled = scriptJson["enabled"].get<bool>();
+                        if (!script.scriptName.empty() && !script.instance) {
+                            script.instance = scriptSystem->CreateScript(script.scriptName);
+
+                            if (script.instance) {
+                                script.instance->Initialize(entity, scene.get());
+
+                                if (scriptJson.contains("properties")) {
+                                    const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                    if (typeInfo) {
+                                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (scriptJson.contains("enabled")) {
+                                    script.instance->m_Enabled = scriptJson["enabled"].get<bool>();
+                                }
+                            }
                         }
                     }
                 }

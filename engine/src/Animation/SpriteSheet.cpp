@@ -28,6 +28,11 @@ bool SpriteSheet::Load(const void* data, size_t size) {
             m_GridRows = json["gridRows"].get<int>();
         }
 
+        if (json.contains("gridSpacingX") && json.contains("gridSpacingY")) {
+            m_GridSpacingX = json["gridSpacingX"].get<int>();
+            m_GridSpacingY = json["gridSpacingY"].get<int>();
+        }
+
         if (json.contains("frames") && json["frames"].is_array()) {
             m_Frames.clear();
             for (const auto& frameJson : json["frames"]) {
