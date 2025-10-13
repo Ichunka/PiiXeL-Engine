@@ -63,8 +63,13 @@ void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::js
 
         case FieldType::Vector2: {
             Vector2& v = *static_cast<Vector2*>(fieldPtr);
-            v.x = j.value("x", 0.0f);
-            v.y = j.value("y", 0.0f);
+            if (j.is_array() && j.size() == 2) {
+                v.x = j[0].get<float>();
+                v.y = j[1].get<float>();
+            } else if (j.is_object()) {
+                v.x = j.value("x", 0.0f);
+                v.y = j.value("y", 0.0f);
+            }
             break;
         }
 

@@ -15,6 +15,7 @@
 #include "Scripting/ScriptComponent.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Reflection/Reflection.hpp"
+#include "Components/ComponentModuleRegistry.hpp"
 #include <fstream>
 #include <filesystem>
 #include <raylib.h>
@@ -174,13 +175,9 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         };
     }
 
-    if (registry.all_of<CircleCollider2D>(entity)) {
-        const CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
-        entityJson["CircleCollider2D"] = {
-            {"radius", collider.radius},
-            {"offset", {collider.offset.x, collider.offset.y}},
-            {"isTrigger", collider.isTrigger}
-        };
+    nlohmann::json moduleJson = ComponentModuleRegistry::Instance().SerializeEntity(registry, entity);
+    for (auto it = moduleJson.begin(); it != moduleJson.end(); ++it) {
+        entityJson[it.key()] = it.value();
     }
 
     if (registry.all_of<Script>(entity)) {
@@ -343,22 +340,16 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<BoxCollider2D>(entity, collider);
     }
 
-    if (entityJson.contains("CircleCollider2D")) {
-        const nlohmann::json& colliderJson = entityJson["CircleCollider2D"];
-        CircleCollider2D collider{};
-
-        if (colliderJson.contains("radius")) {
-            collider.radius = colliderJson["radius"].get<float>();
+    for (auto it = entityJson.begin(); it != entityJson.end(); ++it) {
+        const std::string& componentName = it.key();
+        if (componentName == "uuid" || componentName == "Tag" || componentName == "Transform" ||
+            componentName == "Sprite" || componentName == "Camera" || componentName == "RigidBody2D" ||
+            componentName == "BoxCollider2D" || componentName == "Scripts" || componentName == "Script" ||
+            componentName == "Animator") {
+            continue;
         }
 
-        if (colliderJson.contains("offset") && colliderJson["offset"].is_array() && colliderJson["offset"].size() == 2) {
-            collider.offset.x = colliderJson["offset"][0].get<float>();
-            collider.offset.y = colliderJson["offset"][1].get<float>();
-        }
-
-        collider.isTrigger = colliderJson.value("isTrigger", false);
-
-        registry.emplace<CircleCollider2D>(entity, collider);
+        ComponentModuleRegistry::Instance().DeserializeComponent(componentName, registry, entity, it.value());
     }
 
     if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {

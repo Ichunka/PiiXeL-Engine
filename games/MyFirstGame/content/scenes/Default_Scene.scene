@@ -140,10 +140,10 @@
         {
             "CircleCollider2D": {
                 "isTrigger": false,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
                 "radius": 8.0
             },
             "RigidBody2D": {
@@ -464,6 +464,58 @@
                 ]
             },
             "uuid": 10547044390067603163
+        },
+        {
+            "CircleCollider2D": {
+                "isTrigger": false,
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "radius": 32.0
+            },
+            "RigidBody2D": {
+                "fixedRotation": false,
+                "friction": 0.30000001192092896,
+                "mass": 10.0,
+                "restitution": 0.0,
+                "type": 1
+            },
+            "Sprite": {
+                "layer": 0,
+                "origin": [
+                    0.5,
+                    0.5
+                ],
+                "sourceRect": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "textureAssetUUID": 0,
+                "tint": [
+                    255,
+                    255,
+                    255,
+                    255
+                ]
+            },
+            "Tag": {
+                "name": "New Entity"
+            },
+            "Transform": {
+                "position": [
+                    -148.0,
+                    -266.0
+                ],
+                "rotation": 0.0,
+                "scale": [
+                    1.0,
+                    1.0
+                ]
+            },
+            "uuid": 13263326088268867360
         }
     ],
     "scene": "Default Scene"

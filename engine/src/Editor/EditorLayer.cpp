@@ -29,6 +29,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/CircleCollider2D.hpp"
+#include "Components/ComponentModuleRegistry.hpp"
 #include "Components/Script.hpp"
 #include "Components/Animator.hpp"
 #include "Scripting/ScriptComponent.hpp"
@@ -1261,41 +1262,7 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<CircleCollider2D>(inspectedEntity)) {
-                ImGui::Separator();
-                bool removeCircleCollider = false;
-
-                ImGui::AlignTextToFramePadding();
-                bool circleColliderOpen = ImGui::TreeNodeEx("Circle Collider 2D", ImGuiTreeNodeFlags_DefaultOpen);
-                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-                if (ImGui::SmallButton("X##RemoveCircleCollider")) {
-                    removeCircleCollider = true;
-                }
-
-                if (circleColliderOpen) {
-                    CircleCollider2D& collider = registry.get<CircleCollider2D>(inspectedEntity);
-
-                    Reflection::ImGuiRenderer::RenderProperties(collider, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
-
-                    if (registry.all_of<Sprite>(inspectedEntity)) {
-                        if (ImGui::Button("Fit to Sprite")) {
-                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            Vector2 spriteSize = sprite.GetSize();
-                            collider.radius = std::max(spriteSize.x, spriteSize.y) * 0.5f;                            collider.offset = Vector2{0.0f, 0.0f};
-                        }
-                    }
-
-                    ImGui::TreePop();
-                }
-
-                if (removeCircleCollider) {
-                    m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<CircleCollider2D>>(&registry, inspectedEntity)
-                    );
-                }
-            }
+            ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, m_CommandHistory);
 
             if (registry.all_of<Script>(inspectedEntity)) {
                 ImGui::Separator();
@@ -1483,20 +1450,7 @@ void EditorLayer::RenderInspector() {
                         );
                     }
                 }
-                if (ImGui::MenuItem("Circle Collider 2D")) {
-                    if (!registry.all_of<CircleCollider2D>(inspectedEntity)) {
-                        CircleCollider2D collider{};
-
-                        if (registry.all_of<Sprite>(inspectedEntity)) {
-                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            collider.radius = sprite.sourceRect.width * 0.5f;
-                        }
-
-                        m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<CircleCollider2D>>(&registry, inspectedEntity, collider)
-                        );
-                    }
-                }
+                ComponentModuleRegistry::Instance().RenderAddComponentMenu(registry, inspectedEntity, m_CommandHistory);
 
                 if (ImGui::MenuItem("Script")) {
                     if (!registry.all_of<Script>(inspectedEntity)) {
@@ -3882,14 +3836,7 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         registry.emplace<BoxCollider2D>(newEntity, newCollider);
     }
 
-    if (registry.all_of<CircleCollider2D>(entity)) {
-        const CircleCollider2D& originalCollider = registry.get<CircleCollider2D>(entity);
-        CircleCollider2D newCollider;
-        newCollider.radius = originalCollider.radius;
-        newCollider.offset = originalCollider.offset;
-        newCollider.isTrigger = originalCollider.isTrigger;
-        registry.emplace<CircleCollider2D>(newEntity, newCollider);
-    }
+    ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, entity, newEntity);
 
     if (registry.all_of<Script>(entity)) {
         const Script& originalScript = registry.get<Script>(entity);
