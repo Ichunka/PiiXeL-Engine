@@ -1,6 +1,7 @@
 #include "Resources/AssetImporter.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Core/Logger.hpp"
 #include <raylib.h>
 #include <fstream>
 #include <chrono>
@@ -13,13 +14,13 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
 
     if (!std::filesystem::exists(sourcePath)) {
         result.errorMessage = "Source file does not exist: " + sourcePath;
-        TraceLog(LOG_ERROR, "%s", result.errorMessage.c_str());
+        PX_LOG_ERROR(ASSET, "%s", result.errorMessage.c_str());
         return result;
     }
 
     if (!forceReimport && AssetPackage::PackageExists(sourcePath)) {
         if (!AssetPackage::NeedsReimport(sourcePath)) {
-            TraceLog(LOG_INFO, "Asset is up to date: %s", sourcePath.c_str());
+            PX_LOG_INFO(ASSET, "Asset is up to date: %s", sourcePath.c_str());
             result.success = true;
             result.packagePath = AssetPackage::GetPackagePath(sourcePath);
             return result;
@@ -29,7 +30,7 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
     AssetType type = DetectAssetType(sourcePath);
     if (type == AssetType::Unknown) {
         result.errorMessage = "Unknown asset type: " + sourcePath;
-        TraceLog(LOG_WARNING, "%s", result.errorMessage.c_str());
+        PX_LOG_WARNING(ASSET, "%s", result.errorMessage.c_str());
         return result;
     }
 
@@ -68,7 +69,7 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
     std::vector<ImportResult> results;
 
     if (!std::filesystem::exists(directory)) {
-        TraceLog(LOG_ERROR, "Directory does not exist: %s", directory.c_str());
+        PX_LOG_ERROR(ASSET, "Directory does not exist: %s", directory.c_str());
         return results;
     }
 
@@ -109,7 +110,7 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
     int successCount = static_cast<int>(std::count_if(results.begin(), results.end(),
                                                        [](const ImportResult& r) { return r.success; }));
 
-    TraceLog(LOG_INFO, "Imported %d/%d assets from: %s", successCount,
+    PX_LOG_INFO(ASSET, "Imported %d/%d assets from: %s", successCount,
              static_cast<int>(results.size()), directory.c_str());
 
     return results;
@@ -158,7 +159,7 @@ void AssetImporter::SaveUUIDCache() {
 
     std::ofstream file{cachePath, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_WARNING, "Failed to save UUID cache");
+        PX_LOG_WARNING(ASSET, "Failed to save UUID cache");
         return;
     }
 
@@ -210,7 +211,7 @@ void AssetImporter::LoadUUIDCache() {
     }
 
     file.close();
-    TraceLog(LOG_INFO, "Loaded UUID cache: %u entries", count);
+    PX_LOG_INFO(ASSET, "Loaded UUID cache: %u entries", count);
 }
 
 AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sourcePath, UUID uuid) {
@@ -246,7 +247,7 @@ AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sour
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported texture: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported texture: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -284,7 +285,7 @@ AssetImporter::ImportResult AssetImporter::ImportAudio(const std::string& source
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported audio: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported audio: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -356,7 +357,7 @@ AssetImporter::ImportResult AssetImporter::ImportSpriteSheet(const std::string& 
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported sprite sheet: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported sprite sheet: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -402,7 +403,7 @@ AssetImporter::ImportResult AssetImporter::ImportAnimationClip(const std::string
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported animation clip: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported animation clip: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }
@@ -448,7 +449,7 @@ AssetImporter::ImportResult AssetImporter::ImportAnimatorController(const std::s
 
     result.success = true;
     result.packagePath = packagePath;
-    TraceLog(LOG_INFO, "Imported animator controller: %s -> %s", sourcePath.c_str(), packagePath.c_str());
+    PX_LOG_INFO(ASSET, "Imported animator controller: %s -> %s", sourcePath.c_str(), packagePath.c_str());
 
     return result;
 }

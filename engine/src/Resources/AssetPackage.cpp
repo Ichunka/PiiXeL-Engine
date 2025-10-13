@@ -1,4 +1,5 @@
 #include "Resources/AssetPackage.hpp"
+#include "Core/Logger.hpp"
 #include <filesystem>
 #include <cstring>
 #include <algorithm>
@@ -17,7 +18,7 @@ bool AssetPackage::SaveToFile(const std::string& path, const AssetMetadata& meta
                                const void* data, size_t dataSize) {
     std::ofstream file{path, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for writing: %s", path.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to open file for writing: %s", path.c_str());
         return false;
     }
 
@@ -45,7 +46,7 @@ bool AssetPackage::SaveToFile(const std::string& path, const AssetMetadata& meta
     if (!WriteData(file, data, dataSize)) return false;
 
     file.close();
-    TraceLog(LOG_INFO, "Asset package saved: %s", path.c_str());
+    PX_LOG_INFO(ASSET, "Asset package saved: %s", path.c_str());
     return true;
 }
 
@@ -53,7 +54,7 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
                                  std::vector<uint8_t>& outData) {
     std::ifstream file{path, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for reading: %s", path.c_str());
+        PX_LOG_ERROR(ASSET, "Failed to open file for reading: %s", path.c_str());
         return false;
     }
 
@@ -61,12 +62,12 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
     if (!ReadHeader(file, header)) return false;
 
     if (header.magic != MAGIC_NUMBER) {
-        TraceLog(LOG_ERROR, "Invalid asset package magic number: %s", path.c_str());
+        PX_LOG_ERROR(ASSET, "Invalid asset package magic number: %s", path.c_str());
         return false;
     }
 
     if (header.version > VERSION) {
-        TraceLog(LOG_ERROR, "Asset package version too new: %s", path.c_str());
+        PX_LOG_ERROR(ASSET, "Asset package version too new: %s", path.c_str());
         return false;
     }
 
@@ -79,7 +80,7 @@ bool AssetPackage::LoadFromFile(const std::string& path, AssetMetadata& outMetad
     if (!ReadData(file, outData, header.dataSize)) return false;
 
     file.close();
-    TraceLog(LOG_INFO, "Asset package loaded: %s", path.c_str());
+    PX_LOG_INFO(ASSET, "Asset package loaded: %s", path.c_str());
     return true;
 }
 

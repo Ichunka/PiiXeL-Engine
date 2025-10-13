@@ -1,4 +1,5 @@
 #include "Animation/AnimatorController.hpp"
+#include "Core/Logger.hpp"
 #include <algorithm>
 #include <nlohmann/json.hpp>
 #include <raylib.h>
@@ -11,7 +12,7 @@ AnimatorController::AnimatorController(UUID uuid, const std::string& name)
 
 bool AnimatorController::Load(const void* data, size_t size) {
     if (!data || size == 0) {
-        TraceLog(LOG_ERROR, "Invalid data for AnimatorController");
+        PX_LOG_ERROR(ANIMATION, "Invalid data for AnimatorController");
         return false;
     }
 
@@ -103,7 +104,7 @@ bool AnimatorController::Load(const void* data, size_t size) {
         m_IsLoaded = true;
         return true;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse AnimatorController JSON: %s", e.what());
+        PX_LOG_ERROR(ANIMATION, "Failed to parse AnimatorController JSON: %s", e.what());
         return false;
     }
 }

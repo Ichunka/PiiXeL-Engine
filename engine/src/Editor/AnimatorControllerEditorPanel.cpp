@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AnimatorControllerEditorPanel.hpp"
+#include "Core/Logger.hpp"
 #include "Animation/AnimationSerializer.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/Asset.hpp"
@@ -79,26 +80,26 @@ void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
 
     m_CurrentPath = controllerPath;
 
-    TraceLog(LOG_INFO, "Opening AnimatorController: %s", controllerPath.c_str());
+    PX_LOG_INFO(EDITOR, "Opening AnimatorController: %s", controllerPath.c_str());
 
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(controllerPath);
     if (existingUUID.Get() != 0) {
-        TraceLog(LOG_INFO, "Loading from AssetRegistry with UUID: %llu", existingUUID.Get());
+        PX_LOG_INFO(EDITOR, "Loading from AssetRegistry with UUID: %llu", existingUUID.Get());
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     } else {
-        TraceLog(LOG_INFO, "Loading from path (no UUID in registry)");
+        PX_LOG_INFO(EDITOR, "Loading from path (no UUID in registry)");
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(controllerPath);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     }
 
     if (!m_Controller) {
-        TraceLog(LOG_ERROR, "Failed to load AnimatorController: %s", controllerPath.c_str());
+        PX_LOG_ERROR(EDITOR, "Failed to load AnimatorController: %s", controllerPath.c_str());
     } else {
-        TraceLog(LOG_INFO, "AnimatorController loaded successfully");
+        PX_LOG_INFO(EDITOR, "AnimatorController loaded successfully");
         const std::vector<AnimatorState>& states = m_Controller->GetStates();
         for (size_t i = 0; i < states.size(); ++i) {
-            TraceLog(LOG_INFO, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+            PX_LOG_INFO(EDITOR, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
         }
     }
 
@@ -526,25 +527,25 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                     std::string assetPath = AssetRegistry::Instance().GetPathFromUUID(droppedUUID);
                     if (!assetPath.empty() && assetPath.find(".animclip") != std::string::npos) {
                         state.animationClipUUID = droppedUUID;
-                        TraceLog(LOG_INFO, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
+                        PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
                         Save();
                     }
                 }
                 else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
                     AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
                     if (assetInfo && assetInfo->type == "animclip") {
-                        TraceLog(LOG_INFO, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
+                        PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
 
                         if (assetInfo->uuid.Get() != 0) {
                             state.animationClipUUID = assetInfo->uuid;
-                            TraceLog(LOG_INFO, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
+                            PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
                             Save();
                         } else {
-                            TraceLog(LOG_WARNING, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
+                            PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
                             std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
                             if (asset) {
                                 state.animationClipUUID = asset->GetUUID();
-                                TraceLog(LOG_INFO, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
+                                PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
                                 Save();
                             }
                         }
@@ -740,22 +741,22 @@ void AnimatorControllerEditorPanel::DeleteTransition(size_t transitionIndex) {
 
 void AnimatorControllerEditorPanel::Save() {
     if (m_CurrentPath.empty() || !m_Controller) {
-        TraceLog(LOG_ERROR, "Cannot save: no path or controller");
+        PX_LOG_ERROR(EDITOR, "Cannot save: no path or controller");
         return;
     }
 
-    TraceLog(LOG_INFO, "Saving AnimatorController to: %s", m_CurrentPath.c_str());
+    PX_LOG_INFO(EDITOR, "Saving AnimatorController to: %s", m_CurrentPath.c_str());
 
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
     for (size_t i = 0; i < states.size(); ++i) {
-        TraceLog(LOG_INFO, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+        PX_LOG_INFO(EDITOR, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
     }
 
     if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
-        TraceLog(LOG_INFO, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
+        PX_LOG_INFO(EDITOR, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
     } else {
-        TraceLog(LOG_ERROR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
+        PX_LOG_ERROR(EDITOR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
     }
 }
 

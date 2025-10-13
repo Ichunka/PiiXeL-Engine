@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorLayer.hpp"
+#include "Core/Logger.hpp"
 #include "Editor/ConsoleLogger.hpp"
 #include "Editor/BuildPanel.hpp"
 #include "Editor/SpriteSheetEditorPanel.hpp"
@@ -75,9 +76,9 @@ EditorLayer::EditorLayer(Engine* engine)
 
     if (m_DefaultWhiteTexture.id != 0) {
         SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
-        TraceLog(LOG_INFO, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
+        PX_LOG_INFO(EDITOR, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
     } else {
-        TraceLog(LOG_ERROR, "Failed to create default white texture");
+        PX_LOG_ERROR(EDITOR, "Failed to create default white texture");
     }
 
     m_BuildPanel = std::make_unique<BuildPanel>();
@@ -103,9 +104,9 @@ EditorLayer::EditorLayer(Engine* engine)
     LOG_GAME_INFO("Game subsystem ready");
     LOG_GAME_DEBUG("Physics engine enabled");
 
-    TraceLog(LOG_TRACE, "Trace level message from Raylib");
-    TraceLog(LOG_WARNING, "This is a warning test");
-    TraceLog(LOG_ERROR, "This is an error test (not a real error)");
+    PX_LOG_INFO(EDITOR, "Trace level message from Raylib");
+    PX_LOG_WARNING(EDITOR, "This is a warning test");
+    PX_LOG_ERROR(EDITOR, "This is an error test (not a real error)");
 
     ProjectSettings& settings = ProjectSettings::Instance();
     settings.Load("game.config.json");
@@ -117,7 +118,7 @@ EditorLayer::EditorLayer(Engine* engine)
         if (serializer.Deserialize(defaultScenePath)) {
             m_CurrentScenePath = defaultScenePath;
             RestoreScriptPropertiesFromFile(defaultScenePath);
-            TraceLog(LOG_INFO, "Loaded default scene: %s", defaultScenePath.c_str());
+            PX_LOG_INFO(EDITOR, "Loaded default scene: %s", defaultScenePath.c_str());
         }
     }
 }
@@ -271,12 +272,12 @@ void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
 
         if (std::filesystem::exists(pxaPath)) {
             std::filesystem::remove(pxaPath);
-            TraceLog(LOG_INFO, "Deleted package: %s", pxaPath.string().c_str());
+            PX_LOG_INFO(EDITOR, "Deleted package: %s", pxaPath.string().c_str());
         }
 
-        TraceLog(LOG_INFO, "Deleted: %s", assetPath.c_str());
+        PX_LOG_INFO(EDITOR, "Deleted: %s", assetPath.c_str());
     } catch (const std::filesystem::filesystem_error& e) {
-        TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+        PX_LOG_ERROR(EDITOR, "Failed to delete: %s", e.what());
     }
 }
 
@@ -628,7 +629,7 @@ void EditorLayer::RenderViewport() {
 
                         m_SelectedEntity = newEntity;
 
-                        TraceLog(LOG_INFO, "Entity created from texture: %s at (%.0f, %.0f)",
+                        PX_LOG_INFO(EDITOR, "Entity created from texture: %s at (%.0f, %.0f)",
                                 assetInfo->filename.c_str(), worldPos.x, worldPos.y);
                     }
                 }
@@ -1148,7 +1149,7 @@ void EditorLayer::RenderInspector() {
                                     std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
                                     if (asset && asset->GetMetadata().type == AssetType::Texture) {
                                         sprite.SetTexture(asset->GetUUID());
-                                        TraceLog(LOG_INFO, "Texture assigned: %s", assetInfo->path.c_str());
+                                        PX_LOG_INFO(EDITOR, "Texture assigned: %s", assetInfo->path.c_str());
                                     }
                                 }
                             }
@@ -1599,9 +1600,9 @@ void EditorLayer::RenderContentBrowser() {
                     try {
                         std::filesystem::remove_all(dirPath);
                         needsRefresh = true;
-                        TraceLog(LOG_INFO, "Deleted: %s", dirPath.c_str());
+                        PX_LOG_INFO(EDITOR, "Deleted: %s", dirPath.c_str());
                     } catch (const std::filesystem::filesystem_error& e) {
-                        TraceLog(LOG_ERROR, "Failed to delete folder: %s", e.what());
+                        PX_LOG_ERROR(EDITOR, "Failed to delete folder: %s", e.what());
                     }
                 }
 
@@ -1752,7 +1753,7 @@ void EditorLayer::RenderContentBrowser() {
                             m_SelectedEntity = entt::null;
                             m_CommandHistory.Clear();
                             RestoreScriptPropertiesFromFile(asset.path);
-                            TraceLog(LOG_INFO, "Loaded scene: %s", asset.path.c_str());
+                            PX_LOG_INFO(EDITOR, "Loaded scene: %s", asset.path.c_str());
                         }
                     }
                 }
@@ -2001,7 +2002,7 @@ void EditorLayer::RenderContentBrowser() {
 
                     m_CurrentScenePath = newScenePath;
                     needsRefresh = true;
-                    TraceLog(LOG_INFO, "Created new scene: %s", newScenePath.c_str());
+                    PX_LOG_INFO(EDITOR, "Created new scene: %s", newScenePath.c_str());
                 }
                 ImGui::CloseCurrentPopup();
             }
@@ -2036,9 +2037,9 @@ void EditorLayer::RenderContentBrowser() {
                 try {
                     std::filesystem::create_directory(newFolderPath);
                     needsRefresh = true;
-                    TraceLog(LOG_INFO, "Created folder: %s", newFolderPath.c_str());
+                    PX_LOG_INFO(EDITOR, "Created folder: %s", newFolderPath.c_str());
                 } catch (const std::filesystem::filesystem_error& e) {
-                    TraceLog(LOG_ERROR, "Failed to create folder: %s", e.what());
+                    PX_LOG_ERROR(EDITOR, "Failed to create folder: %s", e.what());
                 }
                 ImGui::CloseCurrentPopup();
             }
@@ -2085,7 +2086,7 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 needsRefresh = true;
-                TraceLog(LOG_INFO, "Created sprite sheet: %s", newPath.c_str());
+                PX_LOG_INFO(EDITOR, "Created sprite sheet: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -2131,7 +2132,7 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 needsRefresh = true;
-                TraceLog(LOG_INFO, "Created animation clip: %s", newPath.c_str());
+                PX_LOG_INFO(EDITOR, "Created animation clip: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -2177,7 +2178,7 @@ void EditorLayer::RenderContentBrowser() {
                 }
 
                 needsRefresh = true;
-                TraceLog(LOG_INFO, "Created animator controller: %s", newPath.c_str());
+                PX_LOG_INFO(EDITOR, "Created animator controller: %s", newPath.c_str());
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -2228,10 +2229,10 @@ void EditorLayer::RenderContentBrowser() {
                 try {
                     std::filesystem::rename(rightClickedItem, newPath);
                     needsRefresh = true;
-                    TraceLog(LOG_INFO, "Renamed: %s -> %s", rightClickedItem.c_str(), newPath.c_str());
+                    PX_LOG_INFO(EDITOR, "Renamed: %s -> %s", rightClickedItem.c_str(), newPath.c_str());
                     rightClickedItem.clear();
                 } catch (const std::filesystem::filesystem_error& e) {
-                    TraceLog(LOG_ERROR, "Failed to rename: %s", e.what());
+                    PX_LOG_ERROR(EDITOR, "Failed to rename: %s", e.what());
                 }
 
                 ImGui::CloseCurrentPopup();
@@ -2849,7 +2850,7 @@ void EditorLayer::OnPlayButtonPressed() {
 
         AnimationSystem::ResetAnimators(scene->GetRegistry());
 
-        TraceLog(LOG_INFO, "Play mode started with memory snapshot");
+        PX_LOG_INFO(EDITOR, "Play mode started with memory snapshot");
     }
 }
 
@@ -2914,11 +2915,11 @@ void EditorLayer::OnStopButtonPressed() {
                             }
                         }
                     } catch (const nlohmann::json::exception& e) {
-                        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
+                        PX_LOG_ERROR(EDITOR, "Failed to restore script properties: %s", e.what());
                     }
                 }
 
-                TraceLog(LOG_INFO, "Scene restored from memory snapshot - edit mode");
+                PX_LOG_INFO(EDITOR, "Scene restored from memory snapshot - edit mode");
             }
         } else {
             m_EditorState = EditorState::Edit;
@@ -2938,7 +2939,7 @@ void EditorLayer::NewScene() {
         m_SelectedEntity = entt::null;
         m_CommandHistory.Clear();
 
-        TraceLog(LOG_INFO, "New scene created");
+        PX_LOG_INFO(EDITOR, "New scene created");
     }
 }
 
@@ -2981,7 +2982,7 @@ void EditorLayer::LoadScene() {
     }
 
     if (m_CurrentScenePath.empty()) {
-        TraceLog(LOG_WARNING, "No scene path set. Save the scene first.");
+        PX_LOG_WARNING(EDITOR, "No scene path set. Save the scene first.");
         return;
     }
 
@@ -3579,7 +3580,7 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         registry.emplace<Script>(newEntity, newScript);
     }
 
-    TraceLog(LOG_INFO, "Entity duplicated with all components");
+    PX_LOG_INFO(EDITOR, "Entity duplicated with all components");
 
     return newEntity;
 }
@@ -3597,7 +3598,7 @@ void EditorLayer::CopyEntity(entt::entity entity) {
     }
 
     m_CopiedEntity = entity;
-    TraceLog(LOG_INFO, "Entity copied to clipboard");
+    PX_LOG_INFO(EDITOR, "Entity copied to clipboard");
 }
 
 void EditorLayer::PasteEntity() {
@@ -3620,7 +3621,7 @@ void EditorLayer::PasteEntity() {
     entt::entity newEntity = DuplicateEntity(m_CopiedEntity);
     m_SelectedEntity = newEntity;
 
-    TraceLog(LOG_INFO, "Entity pasted");
+    PX_LOG_INFO(EDITOR, "Entity pasted");
 }
 
 void EditorLayer::RenderProfiler() {

@@ -1,4 +1,5 @@
 #include "Animation/AnimationSerializer.hpp"
+#include "Core/Logger.hpp"
 #include <fstream>
 #include <raylib.h>
 
@@ -9,21 +10,21 @@ bool AnimationSerializer::SerializeSpriteSheet(const SpriteSheet& spriteSheet, c
 
     std::ofstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for writing: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
 
     file << json.dump(4);
     file.close();
 
-    TraceLog(LOG_INFO, "SpriteSheet saved to: %s", filepath.c_str());
+    PX_LOG_INFO(ANIMATION, "SpriteSheet saved to: %s", filepath.c_str());
     return true;
 }
 
 bool AnimationSerializer::DeserializeSpriteSheet(SpriteSheet& spriteSheet, const std::string& filepath) {
     std::ifstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for reading: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
@@ -31,7 +32,7 @@ bool AnimationSerializer::DeserializeSpriteSheet(SpriteSheet& spriteSheet, const
     try {
         file >> json;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse JSON: %s", e.what());
+        PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
     file.close();
@@ -45,21 +46,21 @@ bool AnimationSerializer::SerializeAnimationClip(const AnimationClip& clip, cons
 
     std::ofstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for writing: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
 
     file << json.dump(4);
     file.close();
 
-    TraceLog(LOG_INFO, "AnimationClip saved to: %s", filepath.c_str());
+    PX_LOG_INFO(ANIMATION, "AnimationClip saved to: %s", filepath.c_str());
     return true;
 }
 
 bool AnimationSerializer::DeserializeAnimationClip(AnimationClip& clip, const std::string& filepath) {
     std::ifstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for reading: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
@@ -67,7 +68,7 @@ bool AnimationSerializer::DeserializeAnimationClip(AnimationClip& clip, const st
     try {
         file >> json;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse JSON: %s", e.what());
+        PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
     file.close();
@@ -81,21 +82,21 @@ bool AnimationSerializer::SerializeAnimatorController(const AnimatorController& 
 
     std::ofstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for writing: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
 
     file << json.dump(4);
     file.close();
 
-    TraceLog(LOG_INFO, "AnimatorController saved to: %s", filepath.c_str());
+    PX_LOG_INFO(ANIMATION, "AnimatorController saved to: %s", filepath.c_str());
     return true;
 }
 
 bool AnimationSerializer::DeserializeAnimatorController(AnimatorController& controller, const std::string& filepath) {
     std::ifstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for reading: %s", filepath.c_str());
+        PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
@@ -103,7 +104,7 @@ bool AnimationSerializer::DeserializeAnimatorController(AnimatorController& cont
     try {
         file >> json;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse JSON: %s", e.what());
+        PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
     file.close();

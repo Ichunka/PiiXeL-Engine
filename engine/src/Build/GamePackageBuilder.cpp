@@ -1,4 +1,5 @@
 #include "Build/GamePackageBuilder.hpp"
+#include "Core/Logger.hpp"
 #include <filesystem>
 #include <fstream>
 #include <unordered_set>
@@ -23,7 +24,7 @@ static AssetData ConvertIcoToPngInMemory(const std::string& icoPath) {
     IconPixelData pixelData{};
 
     if (!ConvertIcoToRawPixels(icoPath, pixelData)) {
-        TraceLog(LOG_ERROR, "Failed to load .ico file: %s", icoPath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to load .ico file: %s", icoPath.c_str());
         return asset;
     }
 
@@ -40,9 +41,9 @@ static AssetData ConvertIcoToPngInMemory(const std::string& icoPath) {
     if (pngData && fileSize > 0) {
         asset.data.assign(pngData, pngData + fileSize);
         RL_FREE(pngData);
-        TraceLog(LOG_INFO, "Successfully converted %s to PNG in memory (%d bytes)", icoPath.c_str(), fileSize);
+        PX_LOG_INFO(BUILD, "Successfully converted %s to PNG in memory (%d bytes)", icoPath.c_str(), fileSize);
     } else {
-        TraceLog(LOG_ERROR, "Failed to export PNG to memory: %s", icoPath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to export PNG to memory: %s", icoPath.c_str());
     }
 
     return asset;
@@ -72,13 +73,13 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
     if (configFile.is_open()) {
         try {
             configFile >> projectConfig;
-            TraceLog(LOG_INFO, "Loaded project config: %s", configPath.c_str());
+            PX_LOG_INFO(BUILD, "Loaded project config: %s", configPath.c_str());
         } catch (const nlohmann::json::exception& e) {
-            TraceLog(LOG_ERROR, "Failed to parse config: %s", e.what());
+            PX_LOG_ERROR(BUILD, "Failed to parse config: %s", e.what());
         }
         configFile.close();
     } else {
-        TraceLog(LOG_WARNING, "Config file not found: %s", configPath.c_str());
+        PX_LOG_WARNING(BUILD, "Config file not found: %s", configPath.c_str());
     }
 
     nlohmann::json config{};
@@ -102,18 +103,18 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                     iconAsset.path = pngRelativePath;
                     config["icon"] = pngRelativePath;
                     package.AddAsset(iconAsset);
-                    TraceLog(LOG_INFO, "Converted icon from .ico to .png and added to package: %s", pngRelativePath.c_str());
+                    PX_LOG_INFO(BUILD, "Converted icon from .ico to .png and added to package: %s", pngRelativePath.c_str());
                 } else {
-                    TraceLog(LOG_WARNING, "Failed to convert .ico to .png, icon will not be included");
+                    PX_LOG_WARNING(BUILD, "Failed to convert .ico to .png, icon will not be included");
                 }
 #else
-                TraceLog(LOG_WARNING, "ICO to PNG conversion only supported on Windows, icon will not be included");
+                PX_LOG_WARNING(BUILD, "ICO to PNG conversion only supported on Windows, icon will not be included");
 #endif
             } else {
                 config["icon"] = iconPath;
             }
         } else {
-            TraceLog(LOG_WARNING, "Icon file not found: %s", fullIconPath.string().c_str());
+            PX_LOG_WARNING(BUILD, "Icon file not found: %s", fullIconPath.string().c_str());
         }
     }
 
@@ -125,7 +126,7 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
         if (!cacheAsset.data.empty()) {
             cacheAsset.path = "datas/.asset_uuid_cache";
             package.AddAsset(cacheAsset);
-            TraceLog(LOG_INFO, "Added UUID cache to package");
+            PX_LOG_INFO(BUILD, "Added UUID cache to package");
         }
     }
 
@@ -140,14 +141,14 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                         file >> sceneData;
                         std::string sceneName = std::filesystem::path(fullPath).stem().string();
                         package.AddScene(sceneName, sceneData);
-                        TraceLog(LOG_INFO, "Added scene: %s", sceneName.c_str());
+                        PX_LOG_INFO(BUILD, "Added scene: %s", sceneName.c_str());
                     } catch (const nlohmann::json::exception& e) {
-                        TraceLog(LOG_ERROR, "Failed to parse scene: %s - %s", fullPath.c_str(), e.what());
+                        PX_LOG_ERROR(BUILD, "Failed to parse scene: %s - %s", fullPath.c_str(), e.what());
                     }
                     file.close();
                 }
             } else {
-                TraceLog(LOG_WARNING, "Scene file not found: %s", fullPath.c_str());
+                PX_LOG_WARNING(BUILD, "Scene file not found: %s", fullPath.c_str());
             }
         }
     } else {
@@ -188,12 +189,12 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                                 }
                                 asset.path = pathInPackage;
                                 package.AddAsset(asset);
-                                TraceLog(LOG_INFO, "Added asset: %s (%s)", asset.path.c_str(), type.c_str());
+                                PX_LOG_INFO(BUILD, "Added asset: %s (%s)", asset.path.c_str(), type.c_str());
                             }
                         }
                     }
                 } else {
-                    TraceLog(LOG_WARNING, "Asset path not found: %s", assetPath.c_str());
+                    PX_LOG_WARNING(BUILD, "Asset path not found: %s", assetPath.c_str());
                 }
             }
         }
@@ -202,17 +203,17 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
     }
 
     if (!package.SaveToFile(outputPath)) {
-        TraceLog(LOG_ERROR, "Failed to save game package");
+        PX_LOG_ERROR(BUILD, "Failed to save game package");
         return false;
     }
 
-    TraceLog(LOG_INFO, "Game package built successfully: %s", outputPath.c_str());
+    PX_LOG_INFO(BUILD, "Game package built successfully: %s", outputPath.c_str());
     return true;
 }
 
 void GamePackageBuilder::ScanScenes(const std::string& scenesPath, GamePackage& package) {
     if (!std::filesystem::exists(scenesPath)) {
-        TraceLog(LOG_WARNING, "Scenes directory not found: %s", scenesPath.c_str());
+        PX_LOG_WARNING(BUILD, "Scenes directory not found: %s", scenesPath.c_str());
         return;
     }
 
@@ -225,9 +226,9 @@ void GamePackageBuilder::ScanScenes(const std::string& scenesPath, GamePackage& 
                     file >> sceneData;
                     std::string sceneName = entry.path().stem().string();
                     package.AddScene(sceneName, sceneData);
-                    TraceLog(LOG_INFO, "Added scene: %s", sceneName.c_str());
+                    PX_LOG_INFO(BUILD, "Added scene: %s", sceneName.c_str());
                 } catch (const nlohmann::json::exception& e) {
-                    TraceLog(LOG_ERROR, "Failed to parse scene: %s - %s", entry.path().string().c_str(), e.what());
+                    PX_LOG_ERROR(BUILD, "Failed to parse scene: %s - %s", entry.path().string().c_str(), e.what());
                 }
                 file.close();
             }
@@ -237,7 +238,7 @@ void GamePackageBuilder::ScanScenes(const std::string& scenesPath, GamePackage& 
 
 void GamePackageBuilder::ScanAssets(const std::string& assetsPath, GamePackage& package) {
     if (!std::filesystem::exists(assetsPath)) {
-        TraceLog(LOG_WARNING, "Assets directory not found: %s", assetsPath.c_str());
+        PX_LOG_WARNING(BUILD, "Assets directory not found: %s", assetsPath.c_str());
         return;
     }
 
@@ -263,7 +264,7 @@ void GamePackageBuilder::ScanAssets(const std::string& assetsPath, GamePackage& 
             if (!asset.data.empty()) {
                 asset.path = "content/assets/" + relativePath;
                 package.AddAsset(asset);
-                TraceLog(LOG_INFO, "Added asset: %s (%s)", asset.path.c_str(), type.c_str());
+                PX_LOG_INFO(BUILD, "Added asset: %s (%s)", asset.path.c_str(), type.c_str());
             }
         }
     }
@@ -377,10 +378,10 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
                 uuidToPath[uuidValue] = path;
             }
             cacheFile.close();
-            TraceLog(LOG_INFO, "Loaded UUID cache with %u entries", count);
+            PX_LOG_INFO(BUILD, "Loaded UUID cache with %u entries", count);
         }
     } else {
-        TraceLog(LOG_WARNING, "UUID cache not found: %s", cachePath.c_str());
+        PX_LOG_WARNING(BUILD, "UUID cache not found: %s", cachePath.c_str());
     }
 
     std::vector<uint64_t> uuidsToProcess;
@@ -397,7 +398,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         }
     }
 
-    TraceLog(LOG_INFO, "Scanning ALL .pxa files to build complete UUID registry...");
+    PX_LOG_INFO(BUILD, "Scanning ALL .pxa files to build complete UUID registry...");
 
     struct PxaHeader {
         uint32_t magic;
@@ -434,7 +435,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
                 if (header.metadataSize > 10000) {
                     pxaFile.close();
-                    TraceLog(LOG_WARNING, "Invalid metadata size: %s", entry.path().string().c_str());
+                    PX_LOG_WARNING(BUILD, "Invalid metadata size: %s", entry.path().string().c_str());
                     continue;
                 }
 
@@ -459,17 +460,17 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
                     std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
 
                     uuidToPath[header.uuid] = sourcePath;
-                    TraceLog(LOG_INFO, "Registered UUID %" PRIu64 " -> %s", header.uuid, sourcePath.c_str());
+                    PX_LOG_INFO(BUILD, "Registered UUID %" PRIu64 " -> %s", header.uuid, sourcePath.c_str());
                 }
 
                 pxaFile.close();
             }
         } catch (const std::filesystem::filesystem_error& e) {
-            TraceLog(LOG_ERROR, "Filesystem error: %s", e.what());
+            PX_LOG_ERROR(BUILD, "Filesystem error: %s", e.what());
         }
     }
 
-    TraceLog(LOG_INFO, "UUID registry contains %zu entries", uuidToPath.size());
+    PX_LOG_INFO(BUILD, "UUID registry contains %zu entries", uuidToPath.size());
 
     std::vector<uint64_t> processingQueue = uuidsToProcess;
     size_t queueIndex = 0;
@@ -483,7 +484,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
         auto it = uuidToPath.find(currentUUID);
         if (it == uuidToPath.end()) {
-            TraceLog(LOG_WARNING, "Asset not found in registry: %" PRIu64, currentUUID);
+            PX_LOG_WARNING(BUILD, "Asset not found in registry: %" PRIu64, currentUUID);
             continue;
         }
 
@@ -492,7 +493,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         std::string fullPath = (basePath / pxaPath).string();
 
         if (!std::filesystem::exists(fullPath)) {
-            TraceLog(LOG_WARNING, "Asset file not found: %s (UUID: %" PRIu64 ")", fullPath.c_str(), currentUUID);
+            PX_LOG_WARNING(BUILD, "Asset file not found: %s (UUID: %" PRIu64 ")", fullPath.c_str(), currentUUID);
             continue;
         }
 
@@ -508,7 +509,7 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
         asset.path = pathInPackage;
         package.AddAsset(asset);
         collectedUUIDs.insert(currentUUID);
-        TraceLog(LOG_INFO, "Auto-collected asset: %s (UUID: %" PRIu64 ")", asset.path.c_str(), currentUUID);
+        PX_LOG_INFO(BUILD, "Auto-collected asset: %s (UUID: %" PRIu64 ")", asset.path.c_str(), currentUUID);
 
         std::vector<uint64_t> dependencies = ExtractDependenciesFromPxa(fullPath);
         for (uint64_t depUUID : dependencies) {
@@ -522,13 +523,13 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
                 }
                 if (!alreadyQueued) {
                     processingQueue.push_back(depUUID);
-                    TraceLog(LOG_INFO, "Found dependency: %" PRIu64, depUUID);
+                    PX_LOG_INFO(BUILD, "Found dependency: %" PRIu64, depUUID);
                 }
             }
         }
     }
 
-    TraceLog(LOG_INFO, "Collected %zu unique assets from scenes (recursive)", collectedUUIDs.size());
+    PX_LOG_INFO(BUILD, "Collected %zu unique assets from scenes (recursive)", collectedUUIDs.size());
 }
 
 AssetData GamePackageBuilder::LoadAssetFile(const std::string& filepath, const std::string& type) {
@@ -537,7 +538,7 @@ AssetData GamePackageBuilder::LoadAssetFile(const std::string& filepath, const s
 
     std::ifstream file{filepath, std::ios::binary | std::ios::ate};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open asset file: %s", filepath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to open asset file: %s", filepath.c_str());
         return asset;
     }
 
@@ -546,7 +547,7 @@ AssetData GamePackageBuilder::LoadAssetFile(const std::string& filepath, const s
 
     asset.data.resize(static_cast<size_t>(size));
     if (!file.read(reinterpret_cast<char*>(asset.data.data()), size)) {
-        TraceLog(LOG_ERROR, "Failed to read asset file: %s", filepath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to read asset file: %s", filepath.c_str());
         asset.data.clear();
     }
 

@@ -1,4 +1,5 @@
 #include "Resources/PathManager.hpp"
+#include "Core/Logger.hpp"
 #include <filesystem>
 #include <raylib.h>
 
@@ -25,9 +26,9 @@ void PathManager::Initialize() {
 
     m_Initialized = true;
 
-    TraceLog(LOG_INFO, "PathManager initialized");
-    TraceLog(LOG_INFO, ("Engine assets path: " + m_EngineAssetsPath).c_str());
-    TraceLog(LOG_INFO, ("Game assets path: " + m_GameAssetsPath).c_str());
+    PX_LOG_INFO(ASSET, "PathManager initialized");
+    PX_LOG_INFO(ASSET, "Engine assets path: %s", m_EngineAssetsPath.c_str());
+    PX_LOG_INFO(ASSET, "Game assets path: %s", m_GameAssetsPath.c_str());
 }
 
 std::string PathManager::GetEngineAssetsPath(const std::string& relativePath) const {

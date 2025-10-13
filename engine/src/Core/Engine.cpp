@@ -1,4 +1,5 @@
 #include "Core/Engine.hpp"
+#include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
 #include "Scene/ComponentRegistry.hpp"
@@ -49,19 +50,19 @@ void Engine::Initialize() {
 
     if (FileExists("datas/game.package")) {
         if (LoadFromPackage("datas/game.package", "Default_Scene")) {
-            TraceLog(LOG_INFO, "✓ Game package loaded successfully - all assets embedded");
+            PX_LOG_INFO(ENGINE, "✓ Game package loaded successfully - all assets embedded");
 
             if (m_ActiveScene) {
                 AnimationSystem::ResetAnimators(m_ActiveScene->GetRegistry());
                 CreatePhysicsBodies();
             }
         } else {
-            TraceLog(LOG_ERROR, "✗ Failed to load datas/game.package");
+            PX_LOG_ERROR(ENGINE, "✗ Failed to load datas/game.package");
             m_ActiveScene = std::make_unique<Scene>("Empty Scene");
         }
     } else {
-        TraceLog(LOG_ERROR, "✗ datas/game.package not found! Cannot run without package.");
-        TraceLog(LOG_ERROR, "   Build the package first using: build_package.bat");
+        PX_LOG_ERROR(ENGINE, "✗ datas/game.package not found! Cannot run without package.");
+        PX_LOG_ERROR(ENGINE, "   Build the package first using: build_package.bat");
         m_ActiveScene = std::make_unique<Scene>("Empty Scene");
     }
 #endif
@@ -253,7 +254,7 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
         size_t scriptCount = registry.view<Script>().size();
         size_t cameraCount = registry.view<Camera>().size();
 
-        TraceLog(LOG_INFO, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
+        PX_LOG_INFO(ENGINE, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
 
         return true;
     }

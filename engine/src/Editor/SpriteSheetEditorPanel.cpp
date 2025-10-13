@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Core/Logger.hpp"
 #include "Animation/AnimationSerializer.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
@@ -77,7 +78,7 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         if (m_SpriteSheet->GetFrameGroupCount() > 0) {
             size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
             if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
-                TraceLog(LOG_WARNING, "SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames from grid.",
+                PX_LOG_WARNING(EDITOR, "SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames from grid.",
                     m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
                 UpdateFramesFromGrid();
             }
@@ -787,20 +788,20 @@ int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, con
 
 void SpriteSheetEditorPanel::Save() {
     if (!m_SpriteSheet) {
-        TraceLog(LOG_ERROR, "Cannot save: no sprite sheet");
+        PX_LOG_ERROR(EDITOR, "Cannot save: no sprite sheet");
         return;
     }
 
     if (m_CurrentPath.empty()) {
-        TraceLog(LOG_ERROR, "Cannot save: no path set (m_CurrentPath is empty)");
+        PX_LOG_ERROR(EDITOR, "Cannot save: no path set (m_CurrentPath is empty)");
         return;
     }
 
-    TraceLog(LOG_INFO, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
-    TraceLog(LOG_INFO, "Before save - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
+    PX_LOG_INFO(EDITOR, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
+    PX_LOG_INFO(EDITOR, "Before save - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
 
     if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
-        TraceLog(LOG_INFO, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
+        PX_LOG_INFO(EDITOR, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
 
         UUID spriteSheetUUID = m_SpriteSheet->GetUUID();
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
@@ -809,7 +810,7 @@ void SpriteSheetEditorPanel::Save() {
         m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(reloadedAsset);
 
         if (m_SpriteSheet) {
-            TraceLog(LOG_INFO, "After reload - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
+            PX_LOG_INFO(EDITOR, "After reload - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
             m_SelectedTextureUUID = m_SpriteSheet->GetTextureUUID();
             m_GridColumns = m_SpriteSheet->GetGridColumns();
             m_GridRows = m_SpriteSheet->GetGridRows();
@@ -817,16 +818,16 @@ void SpriteSheetEditorPanel::Save() {
             if (m_SpriteSheet->GetFrameGroupCount() > 0) {
                 size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
                 if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
-                    TraceLog(LOG_WARNING, "After reload: SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames.",
+                    PX_LOG_WARNING(EDITOR, "After reload: SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames.",
                         m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
                     UpdateFramesFromGrid();
                 }
             }
         } else {
-            TraceLog(LOG_ERROR, "Failed to reload sprite sheet after save");
+            PX_LOG_ERROR(EDITOR, "Failed to reload sprite sheet after save");
         }
     } else {
-        TraceLog(LOG_ERROR, "Failed to save sprite sheet: %s", m_CurrentPath.c_str());
+        PX_LOG_ERROR(EDITOR, "Failed to save sprite sheet: %s", m_CurrentPath.c_str());
     }
 }
 

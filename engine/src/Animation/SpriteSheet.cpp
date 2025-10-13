@@ -1,4 +1,5 @@
 #include "Animation/SpriteSheet.hpp"
+#include "Core/Logger.hpp"
 #include <nlohmann/json.hpp>
 #include <raylib.h>
 
@@ -10,7 +11,7 @@ SpriteSheet::SpriteSheet(UUID uuid, const std::string& name)
 
 bool SpriteSheet::Load(const void* data, size_t size) {
     if (!data || size == 0) {
-        TraceLog(LOG_ERROR, "Invalid data for SpriteSheet");
+        PX_LOG_ERROR(ANIMATION, "Invalid data for SpriteSheet");
         return false;
     }
 
@@ -68,7 +69,7 @@ bool SpriteSheet::Load(const void* data, size_t size) {
         m_IsLoaded = true;
         return true;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse SpriteSheet JSON: %s", e.what());
+        PX_LOG_ERROR(ANIMATION, "Failed to parse SpriteSheet JSON: %s", e.what());
         return false;
     }
 }

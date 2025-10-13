@@ -1,4 +1,5 @@
 #include "Build/GamePackage.hpp"
+#include "Core/Logger.hpp"
 #include <fstream>
 #include <raylib.h>
 
@@ -72,21 +73,21 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
 
     std::ofstream file{filepath, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to create package file: %s", filepath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to create package file: %s", filepath.c_str());
         return false;
     }
 
     file << packageJson.dump();
     file.close();
 
-    TraceLog(LOG_INFO, "Game package saved: %s", filepath.c_str());
+    PX_LOG_INFO(BUILD, "Game package saved: %s", filepath.c_str());
     return true;
 }
 
 bool GamePackage::LoadFromFile(const std::string& filepath) {
     std::ifstream file{filepath, std::ios::binary};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open package file: %s", filepath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to open package file: %s", filepath.c_str());
         return false;
     }
 
@@ -94,7 +95,7 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
     try {
         file >> packageJson;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse package: %s", e.what());
+        PX_LOG_ERROR(BUILD, "Failed to parse package: %s", e.what());
         return false;
     }
     file.close();
@@ -157,7 +158,7 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
         m_Config = packageJson["config"];
     }
 
-    TraceLog(LOG_INFO, "Game package loaded: %s (%zu scenes, %zu assets)",
+    PX_LOG_INFO(BUILD, "Game package loaded: %s (%zu scenes, %zu assets)",
              filepath.c_str(), m_Scenes.size(), m_Assets.size());
     return true;
 }

@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AnimationClipEditorPanel.hpp"
+#include "Core/Logger.hpp"
 #include "Animation/AnimationSerializer.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
@@ -69,20 +70,20 @@ void AnimationClipEditorPanel::Open(const std::string& animClipPath) {
 
     if (m_AnimationClip) {
         m_SelectedSpriteSheetUUID = m_AnimationClip->GetSpriteSheetUUID();
-        TraceLog(LOG_INFO, "AnimationClip opened, SpriteSheetUUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
+        PX_LOG_INFO(EDITOR, "AnimationClip opened, SpriteSheetUUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
 
         if (m_SelectedSpriteSheetUUID.Get() != 0) {
             std::shared_ptr<Asset> spriteSheetAsset = AssetRegistry::Instance().LoadAsset(m_SelectedSpriteSheetUUID);
             m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(spriteSheetAsset);
 
             if (m_SpriteSheet) {
-                TraceLog(LOG_INFO, "SpriteSheet loaded: %s", m_SpriteSheet->GetName().c_str());
+                PX_LOG_INFO(EDITOR, "SpriteSheet loaded: %s", m_SpriteSheet->GetName().c_str());
                 UUID textureUUID = m_SpriteSheet->GetTextureUUID();
                 if (textureUUID.Get() != 0) {
                     AssetRegistry::Instance().LoadAsset(textureUUID);
                 }
             } else {
-                TraceLog(LOG_WARNING, "Failed to load SpriteSheet with UUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
+                PX_LOG_WARNING(EDITOR, "Failed to load SpriteSheet with UUID: %" PRIu64, m_SelectedSpriteSheetUUID.Get());
             }
         }
     }
@@ -573,12 +574,12 @@ void AnimationClipEditorPanel::StopPreview() {
 
 void AnimationClipEditorPanel::Save() {
     if (!m_AnimationClip || m_CurrentPath.empty()) {
-        TraceLog(LOG_ERROR, "Cannot save: no animation clip or path");
+        PX_LOG_ERROR(EDITOR, "Cannot save: no animation clip or path");
         return;
     }
 
     if (AnimationSerializer::SerializeAnimationClip(*m_AnimationClip, m_CurrentPath)) {
-        TraceLog(LOG_INFO, "Saved animation clip: %s", m_CurrentPath.c_str());
+        PX_LOG_INFO(EDITOR, "Saved animation clip: %s", m_CurrentPath.c_str());
 
         UUID animClipUUID = m_AnimationClip->GetUUID();
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
@@ -594,7 +595,7 @@ void AnimationClipEditorPanel::Save() {
             }
         }
     } else {
-        TraceLog(LOG_ERROR, "Failed to save animation clip: %s", m_CurrentPath.c_str());
+        PX_LOG_ERROR(EDITOR, "Failed to save animation clip: %s", m_CurrentPath.c_str());
     }
 }
 

@@ -1,4 +1,5 @@
 #include "Scene/SceneSerializer.hpp"
+#include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
@@ -35,7 +36,7 @@ bool SceneSerializer::Serialize(const std::string& filepath) {
 
         if (!DirectoryExists(directory.c_str())) {
             if (!std::filesystem::create_directories(directory)) {
-                TraceLog(LOG_ERROR, "Failed to create directory: %s", directory.c_str());
+                PX_LOG_ERROR(SCENE, "Failed to create directory: %s", directory.c_str());
                 return false;
             }
         }
@@ -53,14 +54,14 @@ bool SceneSerializer::Serialize(const std::string& filepath) {
 
     std::ofstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for writing: %s", filepath.c_str());
+        PX_LOG_ERROR(SCENE, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
 
     file << sceneJson.dump(4);
     file.close();
 
-    TraceLog(LOG_INFO, "Scene saved to: %s", filepath.c_str());
+    PX_LOG_INFO(SCENE, "Scene saved to: %s", filepath.c_str());
     return true;
 }
 
@@ -71,7 +72,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
 
     std::ifstream file{filepath};
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "Failed to open file for reading: %s", filepath.c_str());
+        PX_LOG_ERROR(SCENE, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
@@ -79,7 +80,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
     try {
         file >> sceneJson;
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse JSON: %s", e.what());
+        PX_LOG_ERROR(SCENE, "Failed to parse JSON: %s", e.what());
         return false;
     }
     file.close();
@@ -102,7 +103,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
         }
     }
 
-    TraceLog(LOG_INFO, "Scene loaded from: %s", filepath.c_str());
+    PX_LOG_INFO(SCENE, "Scene loaded from: %s", filepath.c_str());
     return true;
 }
 
@@ -377,7 +378,7 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
     try {
         sceneJson = nlohmann::json::parse(data);
     } catch (const nlohmann::json::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to parse JSON from string: %s", e.what());
+        PX_LOG_ERROR(SCENE, "Failed to parse JSON from string: %s", e.what());
         return false;
     }
 
@@ -399,7 +400,7 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
         }
     }
 
-    TraceLog(LOG_INFO, "Scene loaded from memory snapshot");
+    PX_LOG_INFO(SCENE, "Scene loaded from memory snapshot");
     return true;
 }
 

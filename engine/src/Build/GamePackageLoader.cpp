@@ -1,4 +1,5 @@
 #include "Build/GamePackageLoader.hpp"
+#include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/ComponentRegistry.hpp"
 #include "Components/Tag.hpp"
@@ -40,13 +41,13 @@ bool GamePackageLoader::LoadPackage(const std::string& filepath) {
     }
 
     m_IsLoaded = true;
-    TraceLog(LOG_INFO, "Game package loaded successfully");
+    PX_LOG_INFO(BUILD, "Game package loaded successfully");
     return true;
 }
 
 std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName, ScriptSystem* scriptSystem) {
     if (!m_IsLoaded) {
-        TraceLog(LOG_ERROR, "No package loaded");
+        PX_LOG_ERROR(BUILD, "No package loaded");
         return nullptr;
     }
 
@@ -59,7 +60,7 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
     }
 
     if (!sceneData) {
-        TraceLog(LOG_ERROR, "Scene not found in package: %s", sceneName.c_str());
+        PX_LOG_ERROR(BUILD, "Scene not found in package: %s", sceneName.c_str());
         return nullptr;
     }
 
@@ -146,7 +147,7 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
         }
     }
 
-    TraceLog(LOG_INFO, "Scene loaded from package: %s", sceneName.c_str());
+    PX_LOG_INFO(BUILD, "Scene loaded from package: %s", sceneName.c_str());
     return scene;
 }
 
@@ -158,13 +159,13 @@ Texture2D GamePackageLoader::LoadTexture(const std::string& assetPath) {
 
     const AssetData* asset = m_Package.GetAsset(assetPath);
     if (!asset || asset->type != "texture") {
-        TraceLog(LOG_ERROR, "Texture not found in package: %s", assetPath.c_str());
+        PX_LOG_ERROR(BUILD, "Texture not found in package: %s", assetPath.c_str());
         return Texture2D{};
     }
 
     Image image = LoadImageFromMemory(".png", asset->data.data(), static_cast<int>(asset->data.size()));
     if (image.data == nullptr) {
-        TraceLog(LOG_ERROR, "Failed to load texture from package: %s", assetPath.c_str());
+        PX_LOG_ERROR(BUILD, "Failed to load texture from package: %s", assetPath.c_str());
         return Texture2D{};
     }
 
@@ -172,7 +173,7 @@ Texture2D GamePackageLoader::LoadTexture(const std::string& assetPath) {
     UnloadImage(image);
 
     m_LoadedTextures[assetPath] = texture;
-    TraceLog(LOG_INFO, "Texture loaded from package: %s", assetPath.c_str());
+    PX_LOG_INFO(BUILD, "Texture loaded from package: %s", assetPath.c_str());
     return texture;
 }
 
@@ -185,14 +186,14 @@ void GamePackageLoader::UnloadAllTextures() {
 
 void GamePackageLoader::InitializeAssetRegistry() {
     if (!m_IsLoaded) {
-        TraceLog(LOG_ERROR, "Cannot initialize AssetRegistry: no package loaded");
+        PX_LOG_ERROR(BUILD, "Cannot initialize AssetRegistry: no package loaded");
         return;
     }
 
     const AssetData* uuidCache = m_Package.GetAsset("datas/.asset_uuid_cache");
     if (uuidCache && !uuidCache->data.empty()) {
         AssetRegistry::Instance().LoadUUIDCacheFromMemory(uuidCache->data.data(), uuidCache->data.size());
-        TraceLog(LOG_INFO, "Loaded UUID cache from package");
+        PX_LOG_INFO(BUILD, "Loaded UUID cache from package");
     }
 
     size_t registeredCount = 0;
@@ -212,7 +213,7 @@ void GamePackageLoader::InitializeAssetRegistry() {
         }
     }
 
-    TraceLog(LOG_INFO, "Registered %zu .pxa assets from package (in-memory)", registeredCount);
+    PX_LOG_INFO(BUILD, "Registered %zu .pxa assets from package (in-memory)", registeredCount);
 }
 
 } // namespace PiiXeL
