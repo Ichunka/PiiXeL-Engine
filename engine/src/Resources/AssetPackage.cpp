@@ -129,9 +129,21 @@ bool AssetPackage::LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMet
 
     if (!pxaPath.empty()) {
         std::filesystem::path pxa{pxaPath};
-        std::string sourceFile = pxa.parent_path().string();
-        if (!sourceFile.empty()) sourceFile += "/";
-        sourceFile += pxa.stem().string() + outMetadata.sourceExtension;
+        std::filesystem::path absPath = std::filesystem::absolute(pxa);
+        std::filesystem::path currentPath = std::filesystem::current_path();
+
+        std::string sourceFile;
+        try {
+            std::filesystem::path relativePath = std::filesystem::relative(absPath, currentPath);
+            sourceFile = relativePath.parent_path().string();
+            if (!sourceFile.empty() && sourceFile != ".") sourceFile += "/";
+            sourceFile += pxa.stem().string() + outMetadata.sourceExtension;
+        } catch (...) {
+            sourceFile = pxa.parent_path().string();
+            if (!sourceFile.empty()) sourceFile += "/";
+            sourceFile += pxa.stem().string() + outMetadata.sourceExtension;
+        }
+
         outMetadata.sourceFile = NormalizePath(sourceFile);
     }
 
@@ -166,9 +178,21 @@ bool AssetPackage::LoadMetadataOnly(const std::string& path, AssetMetadata& outM
     if (!ReadMetadata(file, outMetadata, header.metadataSize)) return false;
 
     std::filesystem::path pxaPath{path};
-    std::string sourceFile = pxaPath.parent_path().string();
-    if (!sourceFile.empty()) sourceFile += "/";
-    sourceFile += pxaPath.stem().string() + outMetadata.sourceExtension;
+    std::filesystem::path absPath = std::filesystem::absolute(pxaPath);
+    std::filesystem::path currentPath = std::filesystem::current_path();
+
+    std::string sourceFile;
+    try {
+        std::filesystem::path relativePath = std::filesystem::relative(absPath, currentPath);
+        sourceFile = relativePath.parent_path().string();
+        if (!sourceFile.empty() && sourceFile != ".") sourceFile += "/";
+        sourceFile += pxaPath.stem().string() + outMetadata.sourceExtension;
+    } catch (...) {
+        sourceFile = pxaPath.parent_path().string();
+        if (!sourceFile.empty()) sourceFile += "/";
+        sourceFile += pxaPath.stem().string() + outMetadata.sourceExtension;
+    }
+
     outMetadata.sourceFile = NormalizePath(sourceFile);
 
     file.close();
