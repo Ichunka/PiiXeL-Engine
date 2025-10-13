@@ -2015,7 +2015,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewScenePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewScenePopup) {
         ImGui::OpenPopup("New Scene");
         showNewScenePopup = false;
     }
@@ -2058,7 +2058,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewFolderPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewFolderPopup) {
         ImGui::OpenPopup("New Folder");
         showNewFolderPopup = false;
     }
@@ -2095,7 +2095,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewSpriteSheetPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewSpriteSheetPopup) {
         ImGui::OpenPopup("New Sprite Sheet");
         showNewSpriteSheetPopup = false;
     }
@@ -2141,7 +2141,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimClipPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewAnimClipPopup) {
         ImGui::OpenPopup("New Animation Clip");
         showNewAnimClipPopup = false;
     }
@@ -2187,7 +2187,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimControllerPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showNewAnimControllerPopup) {
         ImGui::OpenPopup("New Animator Controller");
         showNewAnimControllerPopup = false;
     }
@@ -2233,7 +2233,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showRenamePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
+    if (showRenamePopup) {
         ImGui::OpenPopup("Rename");
         showRenamePopup = false;
     }
