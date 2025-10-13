@@ -10,7 +10,7 @@
     ],
     "states": [
         {
-            "animationClipUUID": 16633285451722367323,
+            "animationClipUUID": 16560930603040985185,
             "editorPosition": [
                 613.0,
                 29.0
@@ -67,5 +67,5 @@
             "transitionDuration": 0.25
         }
     ],
-    "uuid": 10941248551730471284
+    "uuid": 12277132850455769561
 }
