@@ -4,6 +4,7 @@
 #include "Components/Transform.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
 
@@ -113,6 +114,29 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
         shapeDef.enableContactEvents = true;
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
+    }
+    if (registry.all_of<CircleCollider2D>(entity)) {
+        CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
+
+        const float scaledRadius = collider.radius * (transform.scale.x + transform.scale.y) * 0.5f;
+
+        b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters,
+        collider.offset.y / m_PixelsToMeters}
+            , .radius = scaledRadius / m_PixelsToMeters};
+
+        b2ShapeDef shapeDef = b2DefaultShapeDef();
+
+        float radiusMeters = collider.radius;
+        float areaMeters = PI * radiusMeters * radiusMeters;
+        shapeDef.density = areaMeters > 0.0f ? (rb.mass / areaMeters) : 1.0f;
+
+        shapeDef.material.friction = rb.friction;
+        shapeDef.material.restitution = rb.restitution;
+        shapeDef.isSensor = collider.isTrigger;
+        shapeDef.enableSensorEvents = true;
+        shapeDef.enableContactEvents = true;
+
+        b2CreateCircleShape(bodyId, &shapeDef, &circle);
     }
 }
 

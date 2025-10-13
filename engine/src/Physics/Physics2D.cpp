@@ -3,6 +3,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/Transform.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Debug/DebugDraw.hpp"
 #include <box2d/box2d.h>
 #include <raylib.h>
@@ -146,6 +147,10 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
     if (registry.all_of<BoxCollider2D>(entity)) {
         BoxCollider2D& collider = registry.get<BoxCollider2D>(entity);
         colliderHalfHeight = (collider.size.y * transform.scale.y * 0.5f) / PIXELS_TO_METERS;
+    }
+    if (registry.all_of<CircleCollider2D>(entity)) {
+        CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
+        colliderHalfHeight = (collider.radius * (transform.scale.x + transform.scale.y) * 0.5f) / PIXELS_TO_METERS;
     }
 
     b2Vec2 position = b2Body_GetPosition(rb.box2dBodyId);
