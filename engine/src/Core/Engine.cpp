@@ -47,6 +47,11 @@ void Engine::Initialize() {
     if (FileExists("datas/game.package")) {
         if (LoadFromPackage("datas/game.package", "Default_Scene")) {
             TraceLog(LOG_INFO, "✓ Game package loaded successfully - all assets embedded");
+
+            if (m_ActiveScene) {
+                AnimationSystem::ResetAnimators(m_ActiveScene->GetRegistry());
+                CreatePhysicsBodies();
+            }
         } else {
             TraceLog(LOG_ERROR, "✗ Failed to load datas/game.package");
             m_ActiveScene = std::make_unique<Scene>("Empty Scene");

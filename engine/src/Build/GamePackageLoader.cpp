@@ -7,6 +7,7 @@
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Animator.hpp"
 #include "Components/UUID.hpp"
 #include "Scene/EntityRegistry.hpp"
 #include "Systems/ScriptSystem.hpp"
@@ -191,6 +192,20 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                 Script script{};
                 script.scriptName = scriptJson.value("scriptName", "");
                 registry.emplace<Script>(entity, script);
+            }
+
+            if (entityJson.contains("Animator")) {
+                const nlohmann::json& animatorJson = entityJson["Animator"];
+                Animator animator{};
+
+                if (animatorJson.contains("controllerUUID")) {
+                    animator.controllerUUID = UUID{animatorJson["controllerUUID"].get<uint64_t>()};
+                }
+
+                animator.isPlaying = animatorJson.value("isPlaying", true);
+                animator.playbackSpeed = animatorJson.value("playbackSpeed", 1.0f);
+
+                registry.emplace<Animator>(entity, animator);
             }
         }
     }
