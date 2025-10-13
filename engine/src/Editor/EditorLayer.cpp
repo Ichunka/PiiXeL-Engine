@@ -627,6 +627,106 @@ void EditorLayer::RenderViewport() {
     ImGui::PopStyleVar();
 }
 
+void EditorLayer::RenderGameViewport() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+    ImGui::Begin("Game");
+
+    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+    entt::entity primaryCameraEntity = GetPrimaryCamera();
+
+    if (primaryCameraEntity == entt::null) {
+        ImVec2 windowSize = ImGui::GetWindowSize();
+        const char* message = "No Primary Camera";
+        ImVec2 textSize = ImGui::CalcTextSize(message);
+        ImGui::SetCursorPos(ImVec2{
+            (windowSize.x - textSize.x) * 0.5f,
+            (windowSize.y - textSize.y) * 0.5f
+        });
+        ImGui::TextDisabled("%s", message);
+    }
+    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
+        if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture.texture.width ||
+            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture.texture.height) {
+            UnloadRenderTexture(m_GameViewportTexture);
+            m_GameViewportTexture = LoadRenderTexture(
+                static_cast<int>(viewportPanelSize.x),
+                static_cast<int>(viewportPanelSize.y)
+            );
+        }
+
+        BeginTextureMode(m_GameViewportTexture);
+        ClearBackground(Color{45, 45, 48, 255});
+
+        Camera2D camera{};
+        camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
+        camera.target = Vector2{0.0f, 0.0f};
+        camera.rotation = 0.0f;
+        camera.zoom = 1.0f;
+
+        if (m_Engine && m_Engine->GetActiveScene()) {
+            Scene* scene = m_Engine->GetActiveScene();
+            entt::registry& registry = scene->GetRegistry();
+
+            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity)) {
+                const Camera& cameraComp = registry.get<Camera>(primaryCameraEntity);
+                const Transform& transform = registry.get<Transform>(primaryCameraEntity);
+
+                camera = cameraComp.ToRaylib(transform.position);
+                camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
+            }
+        }
+
+        BeginMode2D(camera);
+
+        if (m_Engine) {
+            RenderSystem* renderSystem = m_Engine->GetRenderSystem();
+            bool savedShowColliders = false;
+            bool savedShowDebug = false;
+
+            if (renderSystem) {
+                savedShowColliders = renderSystem->GetShowColliders();
+                savedShowDebug = renderSystem->GetShowDebug();
+                renderSystem->SetShowColliders(false);
+                renderSystem->SetShowDebug(false);
+            }
+
+            m_Engine->Render();
+
+            if (renderSystem) {
+                renderSystem->SetShowColliders(savedShowColliders);
+                renderSystem->SetShowDebug(savedShowDebug);
+            }
+        }
+
+        EndMode2D();
+
+        EndTextureMode();
+
+        Rectangle sourceRec{
+            0.0f, 0.0f,
+            static_cast<float>(m_GameViewportTexture.texture.width),
+            -static_cast<float>(m_GameViewportTexture.texture.height)
+        };
+
+        rlImGuiImageRect(&m_GameViewportTexture.texture,
+                        static_cast<int>(viewportPanelSize.x),
+                        static_cast<int>(viewportPanelSize.y),
+                        sourceRec);
+    }
+
+    if (m_EditorState == EditorState::Play) {
+        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
+            ImGuiIO& io = ImGui::GetIO();
+            io.WantCaptureMouse = false;
+            io.WantCaptureKeyboard = false;
+        }
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
+
 void EditorLayer::RenderHierarchy() {
     PROFILE_FUNCTION();
     ImGui::Begin("Hierarchy");
@@ -735,6 +835,12 @@ void EditorLayer::RenderHierarchy() {
 void EditorLayer::RenderInspector() {
     PROFILE_FUNCTION();
     ImGui::Begin("Inspector");
+
+    if (m_AnimatorControllerEditor && m_AnimatorControllerEditor->IsOpen() && m_AnimatorControllerEditor->HasSelection()) {
+        m_AnimatorControllerEditor->RenderInspector();
+        ImGui::End();
+        return;
+    }
 
     if (m_SelectedAssetUUID.Get() != 0 || !m_SelectedAssetPath.empty()) {
         ImGui::TextColored(ImVec4{0.4f, 0.8f, 1.0f, 1.0f}, "Asset");
@@ -1371,6 +1477,8 @@ void EditorLayer::RenderContentBrowser() {
                     } else {
                         info.type = "unknown";
                     }
+
+                    info.uuid = AssetRegistry::Instance().GetUUIDFromPath(info.path);
 
                     files.push_back(info);
                 }
@@ -2656,106 +2764,6 @@ entt::entity EditorLayer::GetPrimaryCamera() {
     });
 
     return primaryCamera;
-}
-
-void EditorLayer::RenderGameViewport() {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-    ImGui::Begin("Game");
-
-    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-    entt::entity primaryCameraEntity = GetPrimaryCamera();
-
-    if (primaryCameraEntity == entt::null) {
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        const char* message = "No Primary Camera";
-        ImVec2 textSize = ImGui::CalcTextSize(message);
-        ImGui::SetCursorPos(ImVec2{
-            (windowSize.x - textSize.x) * 0.5f,
-            (windowSize.y - textSize.y) * 0.5f
-        });
-        ImGui::TextDisabled("%s", message);
-    }
-    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
-        if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture.texture.width ||
-            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture.texture.height) {
-            UnloadRenderTexture(m_GameViewportTexture);
-            m_GameViewportTexture = LoadRenderTexture(
-                static_cast<int>(viewportPanelSize.x),
-                static_cast<int>(viewportPanelSize.y)
-            );
-        }
-
-        BeginTextureMode(m_GameViewportTexture);
-        ClearBackground(Color{45, 45, 48, 255});
-
-        Camera2D camera{};
-        camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
-        camera.target = Vector2{0.0f, 0.0f};
-        camera.rotation = 0.0f;
-        camera.zoom = 1.0f;
-
-        if (m_Engine && m_Engine->GetActiveScene()) {
-            Scene* scene = m_Engine->GetActiveScene();
-            entt::registry& registry = scene->GetRegistry();
-
-            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity)) {
-                const Camera& cameraComp = registry.get<Camera>(primaryCameraEntity);
-                const Transform& transform = registry.get<Transform>(primaryCameraEntity);
-
-                camera = cameraComp.ToRaylib(transform.position);
-                camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
-            }
-        }
-
-        BeginMode2D(camera);
-
-        if (m_Engine) {
-            RenderSystem* renderSystem = m_Engine->GetRenderSystem();
-            bool savedShowColliders = false;
-            bool savedShowDebug = false;
-
-            if (renderSystem) {
-                savedShowColliders = renderSystem->GetShowColliders();
-                savedShowDebug = renderSystem->GetShowDebug();
-                renderSystem->SetShowColliders(false);
-                renderSystem->SetShowDebug(false);
-            }
-
-            m_Engine->Render();
-
-            if (renderSystem) {
-                renderSystem->SetShowColliders(savedShowColliders);
-                renderSystem->SetShowDebug(savedShowDebug);
-            }
-        }
-
-        EndMode2D();
-
-        EndTextureMode();
-
-        Rectangle sourceRec{
-            0.0f, 0.0f,
-            static_cast<float>(m_GameViewportTexture.texture.width),
-            -static_cast<float>(m_GameViewportTexture.texture.height)
-        };
-
-        rlImGuiImageRect(&m_GameViewportTexture.texture,
-                        static_cast<int>(viewportPanelSize.x),
-                        static_cast<int>(viewportPanelSize.y),
-                        sourceRec);
-    }
-
-    if (m_EditorState == EditorState::Play) {
-        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
-            ImGuiIO& io = ImGui::GetIO();
-            io.WantCaptureMouse = false;
-            io.WantCaptureKeyboard = false;
-        }
-    }
-
-    ImGui::End();
-    ImGui::PopStyleVar();
 }
 
 void EditorLayer::OnPlayButtonPressed() {

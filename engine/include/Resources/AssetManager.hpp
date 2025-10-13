@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include "Components/UUID.hpp"
 
 namespace PiiXeL {
 
@@ -14,6 +15,7 @@ struct AssetInfo {
     std::string filename;
     std::string extension;
     std::string type;
+    UUID uuid{0};
     size_t fileSize{0};
     int width{0};
     int height{0};

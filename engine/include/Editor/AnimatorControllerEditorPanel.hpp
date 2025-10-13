@@ -19,16 +19,18 @@ public:
     ~AnimatorControllerEditorPanel() = default;
 
     void Render();
+    void RenderInspector();
+    void RenderToolbar();
+    void RenderParametersPanel();
+    void RenderStateGraph();
     void Open(const std::string& controllerPath);
     void Close();
 
     [[nodiscard]] bool IsOpen() const { return m_IsOpen; }
+    [[nodiscard]] bool HasSelection() const { return m_SelectedStateIndex >= 0 || m_SelectedTransitionIndex >= 0; }
+    [[nodiscard]] std::shared_ptr<AnimatorController> GetController() const { return m_Controller; }
 
 private:
-    void RenderToolbar();
-    void RenderParametersPanel();
-    void RenderStateGraph();
-    void RenderInspector();
 
     void RenderStateNode(size_t stateIndex, const ImVec2& canvasPos, const ImVec2& scrolling);
     void RenderTransitions(const ImVec2& canvasPos, const ImVec2& scrolling);

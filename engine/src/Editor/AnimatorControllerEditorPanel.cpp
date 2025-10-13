@@ -4,6 +4,7 @@
 #include "Animation/AnimationSerializer.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/Asset.hpp"
+#include "Resources/AssetManager.hpp"
 #include "Resources/TextureAsset.hpp"
 #include "Animation/AnimationClip.hpp"
 #include <imgui.h>
@@ -39,27 +40,32 @@ void AnimatorControllerEditorPanel::Render() {
 
     ImGui::BeginChild("MainContent", ImVec2{0, 0}, false);
     {
-        ImGui::Columns(3, "AnimatorColumns", true);
-        ImGui::SetColumnWidth(0, 250);
-        ImGui::SetColumnWidth(2, 250);
+        static float leftPanelWidth = 250.0f;
+        const float minPanelWidth = 150.0f;
+        const float splitterWidth = 4.0f;
 
-        ImGui::BeginChild("ParametersPanel", ImVec2{0, 0}, true);
+        ImVec2 contentSize = ImGui::GetContentRegionAvail();
+        leftPanelWidth = std::max(minPanelWidth, std::min(leftPanelWidth, contentSize.x - minPanelWidth - splitterWidth));
+
+        ImGui::BeginChild("ParametersPanel", ImVec2{leftPanelWidth, 0}, true);
         RenderParametersPanel();
         ImGui::EndChild();
 
-        ImGui::NextColumn();
+        ImGui::SameLine();
+
+        ImGui::Button("##splitter1", ImVec2{splitterWidth, -1});
+        if (ImGui::IsItemActive()) {
+            leftPanelWidth += ImGui::GetIO().MouseDelta.x;
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+        }
+
+        ImGui::SameLine();
 
         ImGui::BeginChild("StateGraphPanel", ImVec2{0, 0}, true);
         RenderStateGraph();
         ImGui::EndChild();
-
-        ImGui::NextColumn();
-
-        ImGui::BeginChild("InspectorPanel", ImVec2{0, 0}, true);
-        RenderInspector();
-        ImGui::EndChild();
-
-        ImGui::Columns(1);
     }
     ImGui::EndChild();
 
@@ -67,6 +73,10 @@ void AnimatorControllerEditorPanel::Render() {
 }
 
 void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
+    if (m_IsOpen && m_CurrentPath == controllerPath) {
+        return;
+    }
+
     m_CurrentPath = controllerPath;
 
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(controllerPath);
@@ -203,15 +213,23 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
     }
 
+    ImVec2 scrolling = ImVec2{m_GraphScrollingX, m_GraphScrollingY};
+
+    int rightClickedStateIndex = -1;
     if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-        m_OpenContextMenu = true;
-        m_ContextMenuPosX = mousePosInCanvas.x;
-        m_ContextMenuPosY = mousePosInCanvas.y;
+        rightClickedStateIndex = GetStateIndexAtPosition(mousePosInCanvas, canvasPos, scrolling);
+        if (rightClickedStateIndex >= 0) {
+            m_SelectedStateIndex = rightClickedStateIndex;
+            m_SelectedTransitionIndex = -1;
+            ImGui::OpenPopup("NodeContextMenu");
+        } else {
+            m_OpenContextMenu = true;
+            m_ContextMenuPosX = mousePosInCanvas.x;
+            m_ContextMenuPosY = mousePosInCanvas.y;
+        }
     }
 
     drawList->PushClipRect(canvasPos, canvasEnd, true);
-
-    ImVec2 scrolling = ImVec2{m_GraphScrollingX, m_GraphScrollingY};
     RenderTransitions(canvasPos, scrolling);
 
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
@@ -282,6 +300,32 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
         }
         ImGui::EndPopup();
     }
+
+    if (ImGui::BeginPopup("NodeContextMenu")) {
+        if (m_SelectedStateIndex >= 0 && m_SelectedStateIndex < static_cast<int>(states.size())) {
+            const AnimatorState& state = states[m_SelectedStateIndex];
+            ImGui::Text("State: %s", state.name.c_str());
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Create Transition")) {
+                m_CreatingTransitionFromIndex = m_SelectedStateIndex;
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem("Set as Default")) {
+                m_Controller->SetDefaultState(state.name);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Delete State")) {
+                DeleteState(m_SelectedStateIndex);
+                m_SelectedStateIndex = -1;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
 }
 
 void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImVec2& canvasPos, const ImVec2& scrolling) {
@@ -297,10 +341,13 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-    ImU32 nodeColor = isDefault ? IM_COL32(100, 150, 200, 255) : IM_COL32(60, 60, 80, 255);
-    ImU32 borderColor = isSelected ? IM_COL32(255, 200, 100, 255) : IM_COL32(100, 100, 120, 255);
+    ImU32 headerColor = isDefault ? IM_COL32(70, 140, 220, 255) : IM_COL32(50, 110, 180, 255);
+    ImU32 bodyColor = isDefault ? IM_COL32(45, 80, 120, 255) : IM_COL32(40, 65, 100, 255);
+    ImU32 borderColor = isSelected ? IM_COL32(100, 180, 255, 255) : IM_COL32(70, 130, 200, 255);
 
-    drawList->AddRectFilled(nodePos, nodeEnd, nodeColor, NODE_ROUNDING);
+    ImVec2 headerEnd = ImVec2{nodeEnd.x, nodePos.y + 28};
+    drawList->AddRectFilled(nodePos, headerEnd, headerColor, NODE_ROUNDING, ImDrawFlags_RoundCornersTop);
+    drawList->AddRectFilled(ImVec2{nodePos.x, nodePos.y + 28}, nodeEnd, bodyColor, NODE_ROUNDING, ImDrawFlags_RoundCornersBottom);
     drawList->AddRect(nodePos, nodeEnd, borderColor, NODE_ROUNDING, 0, isSelected ? 3.0f : 2.0f);
 
     ImVec2 textPos = ImVec2{nodePos.x + 10, nodePos.y + 10};
@@ -319,9 +366,6 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
     char speedText[32];
     snprintf(speedText, sizeof(speedText), "Speed: %.2fx", state.speed);
     drawList->AddText(speedTextPos, IM_COL32(150, 150, 150, 255), speedText);
-
-    ImVec2 connectorPos = ImVec2{nodeEnd.x, nodePos.y + NODE_HEIGHT / 2.0f};
-    drawList->AddCircleFilled(connectorPos, CONNECTOR_RADIUS, IM_COL32(100, 200, 100, 255));
 }
 
 void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, const ImVec2& scrolling) {
@@ -412,12 +456,10 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Animation Clip:");
 
             if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ANIM_ANIM")) {
-                    UUID assetUUID = *static_cast<const UUID*>(payload->Data);
-                    std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(assetUUID);
-                    std::shared_ptr<AnimationClip> clip = std::dynamic_pointer_cast<AnimationClip>(clipAsset);
-                    if (clip) {
-                        state.animationClipUUID = assetUUID;
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
+                    const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
+                    if (assetInfo && assetInfo->type == "animclip") {
+                        state.animationClipUUID = assetInfo->uuid;
                     }
                 }
                 ImGui::EndDragDropTarget();
