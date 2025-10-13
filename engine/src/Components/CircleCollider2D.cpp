@@ -10,7 +10,7 @@ BEGIN_REFLECT(CircleCollider2D)
 END_REFLECT(CircleCollider2D)
 
 namespace Reflection {
-void __force_link_BoxCollider2D() {}
+void __force_link_CircleCollider2D() {}
 }
 
 }

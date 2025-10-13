@@ -4,6 +4,7 @@
 #include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Debug/DebugDraw.hpp"
 #include "Debug/Profiler.hpp"
 #include <algorithm>
@@ -235,6 +236,18 @@ void RenderSystem::RenderColliders(entt::registry& registry) {
         DrawLineV(corners[1], corners[2], colliderColor);
         DrawLineV(corners[2], corners[3], colliderColor);
         DrawLineV(corners[3], corners[0], colliderColor);
+    });
+    registry.view<Transform, CircleCollider2D>().each([](const Transform& transform, const CircleCollider2D& collider) {
+        float scaledRadius = collider.radius * transform.scale.x;
+
+        Vector2 centerPos{
+            transform.position.x + collider.offset.x * transform.scale.x,
+            transform.position.y + collider.offset.y * transform.scale.y
+        };
+
+        Color colliderColor = collider.isTrigger ? Color{0, 255, 255, 180} : Color{0, 255, 0, 180};
+
+        DrawCircleLines(centerPos.x, centerPos.y, scaledRadius, colliderColor);
     });
 }
 

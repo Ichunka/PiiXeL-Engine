@@ -84,8 +84,8 @@
             "BoxCollider2D": {
                 "isTrigger": true,
                 "offset": [
-                    0.0,
-                    0.0
+                    -25.0,
+                    -22.0
                 ],
                 "size": [
                     16.0,
@@ -136,32 +136,20 @@
             "uuid": 4612835490763123557
         },
         {
-            "BoxCollider2D": {
+            "CircleCollider2D": {
                 "isTrigger": false,
                 "offset": [
-                    0.0,
-                    0.0
+                    9.0,
+                    -11.0
                 ],
-                "size": [
-                    16.0,
-                    16.0
-                ]
+                "radius": 8.0
             },
             "RigidBody2D": {
                 "fixedRotation": false,
                 "friction": 0.30000001192092896,
                 "mass": 10.0,
                 "restitution": 0.0,
-                "type": 2
-            },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "amplitude": 100.0,
-                    "frequency": 1.0,
-                    "rotationSpeed": 90.0
-                },
-                "scriptName": "RotatingPlatform"
+                "type": 1
             },
             "Sprite": {
                 "layer": 0,
@@ -188,8 +176,8 @@
             },
             "Transform": {
                 "position": [
-                    -403.5,
-                    146.2064208984375
+                    -182.5,
+                    -141.79400634765625
                 ],
                 "rotation": 0.0,
                 "scale": [
@@ -327,8 +315,8 @@
             "BoxCollider2D": {
                 "isTrigger": false,
                 "offset": [
-                    0.0,
-                    0.0
+                    -23.0,
+                    -18.0
                 ],
                 "size": [
                     16.0,

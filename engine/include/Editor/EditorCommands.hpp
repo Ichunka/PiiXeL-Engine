@@ -9,6 +9,7 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Components/Tag.hpp"
 #include <entt/entt.hpp>
 #include <functional>
@@ -163,6 +164,34 @@ private:
     BoxCollider2D m_NewValue;
 };
 
+class ModifyCircleCollider2DCommand : public Command {
+public:
+    ModifyCircleCollider2DCommand(entt::registry* registry, entt::entity entity, const CircleCollider2D& oldValue, const CircleCollider2D& newValue)
+        : m_Registry{registry}
+    , m_Entity{entity}
+    , m_OldValue{oldValue}
+    , m_NewValue{newValue}
+    {}
+
+    void Execute() override {
+        if (m_Registry && m_Registry->valid(m_Entity) && m_Registry->all_of<CircleCollider2D>(m_Entity)) {
+            m_Registry->get<CircleCollider2D>(m_Entity) = m_NewValue;
+        }
+    }
+
+    void Undo() override {
+        if (m_Registry && m_Registry->valid(m_Entity) && m_Registry->all_of<CircleCollider2D>(m_Entity)) {
+            m_Registry->get<CircleCollider2D>(m_Entity) = m_OldValue;
+        }
+    }
+
+private:
+    entt::registry* m_Registry;
+    entt::entity m_Entity;
+    CircleCollider2D m_OldValue;
+    CircleCollider2D m_NewValue;
+};
+
 class CreateEntityCommand : public Command {
 public:
     CreateEntityCommand(Scene* scene, const std::string& name)
@@ -226,6 +255,10 @@ public:
                 m_SavedBoxCollider = m_Registry->get<BoxCollider2D>(m_Entity);
                 m_HasBoxCollider = true;
             }
+            if (m_Registry->all_of<CircleCollider2D>(m_Entity)) {
+                m_SavedCircleCollider = m_Registry->get<CircleCollider2D>(m_Entity);
+                m_HasCircleCollider = true;
+            }
         }
     }
 
@@ -256,6 +289,9 @@ public:
             if (m_HasBoxCollider) {
                 m_Registry->emplace<BoxCollider2D>(m_Entity, m_SavedBoxCollider);
             }
+            if (m_HasCircleCollider) {
+                m_Registry->emplace<CircleCollider2D>(m_Entity, m_SavedCircleCollider);
+            }
         }
     }
 
@@ -268,11 +304,13 @@ private:
     Camera m_SavedCamera;
     RigidBody2D m_SavedRigidBody;
     BoxCollider2D m_SavedBoxCollider;
+    CircleCollider2D m_SavedCircleCollider;
     bool m_HasTransform{false};
     bool m_HasSprite{false};
     bool m_HasCamera{false};
     bool m_HasRigidBody{false};
     bool m_HasBoxCollider{false};
+    bool m_HasCircleCollider{false};
 };
 
 template<typename T>

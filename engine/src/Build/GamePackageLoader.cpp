@@ -8,6 +8,7 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Components/Script.hpp"
 #include "Components/Animator.hpp"
 #include "Components/UUID.hpp"

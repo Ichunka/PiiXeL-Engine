@@ -7,6 +7,7 @@
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/BoxCollider2D.hpp"
+#include "Components/CircleCollider2D.hpp"
 #include "Components/Script.hpp"
 #include "Components/Animator.hpp"
 #include "Components/UUID.hpp"
@@ -173,6 +174,15 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         };
     }
 
+    if (registry.all_of<CircleCollider2D>(entity)) {
+        const CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
+        entityJson["CircleCollider2D"] = {
+            {"radius", collider.radius},
+            {"offset", {collider.offset.x, collider.offset.y}},
+            {"isTrigger", collider.isTrigger}
+        };
+    }
+
     if (registry.all_of<Script>(entity)) {
         const Script& script = registry.get<Script>(entity);
         nlohmann::json scriptJson{};
@@ -325,6 +335,24 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         collider.isTrigger = colliderJson.value("isTrigger", false);
 
         registry.emplace<BoxCollider2D>(entity, collider);
+    }
+
+    if (entityJson.contains("CircleCollider2D")) {
+        const nlohmann::json& colliderJson = entityJson["CircleCollider2D"];
+        CircleCollider2D collider{};
+
+        if (colliderJson.contains("radius")) {
+            collider.radius = colliderJson["radius"].get<float>();
+        }
+
+        if (colliderJson.contains("offset") && colliderJson["offset"].is_array() && colliderJson["offset"].size() == 2) {
+            collider.offset.x = colliderJson["offset"][0].get<float>();
+            collider.offset.y = colliderJson["offset"][1].get<float>();
+        }
+
+        collider.isTrigger = colliderJson.value("isTrigger", false);
+
+        registry.emplace<CircleCollider2D>(entity, collider);
     }
 
     if (entityJson.contains("Script")) {
