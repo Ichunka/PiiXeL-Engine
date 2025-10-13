@@ -318,6 +318,7 @@ void EditorLayer::SetupDockingLayout() {
     ImGui::DockBuilderDockWindow("Inspector", dock_id_right);
     ImGui::DockBuilderDockWindow("Scene", dockspace_id);
     ImGui::DockBuilderDockWindow("Game", dockspace_id);
+    ImGui::DockBuilderDockWindow("Animator Controller Editor", dockspace_id);
     ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
     ImGui::DockBuilderDockWindow("Build & Export", dock_id_bottom);

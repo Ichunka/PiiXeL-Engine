@@ -304,6 +304,8 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     if (ImGui::BeginPopup("NodeContextMenu")) {
         if (m_SelectedStateIndex >= 0 && m_SelectedStateIndex < static_cast<int>(states.size())) {
             const AnimatorState& state = states[m_SelectedStateIndex];
+            const bool isDefault = (state.name == m_Controller->GetDefaultState());
+
             ImGui::Text("State: %s", state.name.c_str());
             ImGui::Separator();
 
@@ -312,7 +314,7 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
                 ImGui::CloseCurrentPopup();
             }
 
-            if (ImGui::MenuItem("Set as Default")) {
+            if (ImGui::MenuItem("Set as Default", nullptr, false, !isDefault)) {
                 m_Controller->SetDefaultState(state.name);
             }
 
@@ -352,6 +354,13 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
 
     ImVec2 textPos = ImVec2{nodePos.x + 10, nodePos.y + 10};
     drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), state.name.c_str());
+
+    if (isDefault) {
+        ImVec2 defaultTagPos = ImVec2{nodePos.x + NODE_WIDTH - 65, nodePos.y + 8};
+        drawList->AddRectFilled(defaultTagPos, ImVec2{defaultTagPos.x + 55, defaultTagPos.y + 14}, IM_COL32(100, 200, 100, 200), 2.0f);
+        ImVec2 defaultTextPos = ImVec2{defaultTagPos.x + 5, defaultTagPos.y + 1};
+        drawList->AddText(defaultTextPos, IM_COL32(255, 255, 255, 255), "DEFAULT");
+    }
 
     if (state.animationClipUUID.Get() != 0) {
         std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(state.animationClipUUID);
@@ -455,29 +464,40 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             ImGui::Separator();
             ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Animation Clip:");
 
-            if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
-                    const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
-                    if (assetInfo && assetInfo->type == "animclip") {
-                        state.animationClipUUID = assetInfo->uuid;
-                    }
-                }
-                ImGui::EndDragDropTarget();
-            }
-
             if (state.animationClipUUID.Get() != 0) {
                 std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(state.animationClipUUID);
                 std::shared_ptr<AnimationClip> clip = std::dynamic_pointer_cast<AnimationClip>(clipAsset);
                 if (clip) {
-                    ImGui::Text("  %s", clip->GetName().c_str());
-                    if (ImGui::Button("Clear##ClipClear")) {
+                    ImGui::Button(clip->GetName().c_str(), ImVec2{-1, 0});
+
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
+                            const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
+                            if (assetInfo && assetInfo->type == "animclip") {
+                                state.animationClipUUID = assetInfo->uuid;
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    if (ImGui::Button("Clear##ClipClear", ImVec2{-1, 0})) {
                         state.animationClipUUID = UUID{0};
                     }
                 } else {
                     ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  [Missing]");
                 }
             } else {
-                ImGui::TextDisabled("  Drag AnimationClip here");
+                ImGui::Button("Drag AnimationClip here", ImVec2{-1, 0});
+
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
+                        const AssetInfo* assetInfo = *static_cast<AssetInfo* const*>(payload->Data);
+                        if (assetInfo && assetInfo->type == "animclip") {
+                            state.animationClipUUID = assetInfo->uuid;
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
             }
 
             ImGui::Separator();
@@ -509,24 +529,70 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "Conditions:");
 
             std::vector<TransitionCondition>& conditions = trans.conditions;
+            const std::vector<AnimatorParameter>& params = m_Controller->GetParameters();
             int conditionToDelete = -1;
 
             for (size_t i = 0; i < conditions.size(); ++i) {
                 ImGui::PushID(static_cast<int>(i));
                 TransitionCondition& cond = conditions[i];
 
-                ImGui::Text("%s", cond.parameterName.c_str());
-                ImGui::SameLine();
-                if (ImGui::SmallButton("X")) {
+                int currentParamIndex = 0;
+                std::vector<const char*> paramNames;
+                for (size_t j = 0; j < params.size(); ++j) {
+                    paramNames.push_back(params[j].name.c_str());
+                    if (params[j].name == cond.parameterName) {
+                        currentParamIndex = static_cast<int>(j);
+                    }
+                }
+
+                if (!params.empty()) {
+                    if (ImGui::Combo("Parameter", &currentParamIndex, paramNames.data(), static_cast<int>(paramNames.size()))) {
+                        cond.parameterName = params[currentParamIndex].name;
+                    }
+
+                    const AnimatorParameter& selectedParam = params[currentParamIndex];
+
+                    if (selectedParam.type == AnimatorParameterType::Trigger) {
+                        ImGui::TextDisabled("Trigger (fires when set)");
+                    } else if (selectedParam.type == AnimatorParameterType::Bool) {
+                        const char* boolCondTypes[] = {"True", "False"};
+                        int boolCondType = std::get<bool>(cond.value) ? 0 : 1;
+                        if (ImGui::Combo("Condition", &boolCondType, boolCondTypes, 2)) {
+                            cond.value = (boolCondType == 0);
+                            cond.type = (boolCondType == 0) ? TransitionConditionType::Equals : TransitionConditionType::NotEquals;
+                        }
+                    } else if (selectedParam.type == AnimatorParameterType::Float) {
+                        const char* floatCondTypes[] = {"Greater", "Less", "Equals"};
+                        int floatCondType = (cond.type == TransitionConditionType::Greater) ? 0 :
+                                           (cond.type == TransitionConditionType::Less) ? 1 : 2;
+                        if (ImGui::Combo("Condition", &floatCondType, floatCondTypes, 3)) {
+                            cond.type = (floatCondType == 0) ? TransitionConditionType::Greater :
+                                       (floatCondType == 1) ? TransitionConditionType::Less : TransitionConditionType::Equals;
+                        }
+                        float floatValue = std::holds_alternative<float>(cond.value) ? std::get<float>(cond.value) : 0.0f;
+                        if (ImGui::DragFloat("Value", &floatValue, 0.1f)) {
+                            cond.value = floatValue;
+                        }
+                    } else if (selectedParam.type == AnimatorParameterType::Int) {
+                        const char* intCondTypes[] = {"Greater", "Less", "Equals", "NotEquals"};
+                        int intCondType = static_cast<int>(cond.type);
+                        if (ImGui::Combo("Condition", &intCondType, intCondTypes, 4)) {
+                            cond.type = static_cast<TransitionConditionType>(intCondType);
+                        }
+                        int intValue = std::holds_alternative<int>(cond.value) ? std::get<int>(cond.value) : 0;
+                        if (ImGui::DragInt("Value", &intValue)) {
+                            cond.value = intValue;
+                        }
+                    }
+                } else {
+                    ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "No parameters available");
+                }
+
+                if (ImGui::SmallButton("Delete")) {
                     conditionToDelete = static_cast<int>(i);
                 }
 
-                const char* condTypes[] = {"Equals", "NotEquals", "Greater", "Less"};
-                int condType = static_cast<int>(cond.type);
-                if (ImGui::Combo("Type", &condType, condTypes, 4)) {
-                    cond.type = static_cast<TransitionConditionType>(condType);
-                }
-
+                ImGui::Separator();
                 ImGui::PopID();
             }
 
