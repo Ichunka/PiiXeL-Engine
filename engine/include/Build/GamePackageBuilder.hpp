@@ -18,6 +18,9 @@ private:
     void ScanAssets(const std::string& assetsPath, GamePackage& package);
     void CollectAssetsFromScenes(GamePackage& package, const std::filesystem::path& basePath);
     AssetData LoadAssetFile(const std::string& filepath, const std::string& type);
+
+    std::vector<uint64_t> ExtractDependenciesFromPxa(const std::string& pxaPath);
+    void CollectUUIDsFromComponent(const nlohmann::json& component, std::vector<uint64_t>& uuids);
 };
 
 } // namespace PiiXeL

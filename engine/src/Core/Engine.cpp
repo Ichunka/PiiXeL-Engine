@@ -40,6 +40,10 @@ void Engine::Initialize() {
 #ifdef BUILD_WITH_EDITOR
     m_ActiveScene = std::make_unique<Scene>("Default Scene");
 #else
+    m_PhysicsEnabled = true;
+    m_ScriptsEnabled = true;
+    m_AnimationEnabled = true;
+
     if (FileExists("datas/game.package")) {
         if (LoadFromPackage("datas/game.package", "Default_Scene")) {
             TraceLog(LOG_INFO, "✓ Game package loaded successfully - all assets embedded");
