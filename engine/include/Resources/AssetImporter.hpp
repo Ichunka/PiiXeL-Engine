@@ -30,6 +30,7 @@ public:
 
     void SaveUUIDCache();
     void LoadUUIDCache();
+    void ForceUUID(const std::string& sourcePath, UUID uuid);
 
 private:
     ImportResult ImportTexture(const std::string& sourcePath, UUID uuid);

@@ -382,11 +382,12 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
     }
 
     if (state.animationClipUUID.Get() != 0) {
-        std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(state.animationClipUUID);
-        std::shared_ptr<AnimationClip> clip = std::dynamic_pointer_cast<AnimationClip>(clipAsset);
-        if (clip) {
+        std::string clipPath = AssetRegistry::Instance().GetPathFromUUID(state.animationClipUUID);
+        if (!clipPath.empty()) {
+            std::filesystem::path fsPath{clipPath};
+            std::string displayName = fsPath.stem().string();
             ImVec2 clipTextPos = ImVec2{nodePos.x + 10, nodePos.y + 30};
-            drawList->AddText(clipTextPos, IM_COL32(180, 180, 180, 255), clip->GetName().c_str());
+            drawList->AddText(clipTextPos, IM_COL32(180, 180, 180, 255), displayName.c_str());
         }
     }
 
@@ -427,8 +428,9 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
         };
 
         const bool isSelected = (static_cast<int>(i) == m_SelectedTransitionIndex);
-        ImU32 lineColor = isSelected ? IM_COL32(255, 200, 100, 255) : IM_COL32(150, 150, 150, 255);
-        float lineThickness = isSelected ? 3.0f : 2.0f;
+        ImU32 lineColor = isSelected ? IM_COL32(255, 200, 100, 255) : IM_COL32(200, 200, 200, 255);
+        ImU32 arrowOutlineColor = isSelected ? IM_COL32(255, 150, 0, 255) : IM_COL32(80, 80, 80, 255);
+        float lineThickness = isSelected ? 3.5f : 2.5f;
 
         drawList->AddLine(fromPos, toPos, lineColor, lineThickness);
 
@@ -438,11 +440,12 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
             direction.x /= length;
             direction.y /= length;
 
-            ImVec2 arrowTip = ImVec2{toPos.x - direction.x * 15.0f, toPos.y - direction.y * 15.0f};
+            ImVec2 arrowTip = ImVec2{toPos.x - direction.x * 20.0f, toPos.y - direction.y * 20.0f};
             ImVec2 perpendicular = ImVec2{-direction.y, direction.x};
-            ImVec2 arrowLeft = ImVec2{arrowTip.x - direction.x * 10.0f + perpendicular.x * 8.0f, arrowTip.y - direction.y * 10.0f + perpendicular.y * 8.0f};
-            ImVec2 arrowRight = ImVec2{arrowTip.x - direction.x * 10.0f - perpendicular.x * 8.0f, arrowTip.y - direction.y * 10.0f - perpendicular.y * 8.0f};
+            ImVec2 arrowLeft = ImVec2{arrowTip.x - direction.x * 12.0f + perpendicular.x * 10.0f, arrowTip.y - direction.y * 12.0f + perpendicular.y * 10.0f};
+            ImVec2 arrowRight = ImVec2{arrowTip.x - direction.x * 12.0f - perpendicular.x * 10.0f, arrowTip.y - direction.y * 12.0f - perpendicular.y * 10.0f};
 
+            drawList->AddTriangle(arrowTip, arrowLeft, arrowRight, arrowOutlineColor, 2.0f);
             drawList->AddTriangleFilled(arrowTip, arrowLeft, arrowRight, lineColor);
         }
     }
@@ -502,11 +505,12 @@ void AnimatorControllerEditorPanel::RenderInspector() {
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
             if (state.animationClipUUID.Get() != 0) {
-                std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(state.animationClipUUID);
-                std::shared_ptr<AnimationClip> clip = std::dynamic_pointer_cast<AnimationClip>(clipAsset);
-                if (clip) {
+                std::string clipPath = AssetRegistry::Instance().GetPathFromUUID(state.animationClipUUID);
+                if (!clipPath.empty()) {
+                    std::filesystem::path fsPath{clipPath};
+                    std::string displayName = fsPath.stem().string();
                     textPos.x += 10;
-                    drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), clip->GetName().c_str());
+                    drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), displayName.c_str());
                 } else {
                     textPos.x += 10;
                     drawList->AddText(textPos, IM_COL32(255, 128, 128, 255), "[Missing Clip]");
@@ -517,7 +521,16 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             }
 
             if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID")) {
+                    UUID droppedUUID = *static_cast<const UUID*>(payload->Data);
+                    std::string assetPath = AssetRegistry::Instance().GetPathFromUUID(droppedUUID);
+                    if (!assetPath.empty() && assetPath.find(".animclip") != std::string::npos) {
+                        state.animationClipUUID = droppedUUID;
+                        TraceLog(LOG_INFO, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
+                        Save();
+                    }
+                }
+                else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_ANIM")) {
                     AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
                     if (assetInfo && assetInfo->type == "animclip") {
                         TraceLog(LOG_INFO, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
@@ -740,6 +753,7 @@ void AnimatorControllerEditorPanel::Save() {
 
     if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
         TraceLog(LOG_INFO, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
+        AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
     } else {
         TraceLog(LOG_ERROR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
     }

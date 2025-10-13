@@ -159,7 +159,12 @@ void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
             m_Assets.erase(it);
         }
 
-        TraceLog(LOG_INFO, "Reimported asset: %s", sourcePath.c_str());
+        std::string normalizedPath = sourcePath;
+        std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+        m_PathToUUID[normalizedPath] = result.uuid;
+        m_UUIDToPath[result.uuid] = normalizedPath;
+
+        TraceLog(LOG_INFO, "Reimported asset: %s (UUID: %" PRIu64 ")", sourcePath.c_str(), result.uuid.Get());
     }
 }
 

@@ -1,0 +1,44 @@
+{
+    "frameGroups": [
+        {
+            "frameIndices": [
+                0,
+                1
+            ],
+            "name": "NewGroup2"
+        }
+    ],
+    "frames": [
+        {
+            "name": "frame_0_0",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                0.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        },
+        {
+            "name": "frame_0_1",
+            "pivot": [
+                0.5,
+                0.5
+            ],
+            "sourceRect": [
+                64.0,
+                0.0,
+                64.0,
+                64.0
+            ]
+        }
+    ],
+    "gridColumns": 2,
+    "gridRows": 1,
+    "name": "jump_sheet",
+    "textureUUID": 9113263159001697942,
+    "uuid": 14104783910303387295
+}

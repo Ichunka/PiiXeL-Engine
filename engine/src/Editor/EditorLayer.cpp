@@ -2069,11 +2069,20 @@ void EditorLayer::RenderContentBrowser() {
             if (std::strlen(newItemName) > 0) {
                 std::string name = std::string(newItemName);
                 std::string newPath = currentPath + "/" + name + ".spritesheet";
-                SpriteSheet spriteSheet{UUID{}, name};
+
+                UUID newUUID{};
+                SpriteSheet spriteSheet{newUUID, name};
                 AnimationSerializer::SerializeSpriteSheet(spriteSheet, newPath);
 
                 AssetImporter importer{};
-                importer.ImportAsset(newPath);
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
 
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created sprite sheet: %s", newPath.c_str());
@@ -2106,11 +2115,20 @@ void EditorLayer::RenderContentBrowser() {
             if (std::strlen(newItemName) > 0) {
                 std::string name = std::string(newItemName);
                 std::string newPath = currentPath + "/" + name + ".animclip";
-                AnimationClip clip{UUID{}, name};
+
+                UUID newUUID{};
+                AnimationClip clip{newUUID, name};
                 AnimationSerializer::SerializeAnimationClip(clip, newPath);
 
                 AssetImporter importer{};
-                importer.ImportAsset(newPath);
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
 
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created animation clip: %s", newPath.c_str());
@@ -2143,11 +2161,20 @@ void EditorLayer::RenderContentBrowser() {
             if (std::strlen(newItemName) > 0) {
                 std::string name = std::string(newItemName);
                 std::string newPath = currentPath + "/" + name + ".animcontroller";
-                AnimatorController controller{UUID{}, name};
+
+                UUID newUUID{};
+                AnimatorController controller{newUUID, name};
                 AnimationSerializer::SerializeAnimatorController(controller, newPath);
 
                 AssetImporter importer{};
-                importer.ImportAsset(newPath);
+                importer.LoadUUIDCache();
+                importer.ForceUUID(newPath, newUUID);
+                AssetImporter::ImportResult result = importer.ImportAsset(newPath);
+                importer.SaveUUIDCache();
+
+                if (result.success) {
+                    AssetRegistry::Instance().ReimportAsset(newPath);
+                }
 
                 needsRefresh = true;
                 TraceLog(LOG_INFO, "Created animator controller: %s", newPath.c_str());

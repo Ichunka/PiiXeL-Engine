@@ -51,6 +51,13 @@ void AnimationClipEditorPanel::Open(const std::string& animClipPath) {
     m_CurrentPath = animClipPath;
     m_IsOpen = true;
 
+    m_SelectedFrameIndex = -1;
+    m_SelectedTimelineIndex = -1;
+    m_IsPlaying = false;
+    m_PreviewTime = 0.0f;
+    m_CurrentPreviewFrame = 0;
+    m_PreviewZoom = 2.0f;
+
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(animClipPath);
     if (existingUUID.Get() != 0) {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);

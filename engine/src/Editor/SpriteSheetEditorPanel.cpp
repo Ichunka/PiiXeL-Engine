@@ -49,6 +49,13 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
     m_CurrentPath = spriteSheetPath;
     m_IsOpen = true;
 
+    m_SelectedFrameIndex = -1;
+    m_SelectedGroupIndex = -1;
+    m_SelectedCells.clear();
+    m_PreviewZoom = 1.0f;
+    m_PreviewOffset = Vector2{0.0f, 0.0f};
+    m_IsEditingGroupName = false;
+
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(spriteSheetPath);
     if (existingUUID.Get() != 0) {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);

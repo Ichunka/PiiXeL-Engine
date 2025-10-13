@@ -7,6 +7,7 @@
 #include "Scripting/EntityRef.hpp"
 #include "Components/Transform.hpp"
 #include "Components/RigidBody2D.hpp"
+#include "Components/Animator.hpp"
 #include "Reflection/Reflection.hpp"
 #include <raylib.h>
 
@@ -161,5 +162,78 @@ BEGIN_REFLECT(FollowCamera)
     FIELD_RANGE(smoothSpeed, 0.0f, 20.0f, 0.1f)
     FIELD(offset)
 END_REFLECT(FollowCamera)
+
+class AnimatedCharacter : public PiiXeL::ScriptComponent {
+public:
+    AnimatedCharacter() = default;
+
+    float moveSpeed{200.0f};
+    float jumpForce{500.0f};
+    float groundCheckDistance{5.0f};
+
+protected:
+    void OnStart() override {
+        m_Animator = GetHandle<PiiXeL::Animator>();
+        m_RigidBody = GetHandle<PiiXeL::RigidBody2D>();
+
+        if (m_Animator) {
+            m_Animator->Play();
+            TraceLog(LOG_INFO, "[AnimatedCharacter] Animator initialized");
+        }
+    }
+
+    void OnUpdate(float deltaTime) override {
+        (void)deltaTime;
+
+        if (!m_RigidBody || !m_Animator) return;
+
+        Vector2 velocity = m_RigidBody->GetVelocity();
+        float horizontalInput = 0.0f;
+        bool isGrounded = m_RigidBody->IsGrounded(groundCheckDistance);
+
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+            horizontalInput = -1.0f;
+        } else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+            horizontalInput = 1.0f;
+        }
+
+        velocity.x = horizontalInput * moveSpeed;
+        m_RigidBody->SetVelocity(velocity);
+
+        if (isGrounded && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
+            m_RigidBody->AddImpulse({0.0f, -jumpForce});
+            m_Animator->SetTrigger("Jump");
+        }
+
+        float absHorizontalVelocity = fabsf(velocity.x);
+        float absVerticalVelocity = fabsf(velocity.y);
+
+        m_Animator->SetFloat("Speed", absHorizontalVelocity);
+        m_Animator->SetFloat("VelocityY", velocity.y);
+        m_Animator->SetBool("IsGrounded", isGrounded);
+        m_Animator->SetBool("IsMoving", absHorizontalVelocity > 10.0f);
+        m_Animator->SetBool("IsFalling", !isGrounded && velocity.y > 0.0f);
+
+        if (IsKeyPressed(KEY_E)) {
+            m_Animator->SetTrigger("Attack");
+        }
+
+        if (IsKeyPressed(KEY_LEFT_SHIFT)) {
+            m_Animator->SetSpeed(2.0f);
+        } else if (IsKeyReleased(KEY_LEFT_SHIFT)) {
+            m_Animator->SetSpeed(1.0f);
+        }
+    }
+
+private:
+    std::optional<PiiXeL::AnimatorHandle> m_Animator;
+    std::optional<PiiXeL::RigidBodyHandle> m_RigidBody;
+};
+
+BEGIN_REFLECT(AnimatedCharacter)
+    FIELD_RANGE(moveSpeed, 0.0f, 1000.0f, 10.0f)
+    FIELD_RANGE(jumpForce, 0.0f, 2000.0f, 10.0f)
+    FIELD_RANGE(groundCheckDistance, 0.0f, 50.0f, 1.0f)
+END_REFLECT(AnimatedCharacter)
 
 #endif

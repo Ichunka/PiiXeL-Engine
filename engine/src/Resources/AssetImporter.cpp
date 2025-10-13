@@ -300,6 +300,10 @@ UUID AssetImporter::GetOrCreateUUID(const std::string& sourcePath) {
     return newUUID;
 }
 
+void AssetImporter::ForceUUID(const std::string& sourcePath, UUID uuid) {
+    m_UUIDCache[sourcePath] = uuid;
+}
+
 std::chrono::system_clock::time_point AssetImporter::GetFileLastWriteTime(const std::string& path) {
     try {
         auto ftime = std::filesystem::last_write_time(path);

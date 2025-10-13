@@ -1,0 +1,71 @@
+{
+    "defaultState": "Idle",
+    "name": "PlayerAnimationController",
+    "parameters": [
+        {
+            "defaultValue": false,
+            "name": "IsMoving",
+            "type": 2
+        }
+    ],
+    "states": [
+        {
+            "animationClipUUID": 16633285451722367323,
+            "editorPosition": [
+                613.0,
+                29.0
+            ],
+            "name": "Idle",
+            "speed": 1.0
+        },
+        {
+            "animationClipUUID": 11678560590251627263,
+            "editorPosition": [
+                556.0,
+                199.0
+            ],
+            "name": "Jump",
+            "speed": 1.0
+        },
+        {
+            "animationClipUUID": 127641058982740865,
+            "editorPosition": [
+                69.0,
+                197.0
+            ],
+            "name": "Walk",
+            "speed": 1.0
+        }
+    ],
+    "transitions": [
+        {
+            "conditions": [
+                {
+                    "parameterName": "IsMoving",
+                    "type": 2,
+                    "value": true
+                }
+            ],
+            "exitTime": 0.75,
+            "fromState": "Idle",
+            "hasExitTime": false,
+            "toState": "Walk",
+            "transitionDuration": 0.25
+        },
+        {
+            "conditions": [
+                {
+                    "parameterName": "IsMoving",
+                    "type": 2,
+                    "value": false
+                }
+            ],
+            "exitTime": 0.75,
+            "fromState": "Walk",
+            "hasExitTime": false,
+            "toState": "Idle",
+            "transitionDuration": 0.25
+        }
+    ],
+    "uuid": 10941248551730471284
+}

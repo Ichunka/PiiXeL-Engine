@@ -49,6 +49,7 @@ public:
     [[nodiscard]] const AssetMetadata& GetMetadata() const { return m_Metadata; }
 
     void SetMetadata(const AssetMetadata& metadata) { m_Metadata = metadata; }
+    void SetUUID(UUID uuid) { m_Metadata.uuid = uuid; }
 
     [[nodiscard]] bool IsLoaded() const { return m_IsLoaded; }
     [[nodiscard]] bool IsValid() const { return m_Metadata.uuid.Get() != 0; }
