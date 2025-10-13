@@ -31,18 +31,20 @@
                 "rotation": 0.0,
                 "zoom": 1.0
             },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "offset": {
-                        "x": 0.0,
-                        "y": 0.0
+            "Scripts": [
+                {
+                    "enabled": true,
+                    "properties": {
+                        "offset": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "smoothSpeed": 5.0,
+                        "target": 12268626963706819014
                     },
-                    "smoothSpeed": 5.0,
-                    "target": 12268626963706819014
-                },
-                "scriptName": "FollowCamera"
-            },
+                    "scriptName": "FollowCamera"
+                }
+            ],
             "Tag": {
                 "name": "Camera"
             },
@@ -84,8 +86,8 @@
             "BoxCollider2D": {
                 "isTrigger": true,
                 "offset": [
-                    -25.0,
-                    -22.0
+                    0.0,
+                    0.0
                 ],
                 "size": [
                     16.0,
@@ -136,21 +138,35 @@
             "uuid": 4612835490763123557
         },
         {
-            "CircleCollider2D": {
+            "BoxCollider2D": {
                 "isTrigger": false,
                 "offset": [
-                    9.0,
-                    -11.0
+                    0.0,
+                    0.0
                 ],
-                "radius": 8.0
+                "size": [
+                    16.0,
+                    16.0
+                ]
             },
             "RigidBody2D": {
                 "fixedRotation": false,
                 "friction": 0.30000001192092896,
                 "mass": 10.0,
                 "restitution": 0.0,
-                "type": 1
+                "type": 2
             },
+            "Scripts": [
+                {
+                    "enabled": true,
+                    "properties": {
+                        "amplitude": 100.0,
+                        "frequency": 1.0,
+                        "rotationSpeed": 90.0
+                    },
+                    "scriptName": "RotatingPlatform"
+                }
+            ],
             "Sprite": {
                 "layer": 0,
                 "origin": [
@@ -176,8 +192,8 @@
             },
             "Transform": {
                 "position": [
-                    -182.5,
-                    -141.79400634765625
+                    -403.5,
+                    146.2064208984375
                 ],
                 "rotation": 0.0,
                 "scale": [
@@ -200,7 +216,7 @@
                     0.0
                 ],
                 "size": [
-                    64.0,
+                    29.0,
                     64.0
                 ]
             },
@@ -211,15 +227,6 @@
                 "restitution": 0.0,
                 "type": 1
             },
-            "Script": {
-                "enabled": true,
-                "properties": {
-                    "jumpForce": 600.0,
-                    "moveSpeed": 300.0,
-                    "playerTexture": {}
-                },
-                "scriptName": "PlayerController"
-            },
             "Sprite": {
                 "layer": 0,
                 "origin": [
@@ -227,9 +234,9 @@
                     0.5
                 ],
                 "sourceRect": [
+                    17.5,
                     0.0,
-                    0.0,
-                    64.0,
+                    29.0,
                     64.0
                 ],
                 "textureAssetUUID": 13809637883915166777,
@@ -315,8 +322,8 @@
             "BoxCollider2D": {
                 "isTrigger": false,
                 "offset": [
-                    -23.0,
-                    -18.0
+                    0.0,
+                    0.0
                 ],
                 "size": [
                     16.0,

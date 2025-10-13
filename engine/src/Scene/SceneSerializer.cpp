@@ -184,26 +184,32 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     }
 
     if (registry.all_of<Script>(entity)) {
-        const Script& script = registry.get<Script>(entity);
-        nlohmann::json scriptJson{};
-        scriptJson["scriptName"] = script.scriptName;
-        scriptJson["enabled"] = script.instance ? script.instance->m_Enabled : true;
+        const Script& scriptComponent = registry.get<Script>(entity);
+        nlohmann::json scriptsArray = nlohmann::json::array();
 
-        if (script.instance) {
-            const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-            if (typeInfo) {
-                nlohmann::json propertiesJson{};
-                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                    if (field.flags & Reflection::FieldFlags::Serializable) {
-                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                        propertiesJson[field.name] = Reflection::JsonSerializer::SerializeField(field, fieldPtr);
+        for (const ScriptInstance& script : scriptComponent.scripts) {
+            nlohmann::json scriptJson{};
+            scriptJson["scriptName"] = script.scriptName;
+            scriptJson["enabled"] = script.instance ? script.instance->m_Enabled : true;
+
+            if (script.instance) {
+                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                if (typeInfo) {
+                    nlohmann::json propertiesJson{};
+                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                        if (field.flags & Reflection::FieldFlags::Serializable) {
+                            void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                            propertiesJson[field.name] = Reflection::JsonSerializer::SerializeField(field, fieldPtr);
+                        }
                     }
+                    scriptJson["properties"] = propertiesJson;
                 }
-                scriptJson["properties"] = propertiesJson;
             }
+
+            scriptsArray.push_back(scriptJson);
         }
 
-        entityJson["Script"] = scriptJson;
+        entityJson["Scripts"] = scriptsArray;
     }
 
     if (registry.all_of<Animator>(entity)) {
@@ -355,11 +361,25 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<CircleCollider2D>(entity, collider);
     }
 
-    if (entityJson.contains("Script")) {
+    if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
+        Script scriptComponent{};
+        for (const nlohmann::json& scriptJson : entityJson["Scripts"]) {
+            std::string scriptName = scriptJson.value("scriptName", "");
+            if (!scriptName.empty()) {
+                scriptComponent.AddScript(scriptName);
+            }
+        }
+        if (scriptComponent.GetScriptCount() > 0) {
+            registry.emplace<Script>(entity, scriptComponent);
+        }
+    } else if (entityJson.contains("Script")) {
+        Script scriptComponent{};
         const nlohmann::json& scriptJson = entityJson["Script"];
-        Script script{};
-        script.scriptName = scriptJson.value("scriptName", "");
-        registry.emplace<Script>(entity, script);
+        std::string scriptName = scriptJson.value("scriptName", "");
+        if (!scriptName.empty()) {
+            scriptComponent.AddScript(scriptName);
+            registry.emplace<Script>(entity, scriptComponent);
+        }
     }
 
     if (entityJson.contains("Animator")) {

@@ -40,6 +40,10 @@ public:
     int GetGridColumns() const { return m_GridColumns; }
     int GetGridRows() const { return m_GridRows; }
 
+    void SetGridSpacing(int spacingX, int spacingY) { m_GridSpacingX = spacingX; m_GridSpacingY = spacingY; }
+    int GetGridSpacingX() const { return m_GridSpacingX; }
+    int GetGridSpacingY() const { return m_GridSpacingY; }
+
     void AddFrameGroup(const FrameGroup& group);
     void RemoveFrameGroup(size_t index);
     void UpdateFrameGroup(size_t index, const FrameGroup& group);
@@ -55,6 +59,8 @@ private:
     std::vector<FrameGroup> m_FrameGroups;
     int m_GridColumns{1};
     int m_GridRows{1};
+    int m_GridSpacingX{0};
+    int m_GridSpacingY{0};
 };
 
 } // namespace PiiXeL

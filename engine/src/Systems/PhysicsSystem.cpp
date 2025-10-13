@@ -218,16 +218,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
                 if (inserted) {
                     if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnCollisionEnter(entityB);
+                        Script& scriptComponent = registry.get<Script>(entityA);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnCollisionEnter(entityB);
+                            }
                         }
                     }
 
                     if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnCollisionEnter(entityA);
+                        Script& scriptComponent = registry.get<Script>(entityB);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnCollisionEnter(entityA);
+                            }
                         }
                     }
                 }
@@ -254,16 +258,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
                 if (erased > 0) {
                     if (registry.all_of<Script>(entityA)) {
-                        Script& script = registry.get<Script>(entityA);
-                        if (script.instance) {
-                            script.instance->OnCollisionExit(entityB);
+                        Script& scriptComponent = registry.get<Script>(entityA);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnCollisionExit(entityB);
+                            }
                         }
                     }
 
                     if (registry.all_of<Script>(entityB)) {
-                        Script& script = registry.get<Script>(entityB);
-                        if (script.instance) {
-                            script.instance->OnCollisionExit(entityA);
+                        Script& scriptComponent = registry.get<Script>(entityB);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnCollisionExit(entityA);
+                            }
                         }
                     }
                 }
@@ -274,16 +282,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
     for (const auto& [entityA, entityB] : m_ActiveCollisions) {
         if (registry.valid(entityA) && registry.valid(entityB)) {
             if (registry.all_of<Script>(entityA)) {
-                Script& script = registry.get<Script>(entityA);
-                if (script.instance) {
-                    script.instance->OnCollisionStay(entityB);
+                Script& scriptComponent = registry.get<Script>(entityA);
+                for (ScriptInstance& script : scriptComponent.scripts) {
+                    if (script.instance) {
+                        script.instance->OnCollisionStay(entityB);
+                    }
                 }
             }
 
             if (registry.all_of<Script>(entityB)) {
-                Script& script = registry.get<Script>(entityB);
-                if (script.instance) {
-                    script.instance->OnCollisionStay(entityA);
+                Script& scriptComponent = registry.get<Script>(entityB);
+                for (ScriptInstance& script : scriptComponent.scripts) {
+                    if (script.instance) {
+                        script.instance->OnCollisionStay(entityA);
+                    }
                 }
             }
         }
@@ -310,16 +322,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
                 if (inserted) {
                     if (registry.all_of<Script>(sensorEntity)) {
-                        Script& script = registry.get<Script>(sensorEntity);
-                        if (script.instance) {
-                            script.instance->OnTriggerEnter(visitorEntity);
+                        Script& scriptComponent = registry.get<Script>(sensorEntity);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnTriggerEnter(visitorEntity);
+                            }
                         }
                     }
 
                     if (registry.all_of<Script>(visitorEntity)) {
-                        Script& script = registry.get<Script>(visitorEntity);
-                        if (script.instance) {
-                            script.instance->OnTriggerEnter(sensorEntity);
+                        Script& scriptComponent = registry.get<Script>(visitorEntity);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnTriggerEnter(sensorEntity);
+                            }
                         }
                     }
                 }
@@ -346,16 +362,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
                 if (erased > 0) {
                     if (registry.all_of<Script>(sensorEntity)) {
-                        Script& script = registry.get<Script>(sensorEntity);
-                        if (script.instance) {
-                            script.instance->OnTriggerExit(visitorEntity);
+                        Script& scriptComponent = registry.get<Script>(sensorEntity);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnTriggerExit(visitorEntity);
+                            }
                         }
                     }
 
                     if (registry.all_of<Script>(visitorEntity)) {
-                        Script& script = registry.get<Script>(visitorEntity);
-                        if (script.instance) {
-                            script.instance->OnTriggerExit(sensorEntity);
+                        Script& scriptComponent = registry.get<Script>(visitorEntity);
+                        for (ScriptInstance& script : scriptComponent.scripts) {
+                            if (script.instance) {
+                                script.instance->OnTriggerExit(sensorEntity);
+                            }
                         }
                     }
                 }
@@ -366,16 +386,20 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
     for (const auto& [entityA, entityB] : m_ActiveTriggers) {
         if (registry.valid(entityA) && registry.valid(entityB)) {
             if (registry.all_of<Script>(entityA)) {
-                Script& script = registry.get<Script>(entityA);
-                if (script.instance) {
-                    script.instance->OnTriggerStay(entityB);
+                Script& scriptComponent = registry.get<Script>(entityA);
+                for (ScriptInstance& script : scriptComponent.scripts) {
+                    if (script.instance) {
+                        script.instance->OnTriggerStay(entityB);
+                    }
                 }
             }
 
             if (registry.all_of<Script>(entityB)) {
-                Script& script = registry.get<Script>(entityB);
-                if (script.instance) {
-                    script.instance->OnTriggerStay(entityA);
+                Script& scriptComponent = registry.get<Script>(entityB);
+                for (ScriptInstance& script : scriptComponent.scripts) {
+                    if (script.instance) {
+                        script.instance->OnTriggerStay(entityA);
+                    }
                 }
             }
         }

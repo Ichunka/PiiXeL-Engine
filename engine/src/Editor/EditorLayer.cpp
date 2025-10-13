@@ -1300,64 +1300,98 @@ void EditorLayer::RenderInspector() {
 
             if (registry.all_of<Script>(inspectedEntity)) {
                 ImGui::Separator();
-                bool removeScript = false;
+                bool removeScriptComponent = false;
 
                 ImGui::AlignTextToFramePadding();
-                bool scriptOpen = ImGui::TreeNodeEx("Script", ImGuiTreeNodeFlags_DefaultOpen);
+                bool scriptOpen = ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_DefaultOpen);
 
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
                 if (ImGui::SmallButton("X##RemoveScript")) {
-                    removeScript = true;
+                    removeScriptComponent = true;
                 }
 
                 if (scriptOpen) {
-                    Script& script = registry.get<Script>(inspectedEntity);
+                    Script& scriptComponent = registry.get<Script>(inspectedEntity);
 
-                    if (script.instance) {
-                        ImGui::Text("Script: %s", script.scriptName.c_str());
-                        ImGui::Checkbox("Enabled", &script.instance->m_Enabled);
-                        ImGui::Spacing();
+                    int scriptToRemove = -1;
+                    for (size_t i = 0; i < scriptComponent.scripts.size(); ++i) {
+                        ImGui::PushID(static_cast<int>(i));
+                        ScriptInstance& script = scriptComponent.scripts[i];
 
-                        const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-                        if (typeInfo) {
-                            for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                if (field.flags & Reflection::FieldFlags::ReadOnly) continue;
-                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                Reflection::ImGuiRenderer::RenderField(field, fieldPtr,
-                                    [this](const char* label, entt::entity* entity) {
-                                        return RenderEntityPicker(label, entity);
-                                    },
-                                    [this](const char* label, UUID* uuid, const std::string& assetType) {
-                                        return RenderAssetPicker(label, uuid, assetType);
-                                    });
-                            }
+                        ImGui::AlignTextToFramePadding();
+                        bool scriptItemOpen = ImGui::TreeNodeEx((std::string("##Script") + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+                        ImGui::SameLine();
+                        ImGui::Text("[%zu] %s", i, script.scriptName.c_str());
+
+                        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
+                        if (ImGui::SmallButton("X")) {
+                            scriptToRemove = static_cast<int>(i);
                         }
-                    } else {
-                        ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.0f, 1.0f}, "No script instance");
 
-                        if (m_Engine && m_Engine->GetScriptSystem()) {
-                            ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-                            const auto& registeredScripts = ScriptRegistry::Instance().GetAllScripts();
+                        if (scriptItemOpen) {
+                            if (script.instance) {
+                                ImGui::Checkbox("Enabled", &script.instance->m_Enabled);
+                                ImGui::Spacing();
 
-                            if (ImGui::BeginCombo("##SelectScript", "Select Script...")) {
-                                for (const auto& [name, factory] : registeredScripts) {
-                                    if (ImGui::Selectable(name.c_str())) {
-                                        script.instance = scriptSystem->CreateScript(name);
-                                        script.scriptName = name;
-                                        if (script.instance) {
-                                            script.instance->Initialize(inspectedEntity, m_Engine->GetActiveScene());
-                                        }
+                                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                                if (typeInfo) {
+                                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                        if (field.flags & Reflection::FieldFlags::ReadOnly) continue;
+                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                        Reflection::ImGuiRenderer::RenderField(field, fieldPtr,
+                                            [this](const char* label, entt::entity* entity) {
+                                                return RenderEntityPicker(label, entity);
+                                            },
+                                            [this](const char* label, UUID* uuid, const std::string& assetType) {
+                                                return RenderAssetPicker(label, uuid, assetType);
+                                            });
                                     }
                                 }
-                                ImGui::EndCombo();
+                            } else {
+                                ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.0f, 1.0f}, "Script not loaded: %s", script.scriptName.c_str());
                             }
+
+                            ImGui::TreePop();
+                        }
+
+                        ImGui::PopID();
+                    }
+
+                    if (scriptToRemove >= 0) {
+                        scriptComponent.RemoveScript(static_cast<size_t>(scriptToRemove));
+                    }
+
+                    ImGui::Spacing();
+                    if (m_Engine && m_Engine->GetScriptSystem()) {
+                        ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
+                        const auto& registeredScripts = ScriptRegistry::Instance().GetAllScripts();
+
+                        if (ImGui::Button("+ Add Script", ImVec2{-1, 0})) {
+                            ImGui::OpenPopup("AddScriptPopup");
+                        }
+
+                        if (ImGui::BeginPopup("AddScriptPopup")) {
+                            ImGui::Text("Select a script:");
+                            ImGui::Separator();
+                            for (const auto& [name, factory] : registeredScripts) {
+                                if (ImGui::Selectable(name.c_str())) {
+                                    std::shared_ptr<ScriptComponent> instance = scriptSystem->CreateScript(name);
+                                    if (instance) {
+                                        instance->Initialize(inspectedEntity, m_Engine->GetActiveScene());
+                                        scriptComponent.AddScript(instance, name);
+                                    }
+                                    ImGui::CloseCurrentPopup();
+                                }
+                            }
+                            ImGui::EndPopup();
                         }
                     }
 
                     ImGui::TreePop();
                 }
 
-                if (removeScript) {
+                if (removeScriptComponent) {
                     registry.remove<Script>(inspectedEntity);
                 }
             }
@@ -2026,7 +2060,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewScenePopup) {
+    if (showNewScenePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("New Scene");
         showNewScenePopup = false;
     }
@@ -2069,7 +2103,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewFolderPopup) {
+    if (showNewFolderPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("New Folder");
         showNewFolderPopup = false;
     }
@@ -2106,7 +2140,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewSpriteSheetPopup) {
+    if (showNewSpriteSheetPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("New Sprite Sheet");
         showNewSpriteSheetPopup = false;
     }
@@ -2152,7 +2186,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimClipPopup) {
+    if (showNewAnimClipPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("New Animation Clip");
         showNewAnimClipPopup = false;
     }
@@ -2198,7 +2232,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showNewAnimControllerPopup) {
+    if (showNewAnimControllerPopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("New Animator Controller");
         showNewAnimControllerPopup = false;
     }
@@ -2244,7 +2278,7 @@ void EditorLayer::RenderContentBrowser() {
         ImGui::EndPopup();
     }
 
-    if (showRenamePopup) {
+    if (showRenamePopup && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
         ImGui::OpenPopup("Rename");
         showRenamePopup = false;
     }
@@ -3088,24 +3122,57 @@ void EditorLayer::OnStopButtonPressed() {
 
                                 const nlohmann::json& entityJson = snapshotJson["entities"][entityIndex];
 
-                                if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
-                                    Script& script = registry.get<Script>(entity);
-                                    const nlohmann::json& scriptJson = entityJson["Script"];
+                                if (registry.all_of<Script>(entity)) {
+                                    Script& scriptComponent = registry.get<Script>(entity);
 
-                                    if (!script.scriptName.empty() && !script.instance) {
-                                        script.instance = scriptSystem->CreateScript(script.scriptName);
-                                        if (script.instance) {
-                                            script.instance->Initialize(entity, scene);
+                                    if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
+                                        const nlohmann::json& scriptsArray = entityJson["Scripts"];
+                                        for (size_t i = 0; i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i) {
+                                            const nlohmann::json& scriptJson = scriptsArray[i];
+                                            ScriptInstance& script = scriptComponent.scripts[i];
 
-                                            if (scriptJson.contains("properties")) {
-                                                const nlohmann::json& propertiesJson = scriptJson["properties"];
-                                                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                                            if (!script.scriptName.empty() && !script.instance) {
+                                                script.instance = scriptSystem->CreateScript(script.scriptName);
+                                                if (script.instance) {
+                                                    script.instance->Initialize(entity, scene);
 
-                                                if (typeInfo) {
-                                                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                                        if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
-                                                            void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                                            Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                                    if (scriptJson.contains("properties")) {
+                                                        const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                                        const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                                        if (typeInfo) {
+                                                            for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                                                if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                                    void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                                    Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else if (entityJson.contains("Script")) {
+                                        const nlohmann::json& scriptJson = entityJson["Script"];
+                                        if (scriptComponent.scripts.size() > 0) {
+                                            ScriptInstance& script = scriptComponent.scripts[0];
+
+                                            if (!script.scriptName.empty() && !script.instance) {
+                                                script.instance = scriptSystem->CreateScript(script.scriptName);
+                                                if (script.instance) {
+                                                    script.instance->Initialize(entity, scene);
+
+                                                    if (scriptJson.contains("properties")) {
+                                                        const nlohmann::json& propertiesJson = scriptJson["properties"];
+                                                        const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                                                        if (typeInfo) {
+                                                            for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                                                if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                                                    void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                                                    Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -3618,26 +3685,61 @@ void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
 
             const nlohmann::json& entityJson = sceneJson["entities"][entityIndex];
 
-            if (registry.all_of<Script>(entity) && entityJson.contains("Script")) {
-                Script& script = registry.get<Script>(entity);
-                const nlohmann::json& scriptJson = entityJson["Script"];
+            if (registry.all_of<Script>(entity)) {
+                Script& scriptComponent = registry.get<Script>(entity);
 
-                if (!script.scriptName.empty() && !script.instance) {
-                    script.instance = scriptSystem->CreateScript(script.scriptName);
-                    if (script.instance) {
-                        script.instance->Initialize(entity, scene);
+                if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
+                    const nlohmann::json& scriptsArray = entityJson["Scripts"];
+                    size_t scriptCount = std::min(scriptComponent.scripts.size(), scriptsArray.size());
+
+                    for (size_t i = 0; i < scriptCount; ++i) {
+                        ScriptInstance& script = scriptComponent.scripts[i];
+                        const nlohmann::json& scriptJson = scriptsArray[i];
+
+                        if (!script.scriptName.empty() && !script.instance) {
+                            script.instance = scriptSystem->CreateScript(script.scriptName);
+                            if (script.instance) {
+                                script.instance->Initialize(entity, scene);
+                            }
+                        }
+
+                        if (script.instance && scriptJson.contains("properties")) {
+                            const nlohmann::json& propertiesJson = scriptJson["properties"];
+                            const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                            if (typeInfo) {
+                                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                    if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                        Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
+                } else if (entityJson.contains("Script")) {
+                    const nlohmann::json& scriptJson = entityJson["Script"];
+                    if (scriptComponent.scripts.size() > 0) {
+                        ScriptInstance& script = scriptComponent.scripts[0];
 
-                if (script.instance && scriptJson.contains("properties")) {
-                    const nlohmann::json& propertiesJson = scriptJson["properties"];
-                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                        if (!script.scriptName.empty() && !script.instance) {
+                            script.instance = scriptSystem->CreateScript(script.scriptName);
+                            if (script.instance) {
+                                script.instance->Initialize(entity, scene);
+                            }
+                        }
 
-                    if (typeInfo) {
-                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
-                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                        if (script.instance && scriptJson.contains("properties")) {
+                            const nlohmann::json& propertiesJson = scriptJson["properties"];
+                            const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+
+                            if (typeInfo) {
+                                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                                    if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
+                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
+                                        Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                    }
+                                }
                             }
                         }
                     }
@@ -3788,7 +3890,9 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
     if (registry.all_of<Script>(entity)) {
         const Script& originalScript = registry.get<Script>(entity);
         Script newScript;
-        newScript.scriptName = originalScript.scriptName;
+        for (const ScriptInstance& script : originalScript.scripts) {
+            newScript.AddScript(script.scriptName);
+        }
         registry.emplace<Script>(newEntity, newScript);
     }
 

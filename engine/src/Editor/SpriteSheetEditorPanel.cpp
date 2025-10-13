@@ -70,6 +70,11 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         m_SelectedTextureUUID = m_SpriteSheet->GetTextureUUID();
         m_GridColumns = m_SpriteSheet->GetGridColumns();
         m_GridRows = m_SpriteSheet->GetGridRows();
+        m_GridSpacingX = m_SpriteSheet->GetGridSpacingX();
+        m_GridSpacingY = m_SpriteSheet->GetGridSpacingY();
+
+        PX_LOG_INFO(EDITOR, "Loaded sprite sheet - Grid: %dx%d, Spacing: %dx%d",
+            m_GridColumns, m_GridRows, m_GridSpacingX, m_GridSpacingY);
 
         if (m_SelectedTextureUUID.Get() != 0) {
             AssetRegistry::Instance().LoadAsset(m_SelectedTextureUUID);
@@ -97,6 +102,8 @@ void SpriteSheetEditorPanel::Close() {
     m_PreviewZoom = 1.0f;
     m_PreviewOffset = Vector2{0.0f, 0.0f};
     m_IsEditingGroupName = false;
+    m_GridSpacingX = 0;
+    m_GridSpacingY = 0;
 }
 
 void SpriteSheetEditorPanel::RenderToolbar() {
@@ -185,12 +192,17 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
 
     int prevColumns = m_GridColumns;
     int prevRows = m_GridRows;
+    int prevSpacingX = m_GridSpacingX;
+    int prevSpacingY = m_GridSpacingY;
 
     ImGui::SliderInt("Columns", &m_GridColumns, 1, 32);
     ImGui::SliderInt("Rows", &m_GridRows, 1, 32);
+    ImGui::SliderInt("Spacing X", &m_GridSpacingX, 0, 100);
+    ImGui::SliderInt("Spacing Y", &m_GridSpacingY, 0, 100);
 
-    if (m_GridColumns != prevColumns || m_GridRows != prevRows) {
+    if (m_GridColumns != prevColumns || m_GridRows != prevRows || m_GridSpacingX != prevSpacingX || m_GridSpacingY != prevSpacingY) {
         m_SpriteSheet->SetGridSize(m_GridColumns, m_GridRows);
+        m_SpriteSheet->SetGridSpacing(m_GridSpacingX, m_GridSpacingY);
         if (m_SelectionMode == SelectionMode::Grid) {
             UpdateFramesFromGrid();
         }
@@ -412,50 +424,58 @@ void SpriteSheetEditorPanel::RenderPreview() {
     ImGui::SetCursorScreenPos(canvasPos);
 
     if (m_ShowGrid) {
+        float spacingX = static_cast<float>(m_GridSpacingX) * m_PreviewZoom;
+        float spacingY = static_cast<float>(m_GridSpacingY) * m_PreviewZoom;
         float cellWidth = displayWidth / static_cast<float>(m_GridColumns);
         float cellHeight = displayHeight / static_cast<float>(m_GridRows);
+        float frameWidth = cellWidth - spacingX;
+        float frameHeight = cellHeight - spacingY;
+        float halfSpacingX = spacingX * 0.5f;
+        float halfSpacingY = spacingY * 0.5f;
 
-        for (int col = 0; col <= m_GridColumns; ++col) {
-            float x = imagePos.x + col * cellWidth;
-            drawList->AddLine(
-                ImVec2{x, imagePos.y},
-                ImVec2{x, imagePos.y + displayHeight},
-                IM_COL32(255, 255, 0, 200),
-                1.0f
-            );
-        }
+        for (int row = 0; row < m_GridRows; ++row) {
+            for (int col = 0; col < m_GridColumns; ++col) {
+                float x = imagePos.x + col * cellWidth + halfSpacingX;
+                float y = imagePos.y + row * cellHeight + halfSpacingY;
 
-        for (int row = 0; row <= m_GridRows; ++row) {
-            float y = imagePos.y + row * cellHeight;
-            drawList->AddLine(
-                ImVec2{imagePos.x, y},
-                ImVec2{imagePos.x + displayWidth, y},
-                IM_COL32(255, 255, 0, 200),
-                1.0f
-            );
+                drawList->AddRect(
+                    ImVec2{x, y},
+                    ImVec2{x + frameWidth, y + frameHeight},
+                    IM_COL32(255, 255, 0, 200),
+                    0.0f,
+                    0,
+                    1.0f
+                );
+            }
         }
     }
 
     if (m_SelectionMode == SelectionMode::Manual) {
+        float spacingX = static_cast<float>(m_GridSpacingX) * m_PreviewZoom;
+        float spacingY = static_cast<float>(m_GridSpacingY) * m_PreviewZoom;
         float cellWidth = displayWidth / static_cast<float>(m_GridColumns);
         float cellHeight = displayHeight / static_cast<float>(m_GridRows);
+        float frameWidth = cellWidth - spacingX;
+        float frameHeight = cellHeight - spacingY;
+        float halfSpacingX = spacingX * 0.5f;
+        float halfSpacingY = spacingY * 0.5f;
 
         for (int cellIndex : m_SelectedCells) {
             int row = cellIndex / m_GridColumns;
             int col = cellIndex % m_GridColumns;
 
-            float x = imagePos.x + col * cellWidth;
-            float y = imagePos.y + row * cellHeight;
+            float x = imagePos.x + col * cellWidth + halfSpacingX;
+            float y = imagePos.y + row * cellHeight + halfSpacingY;
 
             drawList->AddRectFilled(
                 ImVec2{x, y},
-                ImVec2{x + cellWidth, y + cellHeight},
+                ImVec2{x + frameWidth, y + frameHeight},
                 IM_COL32(0, 255, 255, 80)
             );
 
             drawList->AddRect(
                 ImVec2{x, y},
-                ImVec2{x + cellWidth, y + cellHeight},
+                ImVec2{x + frameWidth, y + frameHeight},
                 IM_COL32(0, 255, 255, 255),
                 0.0f,
                 0,
@@ -501,9 +521,16 @@ void SpriteSheetEditorPanel::RenderPreview() {
 
     if (m_SelectionMode == SelectionMode::Manual && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         ImVec2 mousePos = ImGui::GetMousePos();
+        float spacingX = static_cast<float>(m_GridSpacingX) * m_PreviewZoom;
+        float spacingY = static_cast<float>(m_GridSpacingY) * m_PreviewZoom;
         float cellWidth = displayWidth / static_cast<float>(m_GridColumns);
         float cellHeight = displayHeight / static_cast<float>(m_GridRows);
-        int cellIndex = GetCellIndexFromMousePos(mousePos, imagePos, cellWidth, cellHeight);
+        float frameWidth = cellWidth - spacingX;
+        float frameHeight = cellHeight - spacingY;
+        float halfSpacingX = spacingX * 0.5f;
+        float halfSpacingY = spacingY * 0.5f;
+        ImVec2 adjustedImagePos{imagePos.x + halfSpacingX, imagePos.y + halfSpacingY};
+        int cellIndex = GetCellIndexFromMousePos(mousePos, adjustedImagePos, frameWidth, frameHeight, cellWidth - frameWidth, cellHeight - frameHeight);
 
         if (cellIndex >= 0) {
             if (m_SelectedCells.find(cellIndex) != m_SelectedCells.end()) {
@@ -544,6 +571,10 @@ void SpriteSheetEditorPanel::UpdateFramesFromGrid() {
     float texHeight = static_cast<float>(tex->GetHeight());
     float cellWidth = texWidth / static_cast<float>(m_GridColumns);
     float cellHeight = texHeight / static_cast<float>(m_GridRows);
+    float frameWidth = cellWidth - static_cast<float>(m_GridSpacingX);
+    float frameHeight = cellHeight - static_cast<float>(m_GridSpacingY);
+    float halfSpacingX = static_cast<float>(m_GridSpacingX) * 0.5f;
+    float halfSpacingY = static_cast<float>(m_GridSpacingY) * 0.5f;
 
     std::vector<SpriteFrame> frames;
     for (int row = 0; row < m_GridRows; ++row) {
@@ -553,10 +584,10 @@ void SpriteSheetEditorPanel::UpdateFramesFromGrid() {
             snprintf(frameName, sizeof(frameName), "frame_%d_%d", row, col);
             frame.name = frameName;
             frame.sourceRect = Rectangle{
-                col * cellWidth,
-                row * cellHeight,
-                cellWidth,
-                cellHeight
+                col * cellWidth + halfSpacingX,
+                row * cellHeight + halfSpacingY,
+                frameWidth,
+                frameHeight
             };
             frame.pivot = Vector2{0.5f, 0.5f};
             frames.push_back(frame);
@@ -585,6 +616,10 @@ void SpriteSheetEditorPanel::UpdateFramesFromSelection() {
     float texHeight = static_cast<float>(tex->GetHeight());
     float cellWidth = texWidth / static_cast<float>(m_GridColumns);
     float cellHeight = texHeight / static_cast<float>(m_GridRows);
+    float frameWidth = cellWidth - static_cast<float>(m_GridSpacingX);
+    float frameHeight = cellHeight - static_cast<float>(m_GridSpacingY);
+    float halfSpacingX = static_cast<float>(m_GridSpacingX) * 0.5f;
+    float halfSpacingY = static_cast<float>(m_GridSpacingY) * 0.5f;
 
     std::vector<SpriteFrame> frames;
     for (int cellIndex : m_SelectedCells) {
@@ -596,10 +631,10 @@ void SpriteSheetEditorPanel::UpdateFramesFromSelection() {
         snprintf(frameName, sizeof(frameName), "frame_%d_%d", row, col);
         frame.name = frameName;
         frame.sourceRect = Rectangle{
-            col * cellWidth,
-            row * cellHeight,
-            cellWidth,
-            cellHeight
+            col * cellWidth + halfSpacingX,
+            row * cellHeight + halfSpacingY,
+            frameWidth,
+            frameHeight
         };
         frame.pivot = Vector2{0.5f, 0.5f};
         frames.push_back(frame);
@@ -772,18 +807,26 @@ void SpriteSheetEditorPanel::CreateGroupFromSelection() {
     snprintf(m_NewGroupName, sizeof(m_NewGroupName), "NewGroup%zu", m_SpriteSheet->GetFrameGroupCount() + 1);
 }
 
-int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight) {
+int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight, float spacingX, float spacingY) {
     float relX = mousePos.x - imagePos.x;
     float relY = mousePos.y - imagePos.y;
 
-    int col = static_cast<int>(relX / cellWidth);
-    int row = static_cast<int>(relY / cellHeight);
+    int col = static_cast<int>(relX / (cellWidth + spacingX));
+    int row = static_cast<int>(relY / (cellHeight + spacingY));
 
     if (col < 0 || col >= m_GridColumns || row < 0 || row >= m_GridRows) {
         return -1;
     }
 
-    return row * m_GridColumns + col;
+    float cellStartX = col * (cellWidth + spacingX);
+    float cellStartY = row * (cellHeight + spacingY);
+
+    if (relX >= cellStartX && relX < cellStartX + cellWidth &&
+        relY >= cellStartY && relY < cellStartY + cellHeight) {
+        return row * m_GridColumns + col;
+    }
+
+    return -1;
 }
 
 void SpriteSheetEditorPanel::Save() {
@@ -797,8 +840,13 @@ void SpriteSheetEditorPanel::Save() {
         return;
     }
 
+    m_SpriteSheet->SetGridSize(m_GridColumns, m_GridRows);
+    m_SpriteSheet->SetGridSpacing(m_GridSpacingX, m_GridSpacingY);
+
     PX_LOG_INFO(EDITOR, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
-    PX_LOG_INFO(EDITOR, "Before save - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
+    PX_LOG_INFO(EDITOR, "Before save - Frames: %zu, Groups: %zu, Spacing: %dx%d",
+        m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount(),
+        m_GridSpacingX, m_GridSpacingY);
 
     if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
         PX_LOG_INFO(EDITOR, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
@@ -810,10 +858,15 @@ void SpriteSheetEditorPanel::Save() {
         m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(reloadedAsset);
 
         if (m_SpriteSheet) {
-            PX_LOG_INFO(EDITOR, "After reload - Frames: %zu, Groups: %zu", m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount());
             m_SelectedTextureUUID = m_SpriteSheet->GetTextureUUID();
             m_GridColumns = m_SpriteSheet->GetGridColumns();
             m_GridRows = m_SpriteSheet->GetGridRows();
+            m_GridSpacingX = m_SpriteSheet->GetGridSpacingX();
+            m_GridSpacingY = m_SpriteSheet->GetGridSpacingY();
+
+            PX_LOG_INFO(EDITOR, "After reload - Frames: %zu, Groups: %zu, Grid: %dx%d, Spacing: %dx%d",
+                m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount(),
+                m_GridColumns, m_GridRows, m_GridSpacingX, m_GridSpacingY);
 
             if (m_SpriteSheet->GetFrameGroupCount() > 0) {
                 size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);

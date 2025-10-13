@@ -138,7 +138,10 @@ void RegisterAllComponents() {
 
     registry.RegisterComponent("Script", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
         Script script{};
-        script.scriptName = data.value("scriptName", "");
+        std::string scriptName = data.value("scriptName", "");
+        if (!scriptName.empty()) {
+            script.AddScript(scriptName);
+        }
         reg.emplace<Script>(entity, script);
     });
 
