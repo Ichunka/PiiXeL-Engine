@@ -138,16 +138,13 @@
             "uuid": 4612835490763123557
         },
         {
-            "BoxCollider2D": {
+            "CircleCollider2D": {
                 "isTrigger": false,
                 "offset": [
                     0.0,
                     0.0
                 ],
-                "size": [
-                    16.0,
-                    16.0
-                ]
+                "radius": 8.0
             },
             "RigidBody2D": {
                 "fixedRotation": false,
