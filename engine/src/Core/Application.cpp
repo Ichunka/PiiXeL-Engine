@@ -330,6 +330,7 @@ void Application::Cleanup() {
     AssetManager::Instance().Shutdown();
 
 #ifdef BUILD_WITH_EDITOR
+    AssetRegistry::Instance().Shutdown();
     rlImGuiShutdown();
     SetTraceLogCallback(nullptr);
 #endif

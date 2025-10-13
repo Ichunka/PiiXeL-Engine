@@ -43,7 +43,7 @@ private:
     void CreateGroupFromSelection();
     void Save();
 
-    int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight);
+    int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight, float spacingX = 0.0f, float spacingY = 0.0f);
 
     bool m_IsOpen{false};
     std::string m_CurrentPath;
@@ -52,6 +52,8 @@ private:
     UUID m_SelectedTextureUUID{0};
     int m_GridColumns{1};
     int m_GridRows{1};
+    int m_GridSpacingX{0};
+    int m_GridSpacingY{0};
 
     SelectionMode m_SelectionMode{SelectionMode::Grid};
     std::set<int> m_SelectedCells;
