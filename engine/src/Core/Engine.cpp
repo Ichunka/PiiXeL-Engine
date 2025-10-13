@@ -1,6 +1,7 @@
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
+#include "Scene/ComponentRegistry.hpp"
 #include "Build/GamePackageLoader.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
@@ -31,6 +32,8 @@ Engine::~Engine() {
 }
 
 void Engine::Initialize() {
+    RegisterAllComponents();
+
     m_RenderSystem = std::make_unique<RenderSystem>();
     m_PhysicsSystem = std::make_unique<PhysicsSystem>();
     m_PhysicsSystem->Initialize();
