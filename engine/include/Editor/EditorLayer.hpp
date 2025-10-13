@@ -62,6 +62,7 @@ private:
     void SetupDockingLayout();
     void BeginDockspace();
     void EndDockspace();
+    void DeleteAssetWithPackage(const std::string& assetPath);
 
     void RenderMenuBar();
     void RenderToolbar();

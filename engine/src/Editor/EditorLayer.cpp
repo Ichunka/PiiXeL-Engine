@@ -249,6 +249,24 @@ void EditorLayer::OnImGuiRender() {
     EndDockspace();
 }
 
+void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
+    try {
+        std::filesystem::remove(assetPath);
+
+        std::filesystem::path pxaPath{assetPath};
+        pxaPath.replace_extension(".pxa");
+
+        if (std::filesystem::exists(pxaPath)) {
+            std::filesystem::remove(pxaPath);
+            TraceLog(LOG_INFO, "Deleted package: %s", pxaPath.string().c_str());
+        }
+
+        TraceLog(LOG_INFO, "Deleted: %s", assetPath.c_str());
+    } catch (const std::filesystem::filesystem_error& e) {
+        TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
+    }
+}
+
 void EditorLayer::BeginDockspace() {
     PROFILE_FUNCTION();
     static bool dockspaceOpen = true;
@@ -1541,13 +1559,8 @@ void EditorLayer::RenderContentBrowser() {
                         }
 
                         if (ImGui::MenuItem("Delete")) {
-                            try {
-                                std::filesystem::remove(asset.path);
-                                needsRefresh = true;
-                                TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
-                            } catch (const std::filesystem::filesystem_error& e) {
-                                TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
-                            }
+                            DeleteAssetWithPackage(asset.path);
+                            needsRefresh = true;
                         }
 
                         ImGui::EndPopup();
@@ -1625,13 +1638,8 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        try {
-                            std::filesystem::remove(asset.path);
-                            needsRefresh = true;
-                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
-                        } catch (const std::filesystem::filesystem_error& e) {
-                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
-                        }
+                        DeleteAssetWithPackage(asset.path);
+                        needsRefresh = true;
                     }
 
                     ImGui::EndPopup();
@@ -1702,13 +1710,8 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        try {
-                            std::filesystem::remove(asset.path);
-                            needsRefresh = true;
-                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
-                        } catch (const std::filesystem::filesystem_error& e) {
-                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
-                        }
+                        DeleteAssetWithPackage(asset.path);
+                        needsRefresh = true;
                     }
 
                     ImGui::EndPopup();
@@ -1771,20 +1774,16 @@ void EditorLayer::RenderContentBrowser() {
                     }
 
                     if (ImGui::MenuItem("Delete")) {
-                        try {
-                            std::filesystem::remove(asset.path);
-                            needsRefresh = true;
-                            TraceLog(LOG_INFO, "Deleted: %s", asset.path.c_str());
-                        } catch (const std::filesystem::filesystem_error& e) {
-                            TraceLog(LOG_ERROR, "Failed to delete: %s", e.what());
-                        }
+                        DeleteAssetWithPackage(asset.path);
+                        needsRefresh = true;
                     }
 
                     ImGui::EndPopup();
                 }
             }
 
-            ImGui::TextWrapped("%s", asset.filename.c_str());
+            std::string displayName = std::filesystem::path(asset.filename).stem().string();
+            ImGui::TextWrapped("%s", displayName.c_str());
             ImGui::EndGroup();
             ImGui::NextColumn();
             ImGui::PopID();
