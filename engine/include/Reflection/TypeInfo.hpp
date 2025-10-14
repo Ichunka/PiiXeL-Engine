@@ -2,6 +2,7 @@
 #define PIIXELENGINE_TYPEINFO_HPP
 
 #include <any>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <typeindex>
