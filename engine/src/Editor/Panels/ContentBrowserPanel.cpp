@@ -17,7 +17,9 @@
 #include "Debug/Profiler.hpp"
 #include <imgui.h>
 #include <rlImGui.h>
+#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <fstream>
 #include <cstring>
 #include <algorithm>
 
@@ -552,6 +554,13 @@ void ContentBrowserPanel::OnImGuiRender() {
     if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
         m_RightClickedItem.clear();
 
+        if (ImGui::MenuItem("New Scene")) {
+            m_ShowNewScenePopup = true;
+            std::memset(m_NewItemName, 0, sizeof(m_NewItemName));
+        }
+
+        ImGui::Separator();
+
         if (ImGui::BeginMenu("Animation")) {
             if (ImGui::MenuItem("Sprite Sheet")) {
                 m_ShowNewSpriteSheetPopup = true;
@@ -575,6 +584,59 @@ void ContentBrowserPanel::OnImGuiRender() {
         if (ImGui::MenuItem("New Folder")) {
             m_ShowNewFolderPopup = true;
             std::memset(m_NewItemName, 0, sizeof(m_NewItemName));
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (m_ShowNewScenePopup) {
+        ImGui::OpenPopup("New Scene");
+        m_ShowNewScenePopup = false;
+    }
+
+    if (ImGui::BeginPopupModal("New Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter scene name:");
+        ImGui::Separator();
+
+        bool enterPressed = ImGui::InputText("##SceneName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2{120, 0}) || enterPressed) {
+            if (std::strlen(m_NewItemName) > 0) {
+                std::string sceneName = std::string(m_NewItemName);
+                std::string sceneFileName = sceneName;
+                for (char& c : sceneFileName) {
+                    if (c == ' ') {
+                        c = '_';
+                    }
+                }
+                std::string newPath = m_CurrentPath + "/" + sceneFileName + ".scene";
+
+                nlohmann::json sceneJson;
+                sceneJson["scene"] = sceneName;
+                sceneJson["entities"] = nlohmann::json::array();
+
+                try {
+                    std::ofstream file{newPath};
+                    if (file.is_open()) {
+                        file << sceneJson.dump(4);
+                        file.close();
+                        m_NeedsRefresh = true;
+                        PX_LOG_INFO(EDITOR, "Created scene: %s", newPath.c_str());
+                    } else {
+                        PX_LOG_ERROR(EDITOR, "Failed to create scene file: %s", newPath.c_str());
+                    }
+                } catch (const std::exception& e) {
+                    PX_LOG_ERROR(EDITOR, "Failed to create scene: %s", e.what());
+                }
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2{120, 0})) {
+            ImGui::CloseCurrentPopup();
         }
 
         ImGui::EndPopup();
