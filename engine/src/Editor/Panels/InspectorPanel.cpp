@@ -40,11 +40,11 @@ InspectorPanel::InspectorPanel(Engine* engine, CommandHistory* commandHistory, e
                                bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
                                std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
                                Transform* cachedTransform, bool* isModifyingTransform, Texture2D* defaultWhiteTexture) :
-    m_Engine{engine},
-    m_CommandHistory{commandHistory}, m_SelectedEntity{selectedEntity}, m_InspectorLocked{inspectorLocked},
-    m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
-    m_AnimatorControllerEditor{animatorControllerEditor}, m_CachedTransform{cachedTransform},
-    m_IsModifyingTransform{isModifyingTransform}, m_DefaultWhiteTexture{defaultWhiteTexture} {}
+    m_Engine{engine}, m_CommandHistory{commandHistory}, m_SelectedEntity{selectedEntity},
+    m_InspectorLocked{inspectorLocked}, m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID},
+    m_SelectedAssetPath{selectedAssetPath}, m_AnimatorControllerEditor{animatorControllerEditor},
+    m_CachedTransform{cachedTransform}, m_IsModifyingTransform{isModifyingTransform},
+    m_DefaultWhiteTexture{defaultWhiteTexture} {}
 
 void InspectorPanel::SetRenderEntityPickerCallback(std::function<bool(const char*, entt::entity*)> callback) {
     m_RenderEntityPickerCallback = callback;
