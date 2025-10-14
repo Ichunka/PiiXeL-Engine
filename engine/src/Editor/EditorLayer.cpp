@@ -11,6 +11,7 @@
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorPanelManager.hpp"
 #include "Editor/EditorCamera.hpp"
+#include "Editor/EditorSelectionManager.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
@@ -63,7 +64,6 @@ EditorLayer::EditorLayer(Engine* engine)
     , m_ViewportBounds{0, 0, 1920, 1080}
     , m_ViewportHovered{false}
     , m_ViewportFocused{false}
-    , m_SelectedEntity{entt::null}
 {
     m_ViewportTexture = LoadRenderTexture(1920, 1080);
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
@@ -84,30 +84,30 @@ EditorLayer::EditorLayer(Engine* engine)
     m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
     m_AnimatorControllerEditor = std::make_unique<AnimatorControllerEditorPanel>();
 
+    m_SelectionManager = std::make_unique<EditorSelectionManager>();
+
     m_AnimatorControllerEditor->SetOnSelectionChangedCallback([this]() {
-        m_SelectedEntity = entt::null;
-        m_SelectedAssetUUID = UUID{0};
-        m_SelectedAssetPath.clear();
+        m_SelectionManager->ClearSelection();
     });
 
     m_HierarchyPanel = std::make_unique<HierarchyPanel>(
         m_Engine,
         &m_CommandHistory,
-        &m_SelectedEntity,
-        &m_InspectorLocked,
-        &m_SelectedAssetUUID,
-        &m_SelectedAssetPath,
+        m_SelectionManager->GetSelectedEntityPtr(),
+        m_SelectionManager->GetInspectorLockedPtr(),
+        m_SelectionManager->GetSelectedAssetUUIDPtr(),
+        m_SelectionManager->GetSelectedAssetPathPtr(),
         m_AnimatorControllerEditor.get()
     );
 
     m_InspectorPanel = std::make_unique<InspectorPanel>(
         m_Engine,
         &m_CommandHistory,
-        &m_SelectedEntity,
-        &m_InspectorLocked,
-        &m_LockedEntity,
-        &m_SelectedAssetUUID,
-        &m_SelectedAssetPath,
+        m_SelectionManager->GetSelectedEntityPtr(),
+        m_SelectionManager->GetInspectorLockedPtr(),
+        m_SelectionManager->GetLockedEntityPtr(),
+        m_SelectionManager->GetSelectedAssetUUIDPtr(),
+        m_SelectionManager->GetSelectedAssetPathPtr(),
         m_AnimatorControllerEditor.get(),
         &m_CachedTransform,
         &m_IsModifyingTransform,
@@ -115,9 +115,9 @@ EditorLayer::EditorLayer(Engine* engine)
     );
 
     m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>(
-        &m_SelectedAssetUUID,
-        &m_SelectedAssetPath,
-        &m_SelectedEntity,
+        m_SelectionManager->GetSelectedAssetUUIDPtr(),
+        m_SelectionManager->GetSelectedAssetPathPtr(),
+        m_SelectionManager->GetSelectedEntityPtr(),
         m_SpriteSheetEditor.get(),
         m_AnimationClipEditor.get(),
         m_AnimatorControllerEditor.get()
@@ -270,24 +270,24 @@ void EditorLayer::OnImGuiRender() {
         LoadScene();
     }
 
-    if (m_EditorState == EditorState::Edit && m_SelectedEntity != entt::null) {
+    if (m_EditorState == EditorState::Edit && m_SelectionManager->GetSelectedEntity() != entt::null) {
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-            CopyEntity(m_SelectedEntity);
+            CopyEntity(m_SelectionManager->GetSelectedEntity());
         }
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
             PasteEntity();
         }
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-            entt::entity newEntity = DuplicateEntity(m_SelectedEntity);
-            m_SelectedEntity = newEntity;
+            entt::entity newEntity = DuplicateEntity(m_SelectionManager->GetSelectedEntity());
+            m_SelectionManager->SetSelectedEntity(newEntity);
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
             if (m_Engine && m_Engine->GetActiveScene()) {
                 Scene* scene = m_Engine->GetActiveScene();
                 entt::registry& registry = scene->GetRegistry();
-                if (registry.valid(m_SelectedEntity)) {
-                    registry.destroy(m_SelectedEntity);
-                    m_SelectedEntity = entt::null;
+                if (registry.valid(m_SelectionManager->GetSelectedEntity())) {
+                    registry.destroy(m_SelectionManager->GetSelectedEntity());
+                    m_SelectionManager->SetSelectedEntity(entt::null);
                 }
             }
         }
@@ -489,8 +489,8 @@ void EditorLayer::HandleGizmoInteraction() {
     float cameraZoom = m_EditorCamera->GetZoom();
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_EditorCamera->IsPanning()) {
-        if (m_SelectedEntity != entt::null && registry.valid(m_SelectedEntity) && registry.all_of<Transform>(m_SelectedEntity)) {
-            Transform& transform = registry.get<Transform>(m_SelectedEntity);
+        if (m_SelectionManager->GetSelectedEntity() != entt::null && registry.valid(m_SelectionManager->GetSelectedEntity()) && registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity())) {
+            Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
 
             m_SelectedAxis = GizmoAxis::None;
 
@@ -567,8 +567,8 @@ void EditorLayer::HandleGizmoInteraction() {
     }
 
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-        if (m_IsDragging && m_SelectedEntity != entt::null && registry.valid(m_SelectedEntity) && registry.all_of<Transform>(m_SelectedEntity)) {
-            Transform& currentTransform = registry.get<Transform>(m_SelectedEntity);
+        if (m_IsDragging && m_SelectionManager->GetSelectedEntity() != entt::null && registry.valid(m_SelectionManager->GetSelectedEntity()) && registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity())) {
+            Transform& currentTransform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
             Transform oldTransform = currentTransform;
 
             if (m_GizmoMode == GizmoMode::Translate) {
@@ -581,7 +581,7 @@ void EditorLayer::HandleGizmoInteraction() {
             }
 
             m_CommandHistory.AddCommand(
-                std::make_unique<ModifyTransformCommand>(&registry, m_SelectedEntity, oldTransform, currentTransform)
+                std::make_unique<ModifyTransformCommand>(&registry, m_SelectionManager->GetSelectedEntity(), oldTransform, currentTransform)
             );
         }
 
@@ -589,8 +589,8 @@ void EditorLayer::HandleGizmoInteraction() {
         m_SelectedAxis = GizmoAxis::None;
     }
 
-    if (m_IsDragging && m_SelectedEntity != entt::null && registry.valid(m_SelectedEntity) && registry.all_of<Transform>(m_SelectedEntity)) {
-        Transform& transform = registry.get<Transform>(m_SelectedEntity);
+    if (m_IsDragging && m_SelectionManager->GetSelectedEntity() != entt::null && registry.valid(m_SelectionManager->GetSelectedEntity()) && registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity())) {
+        Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
 
         if (m_GizmoMode == GizmoMode::Translate) {
             Vector2 dragDelta{
@@ -648,71 +648,19 @@ void EditorLayer::HandleGizmoInteraction() {
 }
 
 void EditorLayer::HandleEntitySelection() {
-    if (m_EditorState == EditorState::Play || m_IsDragging || m_EditorCamera->IsPanning()) {
+    if (m_EditorState == EditorState::Play) {
         return;
     }
 
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    ImVec2 mouseImGui = ImGui::GetMousePos();
-    Vector2 mouseViewportPos{
-        mouseImGui.x - m_ViewportPos.x,
-        mouseImGui.y - m_ViewportPos.y
-    };
-
-    if (mouseViewportPos.x < 0 || mouseViewportPos.y < 0 ||
-        mouseViewportPos.x > m_ViewportSize.x || mouseViewportPos.y > m_ViewportSize.y) {
-        return;
-    }
-
-    Vector2 mouseWorldPos = m_EditorCamera->ScreenToWorld(mouseViewportPos, m_ViewportSize.x, m_ViewportSize.y);
-
-    entt::entity clickedEntity = entt::null;
-    float closestDistance = 99999.0f;
-
-    registry.view<Transform, Sprite>().each([&](entt::entity entity, const Transform& transform, const Sprite& sprite) {
-        if (!sprite.IsValid()) {
-            return;
-        }
-
-        float halfW = sprite.sourceRect.width * transform.scale.x * 0.5f;
-        float halfH = sprite.sourceRect.height * transform.scale.y * 0.5f;
-
-        Vector2 localPos{
-            mouseWorldPos.x - transform.position.x,
-            mouseWorldPos.y - transform.position.y
-        };
-
-        float cosR = std::cos(-transform.rotation * DEG2RAD);
-        float sinR = std::sin(-transform.rotation * DEG2RAD);
-        Vector2 rotatedPos{
-            localPos.x * cosR - localPos.y * sinR,
-            localPos.x * sinR + localPos.y * cosR
-        };
-
-        if (std::abs(rotatedPos.x) <= halfW && std::abs(rotatedPos.y) <= halfH) {
-            float distance = localPos.x * localPos.x + localPos.y * localPos.y;
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                clickedEntity = entity;
-            }
-        }
-    });
-
-    if (clickedEntity != entt::null) {
-        m_SelectedEntity = clickedEntity;
-        m_SelectedAssetUUID = UUID{0};
-        m_SelectedAssetPath.clear();
-    }
+    m_SelectionManager->HandleEntitySelection(
+        m_Engine,
+        m_EditorCamera.get(),
+        m_ViewportPos.x,
+        m_ViewportPos.y,
+        m_ViewportSize.x,
+        m_ViewportSize.y,
+        m_IsDragging
+    );
 }
 
 void EditorLayer::RenderGizmos() {
@@ -720,18 +668,18 @@ void EditorLayer::RenderGizmos() {
         return;
     }
 
-    if (m_SelectedEntity == entt::null || !m_Engine || !m_Engine->GetActiveScene()) {
+    if (m_SelectionManager->GetSelectedEntity() == entt::null || !m_Engine || !m_Engine->GetActiveScene()) {
         return;
     }
 
     Scene* scene = m_Engine->GetActiveScene();
     entt::registry& registry = scene->GetRegistry();
 
-    if (!registry.valid(m_SelectedEntity) || !registry.all_of<Transform>(m_SelectedEntity)) {
+    if (!registry.valid(m_SelectionManager->GetSelectedEntity()) || !registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity())) {
         return;
     }
 
-    const Transform& transform = registry.get<Transform>(m_SelectedEntity);
+    const Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
     float cameraZoom = m_EditorCamera->GetZoom();
 
     if (m_GizmoMode == GizmoMode::Translate) {
@@ -804,7 +752,7 @@ void EditorLayer::OnPlayButtonPressed() {
 
         m_EditorState = EditorState::Play;
         m_CommandHistory.Clear();
-        m_SelectedEntity = entt::null;
+        m_SelectionManager->SetSelectedEntity(entt::null);
 
         m_Engine->CreatePhysicsBodies();
         m_Engine->SetPhysicsEnabled(true);
@@ -830,7 +778,7 @@ void EditorLayer::OnStopButtonPressed() {
             if (serializer.DeserializeFromString(m_PlayModeSnapshot)) {
                 m_EditorState = EditorState::Edit;
                 m_CommandHistory.Clear();
-                m_SelectedEntity = entt::null;
+                m_SelectionManager->SetSelectedEntity(entt::null);
 
                 if (m_Engine->GetScriptSystem()) {
                     entt::registry& registry = scene->GetRegistry();
@@ -926,7 +874,7 @@ void EditorLayer::OnStopButtonPressed() {
 
 void EditorLayer::NewScene() {
     m_SceneManager->NewScene();
-    m_SelectedEntity = entt::null;
+    m_SelectionManager->SetSelectedEntity(entt::null);
     m_CommandHistory.Clear();
 }
 
@@ -940,7 +888,7 @@ void EditorLayer::SaveSceneAs() {
 
 void EditorLayer::LoadScene() {
     m_SceneManager->LoadScene();
-    m_SelectedEntity = entt::null;
+    m_SelectionManager->SetSelectedEntity(entt::null);
     m_CommandHistory.Clear();
     RestoreScriptPropertiesFromFile(m_SceneManager->GetCurrentScenePath());
 }
@@ -1563,7 +1511,7 @@ void EditorLayer::PasteEntity() {
     }
 
     entt::entity newEntity = DuplicateEntity(m_CopiedEntity);
-    m_SelectedEntity = newEntity;
+    m_SelectionManager->SetSelectedEntity(newEntity);
 
     PX_LOG_INFO(EDITOR, "Entity pasted");
 }

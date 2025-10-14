@@ -31,6 +31,7 @@ class SceneViewportPanel;
 class EditorSceneManager;
 class EditorPanelManager;
 class EditorCamera;
+class EditorSelectionManager;
 
 enum class EditorState {
     Edit,
@@ -106,7 +107,6 @@ private:
     Rectangle m_ViewportBounds{0, 0, 1920, 1080};
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
-    entt::entity m_SelectedEntity{entt::null};
 
     bool m_IsDragging{false};
     Vector2 m_DragStartPos{0.0f, 0.0f};
@@ -124,8 +124,6 @@ private:
     bool m_IsModifyingTransform{false};
 
     bool m_IsDraggingEntity{false};
-    bool m_InspectorLocked{false};
-    entt::entity m_LockedEntity{entt::null};
 
     std::string m_PlayModeSnapshot{};
 
@@ -162,9 +160,7 @@ private:
     std::unique_ptr<EditorSceneManager> m_SceneManager;
     std::unique_ptr<EditorPanelManager> m_PanelManager;
     std::unique_ptr<EditorCamera> m_EditorCamera;
-
-    UUID m_SelectedAssetUUID{0};
-    std::string m_SelectedAssetPath;
+    std::unique_ptr<EditorSelectionManager> m_SelectionManager;
 };
 
 } // namespace PiiXeL
