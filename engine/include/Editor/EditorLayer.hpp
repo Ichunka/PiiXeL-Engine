@@ -29,6 +29,7 @@ class ProfilerPanel;
 class GameViewportPanel;
 class SceneViewportPanel;
 class EditorSceneManager;
+class EditorPanelManager;
 
 enum class EditorState {
     Edit,
@@ -66,9 +67,6 @@ public:
     [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
 
 private:
-    void SetupDockingLayout();
-    void BeginDockspace();
-    void EndDockspace();
     void DeleteAssetWithPackage(const std::string& assetPath);
 
     void RenderMenuBar();
@@ -108,7 +106,6 @@ private:
     Rectangle m_ViewportBounds{0, 0, 1920, 1080};
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
-    bool m_DockingLayoutInitialized{false};
     entt::entity m_SelectedEntity{entt::null};
 
     Vector2 m_CameraPosition{0.0f, 0.0f};
@@ -168,6 +165,7 @@ private:
     std::unique_ptr<SceneViewportPanel> m_SceneViewportPanel;
 
     std::unique_ptr<EditorSceneManager> m_SceneManager;
+    std::unique_ptr<EditorPanelManager> m_PanelManager;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;

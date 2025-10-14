@@ -9,6 +9,7 @@
 #include "Editor/AnimatorControllerEditorPanel.hpp"
 #include "Editor/EditorThemeManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
+#include "Editor/EditorPanelManager.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
@@ -17,20 +18,15 @@
 #include "Editor/Panels/GameViewportPanel.hpp"
 #include "Editor/Panels/SceneViewportPanel.hpp"
 #include "Resources/AssetRegistry.hpp"
-#include "Resources/AssetImporter.hpp"
 #include "Resources/TextureAsset.hpp"
-#include "Resources/AudioAsset.hpp"
-#include "Animation/AnimationSerializer.hpp"
 #include "Animation/SpriteSheet.hpp"
 #include "Animation/AnimationClip.hpp"
 #include "Animation/AnimatorController.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
-#include "Scene/EntityRegistry.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Systems/AnimationSystem.hpp"
-#include "Resources/AssetManager.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
 #include "Components/Sprite.hpp"
@@ -40,7 +36,6 @@
 #include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/ScriptSystem.hpp"
-#include "Scripting/ScriptRegistry.hpp"
 #include "Editor/EditorCommands.hpp"
 #include "Project/ProjectSettings.hpp"
 #include "Reflection/Reflection.hpp"
@@ -48,7 +43,6 @@
 #include "Debug/Profiler.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <rlImGui.h>
 #include <entt/entt.hpp>
 #include <nlohmann/json.hpp>
 #include <filesystem>
@@ -68,7 +62,6 @@ EditorLayer::EditorLayer(Engine* engine)
     , m_ViewportBounds{0, 0, 1920, 1080}
     , m_ViewportHovered{false}
     , m_ViewportFocused{false}
-    , m_DockingLayoutInitialized{false}
     , m_SelectedEntity{entt::null}
     , m_CameraPosition{0.0f, 0.0f}
     , m_CameraZoom{1.0f}
@@ -206,6 +199,7 @@ EditorLayer::EditorLayer(Engine* engine)
     });
 
     m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
+    m_PanelManager = std::make_unique<EditorPanelManager>();
 
     EditorThemeManager::SetupDarkTheme();
 
@@ -303,7 +297,7 @@ void EditorLayer::OnImGuiRender() {
         }
     }
 
-    BeginDockspace();
+    m_PanelManager->BeginDockspace();
 
     RenderMenuBar();
     RenderToolbar();
@@ -330,7 +324,7 @@ void EditorLayer::OnImGuiRender() {
         m_AnimatorControllerEditor->Render();
     }
 
-    EndDockspace();
+    m_PanelManager->EndDockspace();
 }
 
 void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
@@ -349,71 +343,6 @@ void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
     } catch (const std::filesystem::filesystem_error& e) {
         PX_LOG_ERROR(EDITOR, "Failed to delete: %s", e.what());
     }
-}
-
-void EditorLayer::BeginDockspace() {
-    PROFILE_FUNCTION();
-    static bool dockspaceOpen = true;
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(viewport->Pos);
-    ImGui::SetNextWindowSize(viewport->Size);
-    ImGui::SetNextWindowViewport(viewport->ID);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-        window_flags |= ImGuiWindowFlags_NoBackground;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace", &dockspaceOpen, window_flags);
-    ImGui::PopStyleVar();
-    ImGui::PopStyleVar(2);
-
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-        ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-
-        if (!m_DockingLayoutInitialized) {
-            SetupDockingLayout();
-            m_DockingLayoutInitialized = true;
-        }
-    }
-}
-
-void EditorLayer::SetupDockingLayout() {
-    ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
-    ImGui::DockBuilderRemoveNode(dockspace_id);
-    ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-    ImGui::DockBuilderSetNodeSize(dockspace_id, ImGui::GetMainViewport()->Size);
-
-    ImGuiID dock_id_top = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Up, 0.08f, nullptr, &dockspace_id);
-    ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
-    ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_id);
-    ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.25f, nullptr, &dockspace_id);
-
-    ImGui::DockBuilderDockWindow("Toolbar", dock_id_top);
-    ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left);
-    ImGui::DockBuilderDockWindow("Inspector", dock_id_right);
-    ImGui::DockBuilderDockWindow("Scene", dockspace_id);
-    ImGui::DockBuilderDockWindow("Game", dockspace_id);
-    ImGui::DockBuilderDockWindow("Animator Controller Editor", dockspace_id);
-    ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
-    ImGui::DockBuilderDockWindow("Console", dock_id_bottom);
-    ImGui::DockBuilderDockWindow("Build & Export", dock_id_bottom);
-    ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
-
-    ImGui::DockBuilderFinish(dockspace_id);
-}
-
-void EditorLayer::EndDockspace() {
-    PROFILE_FUNCTION();
-    ImGui::End();
 }
 
 void EditorLayer::RenderMenuBar() {
