@@ -591,10 +591,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowNewScenePopup) {
         ImGui::OpenPopup("New Scene");
-        m_ShowNewScenePopup = false;
     }
 
     if (ImGui::BeginPopupModal("New Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowNewScenePopup = false;
         ImGui::Text("Enter scene name:");
         ImGui::Separator();
 
@@ -644,10 +644,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowNewFolderPopup) {
         ImGui::OpenPopup("New Folder");
-        m_ShowNewFolderPopup = false;
     }
 
     if (ImGui::BeginPopupModal("New Folder", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowNewFolderPopup = false;
         ImGui::Text("Enter folder name:");
         ImGui::Separator();
 
@@ -681,10 +681,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowNewSpriteSheetPopup) {
         ImGui::OpenPopup("New Sprite Sheet");
-        m_ShowNewSpriteSheetPopup = false;
     }
 
     if (ImGui::BeginPopupModal("New Sprite Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowNewSpriteSheetPopup = false;
         ImGui::Text("Enter sprite sheet name:");
         ImGui::Separator();
 
@@ -727,10 +727,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowNewAnimClipPopup) {
         ImGui::OpenPopup("New Animation Clip");
-        m_ShowNewAnimClipPopup = false;
     }
 
     if (ImGui::BeginPopupModal("New Animation Clip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowNewAnimClipPopup = false;
         ImGui::Text("Enter animation clip name:");
         ImGui::Separator();
 
@@ -773,10 +773,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowNewAnimControllerPopup) {
         ImGui::OpenPopup("New Animator Controller");
-        m_ShowNewAnimControllerPopup = false;
     }
 
     if (ImGui::BeginPopupModal("New Animator Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowNewAnimControllerPopup = false;
         ImGui::Text("Enter animator controller name:");
         ImGui::Separator();
 
@@ -819,10 +819,10 @@ void ContentBrowserPanel::OnImGuiRender() {
 
     if (m_ShowRenamePopup) {
         ImGui::OpenPopup("Rename");
-        m_ShowRenamePopup = false;
     }
 
     if (ImGui::BeginPopupModal("Rename", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        m_ShowRenamePopup = false;
         ImGui::Text("Enter new name:");
         ImGui::Separator();
 
