@@ -35,7 +35,7 @@ struct TypeName##_ModuleRegistrar { \
 #ifdef BUILD_WITH_EDITOR
 
 #define EDITOR_UI() \
-        module->SetEditorUI([](ReflectedType& component, entt::registry& registry, entt::entity entity, ::PiiXeL::CommandHistory& history)
+        module->SetEditorUI([](ReflectedType& component, entt::registry& registry, entt::entity entity, ::PiiXeL::CommandHistory& history, ::PiiXeL::ComponentModule<ReflectedType>::EntityPickerFunc entityPicker, ::PiiXeL::ComponentModule<ReflectedType>::AssetPickerFunc assetPicker)
 
 #define EDITOR_UI_END() \
         );
@@ -54,6 +54,9 @@ struct TypeName##_ModuleRegistrar { \
 
 #define EDITOR_DISPLAY_ORDER(order) \
         module->SetDisplayOrder(order);
+
+#define SKIP_REGISTRY_RENDER() \
+        module->SetRenderInRegistry(false);
 
 #else
 
@@ -75,6 +78,8 @@ struct TypeName##_ModuleRegistrar { \
 #define EDITOR_DUPLICATE_END()
 
 #define EDITOR_DISPLAY_ORDER(order)
+
+#define SKIP_REGISTRY_RENDER()
 
 #endif
 

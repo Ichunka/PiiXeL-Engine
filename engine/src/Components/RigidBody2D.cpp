@@ -56,9 +56,7 @@ BEGIN_COMPONENT_MODULE(RigidBody2D)
             component.type = static_cast<BodyType>(currentType);
         }
 
-        ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, [&](const char* label, entt::entity* entity) {
-            return false;
-        });
+        ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
     }
     EDITOR_UI_END()
 

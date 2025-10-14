@@ -50,7 +50,10 @@ public:
     void DeserializeComponent(const std::string& componentName, entt::registry& registry, entt::entity entity, const nlohmann::json& data);
 
 #ifdef BUILD_WITH_EDITOR
-    void RenderInspectorForEntity(entt::registry& registry, entt::entity entity, CommandHistory& history);
+    using EntityPickerFunc = IComponentModule::EntityPickerFunc;
+    using AssetPickerFunc = IComponentModule::AssetPickerFunc;
+
+    void RenderInspectorForEntity(entt::registry& registry, entt::entity entity, CommandHistory& history, EntityPickerFunc entityPicker, AssetPickerFunc assetPicker);
     void RenderAddComponentMenu(entt::registry& registry, entt::entity entity, CommandHistory& history);
     void DuplicateAllComponents(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity);
 #endif

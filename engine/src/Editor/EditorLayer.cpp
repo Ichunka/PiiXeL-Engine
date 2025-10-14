@@ -27,8 +27,6 @@
 #include "Components/Sprite.hpp"
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
-#include "Components/BoxCollider2D.hpp"
-#include "Components/CircleCollider2D.hpp"
 #include "Components/ComponentModuleRegistry.hpp"
 #include "Components/Script.hpp"
 #include "Components/Animator.hpp"
@@ -1067,43 +1065,6 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<Camera>(inspectedEntity)) {
-                ImGui::Separator();
-                bool removeCamera = false;
-
-                ImGui::AlignTextToFramePadding();
-                bool cameraOpen = ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_DefaultOpen);
-                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-                if (ImGui::SmallButton("X##RemoveCamera")) {
-                    removeCamera = true;
-                }
-
-                if (cameraOpen) {
-                    Camera& camera = registry.get<Camera>(inspectedEntity);
-
-                    bool wasPrimary = camera.isPrimary;
-                    Reflection::ImGuiRenderer::RenderProperties(camera, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
-
-                    if (camera.isPrimary != wasPrimary && camera.isPrimary) {
-                        registry.view<Camera>().each([inspectedEntity, &registry](entt::entity entity, Camera& otherCamera) {
-                            if (entity != inspectedEntity) {
-                                otherCamera.isPrimary = false;
-                            }
-                        });
-                    }
-
-                    ImGui::TreePop();
-                }
-
-                if (removeCamera) {
-                    m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<Camera>>(&registry, inspectedEntity)
-                    );
-                }
-            }
-
             if (registry.all_of<Sprite>(inspectedEntity)) {
                 ImGui::Separator();
                 bool removeSprite = false;
@@ -1191,41 +1152,13 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<RigidBody2D>(inspectedEntity)) {
-                ImGui::Separator();
-                bool removeRigidBody = false;
-
-                ImGui::AlignTextToFramePadding();
-                bool rigidBodyOpen = ImGui::TreeNodeEx("Rigid Body 2D", ImGuiTreeNodeFlags_DefaultOpen);
-                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-                if (ImGui::SmallButton("X##RemoveRigidBody")) {
-                    removeRigidBody = true;
-                }
-
-                if (rigidBodyOpen) {
-                    RigidBody2D& rb = registry.get<RigidBody2D>(inspectedEntity);
-
-                    const char* bodyTypes[] = {"Static", "Dynamic", "Kinematic"};
-                    int currentType = static_cast<int>(rb.type);
-                    if (ImGui::Combo("Type", &currentType, bodyTypes, 3)) {
-                        rb.type = static_cast<BodyType>(currentType);
-                    }
-
-                    Reflection::ImGuiRenderer::RenderProperties(rb, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
-
-                    ImGui::TreePop();
-                }
-
-                if (removeRigidBody) {
-                    m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<RigidBody2D>>(&registry, inspectedEntity)
-                    );
-                }
-            }
-
-            ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, m_CommandHistory);
+            ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, m_CommandHistory,
+                [this](const char* label, entt::entity* entity) {
+                    return RenderEntityPicker(label, entity);
+                },
+                [this](const char* label, UUID* uuid, const std::string& assetType) {
+                    return RenderAssetPicker(label, uuid, assetType);
+                });
 
             if (registry.all_of<Script>(inspectedEntity)) {
                 ImGui::Separator();
@@ -1325,43 +1258,6 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<Animator>(inspectedEntity)) {
-                ImGui::Separator();
-                bool removeAnimator = false;
-
-                ImGui::AlignTextToFramePadding();
-                bool animatorOpen = ImGui::TreeNodeEx("Animator", ImGuiTreeNodeFlags_DefaultOpen);
-                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-                if (ImGui::SmallButton("X##RemoveAnimator")) {
-                    removeAnimator = true;
-                }
-
-                if (animatorOpen) {
-                    Animator& animator = registry.get<Animator>(inspectedEntity);
-
-                    if (RenderAssetPicker("Controller", &animator.controllerUUID, "AnimatorController")) {
-                    }
-
-                    ImGui::Checkbox("Is Playing", &animator.isPlaying);
-                    ImGui::DragFloat("Playback Speed", &animator.playbackSpeed, 0.01f, 0.0f, 10.0f);
-
-                    if (animator.controllerUUID.Get() != 0) {
-                        ImGui::Separator();
-                        ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "State: %s", animator.currentState.empty() ? "(None)" : animator.currentState.c_str());
-                        ImGui::Text("Time: %.2f", animator.stateTime);
-                        ImGui::Text("Frame: %zu", animator.currentFrameIndex);
-                    }
-
-                    ImGui::TreePop();
-                }
-
-                if (removeAnimator) {
-                    m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<Animator>>(&registry, inspectedEntity)
-                    );
-                }
-            }
-
             ImGui::Separator();
 
             if (ImGui::Button("Add Component")) {
@@ -1369,33 +1265,10 @@ void EditorLayer::RenderInspector() {
             }
 
             if (ImGui::BeginPopup("AddComponentPopup")) {
-                if (ImGui::MenuItem("Camera")) {
-                    if (!registry.all_of<Camera>(inspectedEntity)) {
-                        bool hasPrimaryCamera = false;
-                        registry.view<Camera>().each([&hasPrimaryCamera](const Camera& cam) {
-                            if (cam.isPrimary) {
-                                hasPrimaryCamera = true;
-                            }
-                        });
-
-                        Camera newCamera{};
-                        newCamera.isPrimary = !hasPrimaryCamera;
-                        m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<Camera>>(&registry, inspectedEntity, newCamera)
-                        );
-                    }
-                }
                 if (ImGui::MenuItem("Sprite")) {
                     if (!registry.all_of<Sprite>(inspectedEntity)) {
                         m_CommandHistory.ExecuteCommand(
                             std::make_unique<AddComponentCommand<Sprite>>(&registry, inspectedEntity, Sprite{})
-                        );
-                    }
-                }
-                if (ImGui::MenuItem("Rigid Body 2D")) {
-                    if (!registry.all_of<RigidBody2D>(inspectedEntity)) {
-                        m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<RigidBody2D>>(&registry, inspectedEntity, RigidBody2D{})
                         );
                     }
                 }
@@ -1404,13 +1277,6 @@ void EditorLayer::RenderInspector() {
                 if (ImGui::MenuItem("Script")) {
                     if (!registry.all_of<Script>(inspectedEntity)) {
                         registry.emplace<Script>(inspectedEntity);
-                    }
-                }
-                if (ImGui::MenuItem("Animator")) {
-                    if (!registry.all_of<Animator>(inspectedEntity)) {
-                        m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<Animator>>(&registry, inspectedEntity, Animator{})
-                        );
                     }
                 }
                 ImGui::EndPopup();
@@ -3731,14 +3597,6 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
 
     entt::entity newEntity = scene->CreateEntity(newName);
 
-    if (registry.all_of<Transform>(entity)) {
-        const Transform& originalTransform = registry.get<Transform>(entity);
-        Transform& newTransform = registry.get<Transform>(newEntity);
-        newTransform.position = originalTransform.position;
-        newTransform.rotation = originalTransform.rotation;
-        newTransform.scale = originalTransform.scale;
-    }
-
     if (registry.all_of<Sprite>(entity)) {
         const Sprite& originalSprite = registry.get<Sprite>(entity);
         Sprite newSprite;
@@ -3750,30 +3608,6 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         newSprite.layer = originalSprite.layer;
 
         registry.emplace<Sprite>(newEntity, newSprite);
-    }
-
-    if (registry.all_of<Camera>(entity)) {
-        const Camera& originalCamera = registry.get<Camera>(entity);
-        Camera newCamera;
-        newCamera.isPrimary = false;
-        newCamera.zoom = originalCamera.zoom;
-        newCamera.offset = originalCamera.offset;
-        newCamera.rotation = originalCamera.rotation;
-        registry.emplace<Camera>(newEntity, newCamera);
-    }
-
-    if (registry.all_of<RigidBody2D>(entity)) {
-        const RigidBody2D& originalRb = registry.get<RigidBody2D>(entity);
-        RigidBody2D newRb;
-        newRb.type = originalRb.type;
-        newRb.mass = originalRb.mass;
-        newRb.friction = originalRb.friction;
-        newRb.restitution = originalRb.restitution;
-        newRb.fixedRotation = originalRb.fixedRotation;
-        newRb.velocity = Vector2{0.0f, 0.0f};
-        newRb.angularVelocity = 0.0f;
-        newRb.box2dBodyId = b2_nullBodyId;
-        registry.emplace<RigidBody2D>(newEntity, newRb);
     }
 
     ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, entity, newEntity);

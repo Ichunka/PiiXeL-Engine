@@ -118,21 +118,6 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         entityJson["uuid"] = uuid.Get();
     }
 
-    if (registry.all_of<Tag>(entity)) {
-        const Tag& tag = registry.get<Tag>(entity);
-        entityJson["Tag"] = {
-            {"name", tag.name}
-        };
-    }
-
-    if (registry.all_of<Transform>(entity)) {
-        const Transform& transform = registry.get<Transform>(entity);
-        entityJson["Transform"] = {
-            {"position", {transform.position.x, transform.position.y}},
-            {"rotation", transform.rotation},
-            {"scale", {transform.scale.x, transform.scale.y}}
-        };
-    }
 
     if (registry.all_of<Sprite>(entity)) {
         const Sprite& sprite = registry.get<Sprite>(entity);
@@ -142,16 +127,6 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
             {"tint", {sprite.tint.r, sprite.tint.g, sprite.tint.b, sprite.tint.a}},
             {"layer", sprite.layer},
             {"origin", {sprite.origin.x, sprite.origin.y}}
-        };
-    }
-
-    if (registry.all_of<Camera>(entity)) {
-        const Camera& camera = registry.get<Camera>(entity);
-        entityJson["Camera"] = {
-            {"isPrimary", camera.isPrimary},
-            {"zoom", camera.zoom},
-            {"offset", {camera.offset.x, camera.offset.y}},
-            {"rotation", camera.rotation}
         };
     }
 
@@ -200,15 +175,6 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         entityJson["Scripts"] = scriptsArray;
     }
 
-    if (registry.all_of<Animator>(entity)) {
-        const Animator& animator = registry.get<Animator>(entity);
-        entityJson["Animator"] = {
-            {"controllerUUID", animator.controllerUUID.Get()},
-            {"isPlaying", animator.isPlaying},
-            {"playbackSpeed", animator.playbackSpeed}
-        };
-    }
-
     return entityJson;
 }
 
@@ -223,33 +189,6 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
     registry.emplace<UUID>(entity, uuid);
     EntityRegistry::Instance().RegisterEntity(uuid, entity);
 
-    if (entityJson.contains("Tag")) {
-        const nlohmann::json& tagJson = entityJson["Tag"];
-        Tag tag{};
-        tag.name = tagJson.value("name", "Entity");
-        registry.emplace<Tag>(entity, tag);
-    }
-
-    if (entityJson.contains("Transform")) {
-        const nlohmann::json& transformJson = entityJson["Transform"];
-        Transform transform{};
-
-        if (transformJson.contains("position") && transformJson["position"].is_array() && transformJson["position"].size() == 2) {
-            transform.position.x = transformJson["position"][0].get<float>();
-            transform.position.y = transformJson["position"][1].get<float>();
-        }
-
-        if (transformJson.contains("rotation")) {
-            transform.rotation = transformJson["rotation"].get<float>();
-        }
-
-        if (transformJson.contains("scale") && transformJson["scale"].is_array() && transformJson["scale"].size() == 2) {
-            transform.scale.x = transformJson["scale"][0].get<float>();
-            transform.scale.y = transformJson["scale"][1].get<float>();
-        }
-
-        registry.emplace<Transform>(entity, transform);
-    }
 
     if (entityJson.contains("Sprite")) {
         const nlohmann::json& spriteJson = entityJson["Sprite"];
@@ -283,22 +222,6 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<Sprite>(entity, sprite);
     }
 
-    if (entityJson.contains("Camera")) {
-        const nlohmann::json& cameraJson = entityJson["Camera"];
-        Camera camera{};
-
-        camera.isPrimary = cameraJson.value("isPrimary", false);
-        camera.zoom = cameraJson.value("zoom", 1.0f);
-        camera.rotation = cameraJson.value("rotation", 0.0f);
-
-        if (cameraJson.contains("offset") && cameraJson["offset"].is_array() && cameraJson["offset"].size() == 2) {
-            camera.offset.x = cameraJson["offset"][0].get<float>();
-            camera.offset.y = cameraJson["offset"][1].get<float>();
-        }
-
-        registry.emplace<Camera>(entity, camera);
-    }
-
     if (entityJson.contains("RigidBody2D")) {
         const nlohmann::json& rbJson = entityJson["RigidBody2D"];
         RigidBody2D rb{};
@@ -314,10 +237,9 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
 
     for (auto it = entityJson.begin(); it != entityJson.end(); ++it) {
         const std::string& componentName = it.key();
-        if (componentName == "uuid" || componentName == "Tag" || componentName == "Transform" ||
-            componentName == "Sprite" || componentName == "Camera" || componentName == "RigidBody2D" ||
-            componentName == "Scripts" || componentName == "Script" ||
-            componentName == "Animator") {
+        if (componentName == "uuid" ||
+            componentName == "Sprite" || componentName == "RigidBody2D" ||
+            componentName == "Scripts" || componentName == "Script") {
             continue;
         }
 
@@ -343,20 +265,6 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
             scriptComponent.AddScript(scriptName);
             registry.emplace<Script>(entity, scriptComponent);
         }
-    }
-
-    if (entityJson.contains("Animator")) {
-        const nlohmann::json& animatorJson = entityJson["Animator"];
-        Animator animator{};
-
-        if (animatorJson.contains("controllerUUID")) {
-            animator.controllerUUID = UUID{animatorJson["controllerUUID"].get<uint64_t>()};
-        }
-
-        animator.isPlaying = animatorJson.value("isPlaying", true);
-        animator.playbackSpeed = animatorJson.value("playbackSpeed", 1.0f);
-
-        registry.emplace<Animator>(entity, animator);
     }
 
     return entity;

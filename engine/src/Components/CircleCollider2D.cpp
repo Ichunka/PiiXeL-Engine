@@ -21,9 +21,7 @@ BEGIN_COMPONENT_MODULE(CircleCollider2D)
     EDITOR_DISPLAY_ORDER(30)
 
     EDITOR_UI() {
-        ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, [&](const char* label, entt::entity* entity) {
-            return false;
-        });
+        ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
 
         if (registry.all_of<Sprite>(entity)) {
             if (ImGui::Button("Fit to Sprite")) {
