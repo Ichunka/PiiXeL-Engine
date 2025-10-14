@@ -12,6 +12,7 @@
 #include "Components/UUID.hpp"
 #include "CommandHistory.hpp"
 #include "Debug/Profiler.hpp"
+#include "Editor/Panels/ConsolePanel.hpp"
 
 namespace PiiXeL {
 
@@ -21,6 +22,12 @@ class BuildPanel;
 class SpriteSheetEditorPanel;
 class AnimationClipEditorPanel;
 class AnimatorControllerEditorPanel;
+class HierarchyPanel;
+class InspectorPanel;
+class ContentBrowserPanel;
+class ProfilerPanel;
+class GameViewportPanel;
+class SceneViewportPanel;
 
 enum class EditorState {
     Edit,
@@ -66,15 +73,7 @@ private:
 
     void RenderMenuBar();
     void RenderToolbar();
-    void RenderViewport();
-    void RenderGameViewport();
-    void RenderHierarchy();
-    void RenderInspector();
-    void RenderContentBrowser();
-    void RenderConsole();
     void RenderProjectSettings();
-    void RenderProfiler();
-    void RenderBuildPanel();
 
     Vector2 ScreenToWorld(Vector2 screenPos, const Camera2D& camera);
     void HandleGizmoInteraction();
@@ -142,27 +141,9 @@ private:
 
     bool m_ShowProjectSettings{false};
 
-    // Console state
-    bool m_ConsoleShowEngine{true};
-    bool m_ConsoleShowGame{true};
-    bool m_ConsoleShowTrace{true};
-    bool m_ConsoleShowDebug{true};
-    bool m_ConsoleShowInfo{true};
-    bool m_ConsoleShowWarning{true};
-    bool m_ConsoleShowError{true};
-    bool m_ConsoleShowCategoryEngine{true};
-    bool m_ConsoleShowCategoryAsset{true};
-    bool m_ConsoleShowCategoryEditor{true};
-    bool m_ConsoleShowCategoryPhysics{true};
-    bool m_ConsoleShowCategoryRender{true};
-    bool m_ConsoleShowCategoryScene{true};
-    bool m_ConsoleShowCategoryScript{true};
-    bool m_ConsoleShowCategoryAnimation{true};
-    bool m_ConsoleShowCategoryBuild{true};
-    bool m_ConsoleShowCategoryGame{true};
-    bool m_ConsoleShowCategoryUnknown{true};
+    ConsoleFilters m_ConsoleFilters;
     bool m_ConsoleAutoScroll{true};
-    int m_ConsoleSelectedTab{0}; // 0=All, 1=Engine, 2=Game
+    int m_ConsoleSelectedTab{0};
     std::vector<int> m_ConsoleSelectedLines;
     int m_ConsoleLastClickedLine{-1};
 
@@ -179,6 +160,14 @@ private:
     std::unique_ptr<SpriteSheetEditorPanel> m_SpriteSheetEditor;
     std::unique_ptr<AnimationClipEditorPanel> m_AnimationClipEditor;
     std::unique_ptr<AnimatorControllerEditorPanel> m_AnimatorControllerEditor;
+
+    std::unique_ptr<HierarchyPanel> m_HierarchyPanel;
+    std::unique_ptr<InspectorPanel> m_InspectorPanel;
+    std::unique_ptr<ContentBrowserPanel> m_ContentBrowserPanel;
+    std::unique_ptr<ConsolePanel> m_ConsolePanel;
+    std::unique_ptr<ProfilerPanel> m_ProfilerPanel;
+    std::unique_ptr<GameViewportPanel> m_GameViewportPanel;
+    std::unique_ptr<SceneViewportPanel> m_SceneViewportPanel;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;
