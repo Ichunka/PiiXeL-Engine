@@ -166,15 +166,6 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         };
     }
 
-    if (registry.all_of<BoxCollider2D>(entity)) {
-        const BoxCollider2D& collider = registry.get<BoxCollider2D>(entity);
-        entityJson["BoxCollider2D"] = {
-            {"size", {collider.size.x, collider.size.y}},
-            {"offset", {collider.offset.x, collider.offset.y}},
-            {"isTrigger", collider.isTrigger}
-        };
-    }
-
     nlohmann::json moduleJson = ComponentModuleRegistry::Instance().SerializeEntity(registry, entity);
     for (auto it = moduleJson.begin(); it != moduleJson.end(); ++it) {
         entityJson[it.key()] = it.value();
@@ -321,30 +312,11 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<RigidBody2D>(entity, rb);
     }
 
-    if (entityJson.contains("BoxCollider2D")) {
-        const nlohmann::json& colliderJson = entityJson["BoxCollider2D"];
-        BoxCollider2D collider{};
-
-        if (colliderJson.contains("size") && colliderJson["size"].is_array() && colliderJson["size"].size() == 2) {
-            collider.size.x = colliderJson["size"][0].get<float>();
-            collider.size.y = colliderJson["size"][1].get<float>();
-        }
-
-        if (colliderJson.contains("offset") && colliderJson["offset"].is_array() && colliderJson["offset"].size() == 2) {
-            collider.offset.x = colliderJson["offset"][0].get<float>();
-            collider.offset.y = colliderJson["offset"][1].get<float>();
-        }
-
-        collider.isTrigger = colliderJson.value("isTrigger", false);
-
-        registry.emplace<BoxCollider2D>(entity, collider);
-    }
-
     for (auto it = entityJson.begin(); it != entityJson.end(); ++it) {
         const std::string& componentName = it.key();
         if (componentName == "uuid" || componentName == "Tag" || componentName == "Transform" ||
             componentName == "Sprite" || componentName == "Camera" || componentName == "RigidBody2D" ||
-            componentName == "BoxCollider2D" || componentName == "Scripts" || componentName == "Script" ||
+            componentName == "Scripts" || componentName == "Script" ||
             componentName == "Animator") {
             continue;
         }

@@ -85,14 +85,14 @@
         {
             "BoxCollider2D": {
                 "isTrigger": true,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "size": [
-                    16.0,
-                    16.0
-                ]
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "size": {
+                    "x": 16.0,
+                    "y": 16.0
+                }
             },
             "RigidBody2D": {
                 "fixedRotation": false,
@@ -208,14 +208,14 @@
             },
             "BoxCollider2D": {
                 "isTrigger": false,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "size": [
-                    29.0,
-                    64.0
-                ]
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "size": {
+                    "x": 29.0,
+                    "y": 64.0
+                }
             },
             "RigidBody2D": {
                 "fixedRotation": true,
@@ -274,14 +274,14 @@
         {
             "BoxCollider2D": {
                 "isTrigger": false,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "size": [
-                    64.0,
-                    64.0
-                ]
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "size": {
+                    "x": 64.0,
+                    "y": 64.0
+                }
             },
             "RigidBody2D": {
                 "fixedRotation": false,
@@ -329,14 +329,14 @@
         {
             "BoxCollider2D": {
                 "isTrigger": false,
-                "offset": [
-                    0.0,
-                    0.0
-                ],
-                "size": [
-                    16.0,
-                    16.0
-                ]
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "size": {
+                    "x": 16.0,
+                    "y": 16.0
+                }
             },
             "RigidBody2D": {
                 "fixedRotation": false,

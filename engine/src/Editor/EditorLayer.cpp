@@ -1225,43 +1225,6 @@ void EditorLayer::RenderInspector() {
                 }
             }
 
-            if (registry.all_of<BoxCollider2D>(inspectedEntity)) {
-                ImGui::Separator();
-                bool removeBoxCollider = false;
-
-                ImGui::AlignTextToFramePadding();
-                bool boxColliderOpen = ImGui::TreeNodeEx("Box Collider 2D", ImGuiTreeNodeFlags_DefaultOpen);
-                ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-                if (ImGui::SmallButton("X##RemoveBoxCollider")) {
-                    removeBoxCollider = true;
-                }
-
-                if (boxColliderOpen) {
-                    BoxCollider2D& collider = registry.get<BoxCollider2D>(inspectedEntity);
-
-                    Reflection::ImGuiRenderer::RenderProperties(collider, [this](const char* label, entt::entity* entity) {
-                        return RenderEntityPicker(label, entity);
-                    });
-
-                    if (registry.all_of<Sprite>(inspectedEntity)) {
-                        if (ImGui::Button("Fit to Sprite")) {
-                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            Vector2 spriteSize = sprite.GetSize();
-                            collider.size = spriteSize;
-                            collider.offset = Vector2{0.0f, 0.0f};
-                        }
-                    }
-
-                    ImGui::TreePop();
-                }
-
-                if (removeBoxCollider) {
-                    m_CommandHistory.ExecuteCommand(
-                        std::make_unique<RemoveComponentCommand<BoxCollider2D>>(&registry, inspectedEntity)
-                    );
-                }
-            }
-
             ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, m_CommandHistory);
 
             if (registry.all_of<Script>(inspectedEntity)) {
@@ -1433,20 +1396,6 @@ void EditorLayer::RenderInspector() {
                     if (!registry.all_of<RigidBody2D>(inspectedEntity)) {
                         m_CommandHistory.ExecuteCommand(
                             std::make_unique<AddComponentCommand<RigidBody2D>>(&registry, inspectedEntity, RigidBody2D{})
-                        );
-                    }
-                }
-                if (ImGui::MenuItem("Box Collider 2D")) {
-                    if (!registry.all_of<BoxCollider2D>(inspectedEntity)) {
-                        BoxCollider2D collider{};
-
-                        if (registry.all_of<Sprite>(inspectedEntity)) {
-                            const Sprite& sprite = registry.get<Sprite>(inspectedEntity);
-                            collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
-                        }
-
-                        m_CommandHistory.ExecuteCommand(
-                            std::make_unique<AddComponentCommand<BoxCollider2D>>(&registry, inspectedEntity, collider)
                         );
                     }
                 }
@@ -3825,15 +3774,6 @@ entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
         newRb.angularVelocity = 0.0f;
         newRb.box2dBodyId = b2_nullBodyId;
         registry.emplace<RigidBody2D>(newEntity, newRb);
-    }
-
-    if (registry.all_of<BoxCollider2D>(entity)) {
-        const BoxCollider2D& originalCollider = registry.get<BoxCollider2D>(entity);
-        BoxCollider2D newCollider;
-        newCollider.size = originalCollider.size;
-        newCollider.offset = originalCollider.offset;
-        newCollider.isTrigger = originalCollider.isTrigger;
-        registry.emplace<BoxCollider2D>(newEntity, newCollider);
     }
 
     ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, entity, newEntity);
