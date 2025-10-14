@@ -7,6 +7,8 @@
 #include "Editor/SpriteSheetEditorPanel.hpp"
 #include "Editor/AnimationClipEditorPanel.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
+#include "Editor/EditorThemeManager.hpp"
+#include "Editor/EditorSceneManager.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
@@ -203,7 +205,9 @@ EditorLayer::EditorLayer(Engine* engine)
         RenderGizmos();
     });
 
-    SetupDarkTheme();
+    m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
+
+    EditorThemeManager::SetupDarkTheme();
 
     m_Engine->SetScriptsEnabled(false);
     m_Engine->SetAnimationEnabled(false);
@@ -227,7 +231,7 @@ EditorLayer::EditorLayer(Engine* engine)
         Scene* scene = m_Engine->GetActiveScene();
         SceneSerializer serializer{scene};
         if (serializer.Deserialize(defaultScenePath)) {
-            m_CurrentScenePath = defaultScenePath;
+            m_SceneManager->SetCurrentScenePath(defaultScenePath);
             RestoreScriptPropertiesFromFile(defaultScenePath);
             PX_LOG_INFO(EDITOR, "Loaded default scene: %s", defaultScenePath.c_str());
         }
@@ -244,49 +248,6 @@ EditorLayer::~EditorLayer() {
     if (m_DefaultWhiteTexture.id != 0) {
         UnloadTexture(m_DefaultWhiteTexture);
     }
-}
-
-void EditorLayer::SetupDarkTheme() {
-    ImGuiStyle& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
-
-    colors[ImGuiCol_WindowBg] = ImVec4{0.1f, 0.1f, 0.1f, 1.0f};
-    colors[ImGuiCol_ChildBg] = ImVec4{0.12f, 0.12f, 0.12f, 1.0f};
-    colors[ImGuiCol_PopupBg] = ImVec4{0.11f, 0.11f, 0.11f, 1.0f};
-
-    colors[ImGuiCol_Border] = ImVec4{0.25f, 0.25f, 0.25f, 1.0f};
-    colors[ImGuiCol_FrameBg] = ImVec4{0.16f, 0.16f, 0.16f, 1.0f};
-    colors[ImGuiCol_FrameBgHovered] = ImVec4{0.20f, 0.20f, 0.20f, 1.0f};
-    colors[ImGuiCol_FrameBgActive] = ImVec4{0.25f, 0.25f, 0.25f, 1.0f};
-
-    colors[ImGuiCol_TitleBg] = ImVec4{0.15f, 0.15f, 0.15f, 1.0f};
-    colors[ImGuiCol_TitleBgActive] = ImVec4{0.15f, 0.15f, 0.15f, 1.0f};
-    colors[ImGuiCol_TitleBgCollapsed] = ImVec4{0.15f, 0.15f, 0.15f, 1.0f};
-
-    colors[ImGuiCol_MenuBarBg] = ImVec4{0.12f, 0.12f, 0.12f, 1.0f};
-
-    colors[ImGuiCol_Header] = ImVec4{0.20f, 0.20f, 0.20f, 1.0f};
-    colors[ImGuiCol_HeaderHovered] = ImVec4{0.25f, 0.25f, 0.25f, 1.0f};
-    colors[ImGuiCol_HeaderActive] = ImVec4{0.30f, 0.30f, 0.30f, 1.0f};
-
-    colors[ImGuiCol_Button] = ImVec4{0.20f, 0.20f, 0.20f, 1.0f};
-    colors[ImGuiCol_ButtonHovered] = ImVec4{0.28f, 0.28f, 0.28f, 1.0f};
-    colors[ImGuiCol_ButtonActive] = ImVec4{0.35f, 0.35f, 0.35f, 1.0f};
-
-    colors[ImGuiCol_Tab] = ImVec4{0.15f, 0.15f, 0.15f, 1.0f};
-    colors[ImGuiCol_TabHovered] = ImVec4{0.38f, 0.38f, 0.38f, 1.0f};
-    colors[ImGuiCol_TabSelected] = ImVec4{0.28f, 0.28f, 0.28f, 1.0f};
-    colors[ImGuiCol_TabDimmed] = ImVec4{0.15f, 0.15f, 0.15f, 1.0f};
-    colors[ImGuiCol_TabDimmedSelected] = ImVec4{0.20f, 0.20f, 0.20f, 1.0f};
-
-    style.WindowRounding = 0.0f;
-    style.ChildRounding = 0.0f;
-    style.FrameRounding = 2.0f;
-    style.GrabRounding = 2.0f;
-    style.TabRounding = 2.0f;
-    style.WindowPadding = ImVec2{8.0f, 8.0f};
-    style.FramePadding = ImVec2{4.0f, 3.0f};
-    style.ItemSpacing = ImVec2{8.0f, 4.0f};
 }
 
 void EditorLayer::OnUpdate(float deltaTime) {
@@ -312,9 +273,6 @@ void EditorLayer::OnImGuiRender() {
         m_CommandHistory.Redo();
     }
 
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N, false)) {
-        NewScene();
-    }
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
         SaveScene();
     }
@@ -462,9 +420,6 @@ void EditorLayer::RenderMenuBar() {
     PROFILE_FUNCTION();
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
-                NewScene();
-            }
             if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
                 LoadScene();
             }
@@ -929,7 +884,7 @@ entt::entity EditorLayer::GetPrimaryCamera() {
 
 void EditorLayer::OnPlayButtonPressed() {
     if (m_Engine && m_Engine->GetActiveScene()) {
-        if (m_CurrentScenePath.empty()) {
+        if (m_SceneManager->GetCurrentScenePath().empty()) {
             SaveSceneAs();
         } else {
             SaveScene();
@@ -1062,71 +1017,24 @@ void EditorLayer::OnStopButtonPressed() {
 }
 
 void EditorLayer::NewScene() {
-    if (m_Engine && m_Engine->GetActiveScene()) {
-        Scene* scene = m_Engine->GetActiveScene();
-        entt::registry& registry = scene->GetRegistry();
-        registry.clear();
-
-        scene->SetName("Untitled Scene");
-        m_CurrentScenePath.clear();
-        m_SelectedEntity = entt::null;
-        m_CommandHistory.Clear();
-
-        PX_LOG_INFO(EDITOR, "New scene created");
-    }
+    m_SceneManager->NewScene();
+    m_SelectedEntity = entt::null;
+    m_CommandHistory.Clear();
 }
 
 void EditorLayer::SaveScene() {
-    if (m_CurrentScenePath.empty()) {
-        SaveSceneAs();
-        return;
-    }
-
-    if (m_Engine && m_Engine->GetActiveScene()) {
-        Scene* scene = m_Engine->GetActiveScene();
-        SceneSerializer serializer{scene};
-        serializer.Serialize(m_CurrentScenePath);
-    }
+    m_SceneManager->SaveScene();
 }
 
 void EditorLayer::SaveSceneAs() {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    std::string filename = scene->GetName();
-
-    for (char& c : filename) {
-        if (c == ' ') {
-            c = '_';
-        }
-    }
-
-    m_CurrentScenePath = "content/scenes/" + filename + ".scene";
-
-    SceneSerializer serializer{scene};
-    serializer.Serialize(m_CurrentScenePath);
+    m_SceneManager->SaveSceneAs();
 }
 
 void EditorLayer::LoadScene() {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    if (m_CurrentScenePath.empty()) {
-        PX_LOG_WARNING(EDITOR, "No scene path set. Save the scene first.");
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    SceneSerializer serializer{scene};
-
-    if (serializer.Deserialize(m_CurrentScenePath)) {
-        m_SelectedEntity = entt::null;
-        m_CommandHistory.Clear();
-        RestoreScriptPropertiesFromFile(m_CurrentScenePath);
-    }
+    m_SceneManager->LoadScene();
+    m_SelectedEntity = entt::null;
+    m_CommandHistory.Clear();
+    RestoreScriptPropertiesFromFile(m_SceneManager->GetCurrentScenePath());
 }
 
 void EditorLayer::RenderProjectSettings() {

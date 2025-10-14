@@ -28,6 +28,7 @@ class ContentBrowserPanel;
 class ProfilerPanel;
 class GameViewportPanel;
 class SceneViewportPanel;
+class EditorSceneManager;
 
 enum class EditorState {
     Edit,
@@ -65,7 +66,6 @@ public:
     [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
 
 private:
-    void SetupDarkTheme();
     void SetupDockingLayout();
     void BeginDockspace();
     void EndDockspace();
@@ -135,8 +135,6 @@ private:
     bool m_InspectorLocked{false};
     entt::entity m_LockedEntity{entt::null};
 
-    std::string m_CurrentScenePath{};
-
     std::string m_PlayModeSnapshot{};
 
     bool m_ShowProjectSettings{false};
@@ -168,6 +166,8 @@ private:
     std::unique_ptr<ProfilerPanel> m_ProfilerPanel;
     std::unique_ptr<GameViewportPanel> m_GameViewportPanel;
     std::unique_ptr<SceneViewportPanel> m_SceneViewportPanel;
+
+    std::unique_ptr<EditorSceneManager> m_SceneManager;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;
