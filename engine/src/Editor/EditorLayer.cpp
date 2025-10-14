@@ -10,6 +10,7 @@
 #include "Editor/EditorThemeManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorPanelManager.hpp"
+#include "Editor/EditorCamera.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
@@ -63,10 +64,6 @@ EditorLayer::EditorLayer(Engine* engine)
     , m_ViewportHovered{false}
     , m_ViewportFocused{false}
     , m_SelectedEntity{entt::null}
-    , m_CameraPosition{0.0f, 0.0f}
-    , m_CameraZoom{1.0f}
-    , m_LastMousePos{0.0f, 0.0f}
-    , m_IsPanning{false}
 {
     m_ViewportTexture = LoadRenderTexture(1920, 1080);
     m_GameViewportTexture = LoadRenderTexture(1920, 1080);
@@ -149,16 +146,15 @@ EditorLayer::EditorLayer(Engine* engine)
         &m_EditorState
     );
 
+    m_EditorCamera = std::make_unique<EditorCamera>();
+
     m_SceneViewportPanel = std::make_unique<SceneViewportPanel>(
         m_Engine,
         &m_ViewportTexture,
         &m_ViewportBounds,
         &m_ViewportHovered,
         &m_ViewportFocused,
-        &m_CameraPosition,
-        &m_CameraZoom,
-        &m_LastMousePos,
-        &m_IsPanning,
+        m_EditorCamera.get(),
         &m_ViewportPos,
         &m_ViewportSize
     );
@@ -466,13 +462,6 @@ void EditorLayer::RenderToolbar() {
     ImGui::PopStyleVar(2);
 }
 
-Vector2 EditorLayer::ScreenToWorld(Vector2 screenPos, const Camera2D& camera) {
-    Vector2 worldPos{};
-    worldPos.x = (screenPos.x - camera.offset.x) / camera.zoom + camera.target.x;
-    worldPos.y = (screenPos.y - camera.offset.y) / camera.zoom + camera.target.y;
-    return worldPos;
-}
-
 void EditorLayer::HandleGizmoInteraction() {
     if (m_EditorState == EditorState::Play) {
         return;
@@ -496,21 +485,16 @@ void EditorLayer::HandleGizmoInteraction() {
         return;
     }
 
-    Camera2D camera{};
-    camera.offset = Vector2{m_ViewportSize.x / 2.0f, m_ViewportSize.y / 2.0f};
-    camera.target = m_CameraPosition;
-    camera.rotation = 0.0f;
-    camera.zoom = m_CameraZoom;
+    Vector2 mouseWorldPos = m_EditorCamera->ScreenToWorld(mouseViewportPos, m_ViewportSize.x, m_ViewportSize.y);
+    float cameraZoom = m_EditorCamera->GetZoom();
 
-    Vector2 mouseWorldPos = ScreenToWorld(mouseViewportPos, camera);
-
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_IsPanning) {
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_EditorCamera->IsPanning()) {
         if (m_SelectedEntity != entt::null && registry.valid(m_SelectedEntity) && registry.all_of<Transform>(m_SelectedEntity)) {
             Transform& transform = registry.get<Transform>(m_SelectedEntity);
 
             m_SelectedAxis = GizmoAxis::None;
 
-            float threshold = 10.0f / m_CameraZoom;
+            float threshold = 10.0f / cameraZoom;
             float arrowLength = 50.0f;
 
             float deltaX = mouseWorldPos.x - transform.position.x;
@@ -540,7 +524,7 @@ void EditorLayer::HandleGizmoInteraction() {
                 }
             }
             else if (m_GizmoMode == GizmoMode::Scale) {
-                float scaleHandleSize = 8.0f / m_CameraZoom;
+                float scaleHandleSize = 8.0f / cameraZoom;
                 float centerRadius = 30.0f;
                 float distanceSquared = deltaX * deltaX + deltaY * deltaY;
 
@@ -571,7 +555,7 @@ void EditorLayer::HandleGizmoInteraction() {
             else if (m_GizmoMode == GizmoMode::Rotate) {
                 float distance = std::sqrt(deltaX * deltaX + deltaY * deltaY);
                 float rotateRadius = 60.0f;
-                float rotateThickness = 10.0f / m_CameraZoom;
+                float rotateThickness = 10.0f / cameraZoom;
 
                 if (std::abs(distance - rotateRadius) < rotateThickness) {
                     m_IsDragging = true;
@@ -664,7 +648,7 @@ void EditorLayer::HandleGizmoInteraction() {
 }
 
 void EditorLayer::HandleEntitySelection() {
-    if (m_EditorState == EditorState::Play || m_IsDragging || m_IsPanning) {
+    if (m_EditorState == EditorState::Play || m_IsDragging || m_EditorCamera->IsPanning()) {
         return;
     }
 
@@ -690,13 +674,7 @@ void EditorLayer::HandleEntitySelection() {
         return;
     }
 
-    Camera2D camera{};
-    camera.offset = Vector2{m_ViewportSize.x / 2.0f, m_ViewportSize.y / 2.0f};
-    camera.target = m_CameraPosition;
-    camera.rotation = 0.0f;
-    camera.zoom = m_CameraZoom;
-
-    Vector2 mouseWorldPos = ScreenToWorld(mouseViewportPos, camera);
+    Vector2 mouseWorldPos = m_EditorCamera->ScreenToWorld(mouseViewportPos, m_ViewportSize.x, m_ViewportSize.y);
 
     entt::entity clickedEntity = entt::null;
     float closestDistance = 99999.0f;
@@ -754,24 +732,25 @@ void EditorLayer::RenderGizmos() {
     }
 
     const Transform& transform = registry.get<Transform>(m_SelectedEntity);
+    float cameraZoom = m_EditorCamera->GetZoom();
 
     if (m_GizmoMode == GizmoMode::Translate) {
-        DrawCircleV(transform.position, 5.0f / m_CameraZoom, Color{255, 200, 0, 255});
+        DrawCircleV(transform.position, 5.0f / cameraZoom, Color{255, 200, 0, 255});
 
         Vector2 endX{transform.position.x + 50.0f, transform.position.y};
-        DrawLineEx(transform.position, endX, 2.0f / m_CameraZoom, Color{255, 0, 0, 255});
-        DrawCircleV(endX, 4.0f / m_CameraZoom, Color{255, 0, 0, 255});
+        DrawLineEx(transform.position, endX, 2.0f / cameraZoom, Color{255, 0, 0, 255});
+        DrawCircleV(endX, 4.0f / cameraZoom, Color{255, 0, 0, 255});
 
         Vector2 endY{transform.position.x, transform.position.y + 50.0f};
-        DrawLineEx(transform.position, endY, 2.0f / m_CameraZoom, Color{0, 255, 0, 255});
-        DrawCircleV(endY, 4.0f / m_CameraZoom, Color{0, 255, 0, 255});
+        DrawLineEx(transform.position, endY, 2.0f / cameraZoom, Color{0, 255, 0, 255});
+        DrawCircleV(endY, 4.0f / cameraZoom, Color{0, 255, 0, 255});
     }
     else if (m_GizmoMode == GizmoMode::Scale) {
-        DrawCircleV(transform.position, 5.0f / m_CameraZoom, Color{255, 200, 0, 255});
+        DrawCircleV(transform.position, 5.0f / cameraZoom, Color{255, 200, 0, 255});
 
         Vector2 endX{transform.position.x + 50.0f, transform.position.y};
-        DrawLineEx(transform.position, endX, 2.0f / m_CameraZoom, Color{255, 0, 0, 255});
-        float boxSize = 8.0f / m_CameraZoom;
+        DrawLineEx(transform.position, endX, 2.0f / cameraZoom, Color{255, 0, 0, 255});
+        float boxSize = 8.0f / cameraZoom;
         DrawRectangleV(
             Vector2{endX.x - boxSize, endX.y - boxSize},
             Vector2{boxSize * 2.0f, boxSize * 2.0f},
@@ -779,7 +758,7 @@ void EditorLayer::RenderGizmos() {
         );
 
         Vector2 endY{transform.position.x, transform.position.y + 50.0f};
-        DrawLineEx(transform.position, endY, 2.0f / m_CameraZoom, Color{0, 255, 0, 255});
+        DrawLineEx(transform.position, endY, 2.0f / cameraZoom, Color{0, 255, 0, 255});
         DrawRectangleV(
             Vector2{endY.x - boxSize, endY.y - boxSize},
             Vector2{boxSize * 2.0f, boxSize * 2.0f},
@@ -789,7 +768,7 @@ void EditorLayer::RenderGizmos() {
     else if (m_GizmoMode == GizmoMode::Rotate) {
         float rotateRadius = 60.0f;
         DrawCircleLinesV(transform.position, rotateRadius, Color{100, 150, 255, 255});
-        DrawCircleV(transform.position, 3.0f / m_CameraZoom, Color{255, 200, 0, 255});
+        DrawCircleV(transform.position, 3.0f / cameraZoom, Color{255, 200, 0, 255});
     }
 }
 

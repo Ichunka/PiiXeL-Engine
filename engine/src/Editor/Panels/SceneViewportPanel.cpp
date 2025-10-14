@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/Panels/SceneViewportPanel.hpp"
+#include "Editor/EditorCamera.hpp"
 #include "Core/Engine.hpp"
 #include "Debug/Profiler.hpp"
 #include <imgui.h>
@@ -14,10 +15,7 @@ SceneViewportPanel::SceneViewportPanel(
     Rectangle* viewportBounds,
     bool* viewportHovered,
     bool* viewportFocused,
-    Vector2* cameraPosition,
-    float* cameraZoom,
-    Vector2* lastMousePos,
-    bool* isPanning,
+    EditorCamera* editorCamera,
     ImVec2* viewportPos,
     ImVec2* viewportSize
 )
@@ -26,10 +24,7 @@ SceneViewportPanel::SceneViewportPanel(
     , m_ViewportBounds{viewportBounds}
     , m_ViewportHovered{viewportHovered}
     , m_ViewportFocused{viewportFocused}
-    , m_CameraPosition{cameraPosition}
-    , m_CameraZoom{cameraZoom}
-    , m_LastMousePos{lastMousePos}
-    , m_IsPanning{isPanning}
+    , m_EditorCamera{editorCamera}
     , m_ViewportPos{viewportPos}
     , m_ViewportSize{viewportSize}
 {}
@@ -58,32 +53,11 @@ void SceneViewportPanel::OnImGuiRender() {
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     *m_ViewportSize = viewportPanelSize;
 
+    if (m_EditorCamera) {
+        m_EditorCamera->HandleInput(*m_ViewportHovered, *m_ViewportFocused);
+    }
+
     if (*m_ViewportHovered && *m_ViewportFocused) {
-        Vector2 mousePos = GetMousePosition();
-        float wheel = GetMouseWheelMove();
-
-        if (wheel != 0.0f) {
-            *m_CameraZoom += wheel * 0.1f * *m_CameraZoom;
-            if (*m_CameraZoom < 0.1f) *m_CameraZoom = 0.1f;
-            if (*m_CameraZoom > 10.0f) *m_CameraZoom = 10.0f;
-        }
-
-        if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
-            *m_IsPanning = true;
-            *m_LastMousePos = mousePos;
-        }
-
-        if (IsMouseButtonReleased(MOUSE_BUTTON_MIDDLE)) {
-            *m_IsPanning = false;
-        }
-
-        if (*m_IsPanning) {
-            Vector2 delta{mousePos.x - m_LastMousePos->x, mousePos.y - m_LastMousePos->y};
-            m_CameraPosition->x -= delta.x / *m_CameraZoom;
-            m_CameraPosition->y -= delta.y / *m_CameraZoom;
-            *m_LastMousePos = mousePos;
-        }
-
         m_HandleGizmoInteractionCallback();
         m_HandleEntitySelectionCallback();
 }
@@ -107,11 +81,7 @@ void SceneViewportPanel::OnImGuiRender() {
         BeginTextureMode(*m_ViewportTexture);
         ClearBackground(Color{45, 45, 48, 255});
 
-        Camera2D camera{};
-        camera.offset = Vector2{viewportPanelSize.x / 2.0f, viewportPanelSize.y / 2.0f};
-        camera.target = *m_CameraPosition;
-        camera.rotation = 0.0f;
-        camera.zoom = *m_CameraZoom;
+        Camera2D camera = m_EditorCamera->GetCamera2D(viewportPanelSize.x, viewportPanelSize.y);
 
         BeginMode2D(camera);
 
@@ -132,8 +102,10 @@ void SceneViewportPanel::OnImGuiRender() {
 
         EndMode2D();
 
+        Vector2 camPos = m_EditorCamera->GetPosition();
+        float camZoom = m_EditorCamera->GetZoom();
         DrawText(
-            TextFormat("Zoom: %.2f | Pos: (%.0f, %.0f)", *m_CameraZoom, m_CameraPosition->x, m_CameraPosition->y),
+            TextFormat("Zoom: %.2f | Pos: (%.0f, %.0f)", camZoom, camPos.x, camPos.y),
             10, 10, 16, RAYWHITE
         );
 

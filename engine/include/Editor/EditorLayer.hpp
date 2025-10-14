@@ -30,6 +30,7 @@ class GameViewportPanel;
 class SceneViewportPanel;
 class EditorSceneManager;
 class EditorPanelManager;
+class EditorCamera;
 
 enum class EditorState {
     Edit,
@@ -73,7 +74,6 @@ private:
     void RenderToolbar();
     void RenderProjectSettings();
 
-    Vector2 ScreenToWorld(Vector2 screenPos, const Camera2D& camera);
     void HandleGizmoInteraction();
     void HandleEntitySelection();
     void RenderGizmos();
@@ -107,11 +107,6 @@ private:
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
     entt::entity m_SelectedEntity{entt::null};
-
-    Vector2 m_CameraPosition{0.0f, 0.0f};
-    float m_CameraZoom{1.0f};
-    Vector2 m_LastMousePos{0.0f, 0.0f};
-    bool m_IsPanning{false};
 
     bool m_IsDragging{false};
     Vector2 m_DragStartPos{0.0f, 0.0f};
@@ -166,6 +161,7 @@ private:
 
     std::unique_ptr<EditorSceneManager> m_SceneManager;
     std::unique_ptr<EditorPanelManager> m_PanelManager;
+    std::unique_ptr<EditorCamera> m_EditorCamera;
 
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;

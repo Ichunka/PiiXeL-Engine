@@ -11,6 +11,7 @@
 namespace PiiXeL {
 
 class Engine;
+class EditorCamera;
 
 class SceneViewportPanel : public EditorPanel {
 public:
@@ -20,10 +21,7 @@ public:
         Rectangle* viewportBounds,
         bool* viewportHovered,
         bool* viewportFocused,
-        Vector2* cameraPosition,
-        float* cameraZoom,
-        Vector2* lastMousePos,
-        bool* isPanning,
+        EditorCamera* editorCamera,
         ImVec2* viewportPos,
         ImVec2* viewportSize
     );
@@ -43,10 +41,7 @@ private:
     Rectangle* m_ViewportBounds;
     bool* m_ViewportHovered;
     bool* m_ViewportFocused;
-    Vector2* m_CameraPosition;
-    float* m_CameraZoom;
-    Vector2* m_LastMousePos;
-    bool* m_IsPanning;
+    EditorCamera* m_EditorCamera;
     ImVec2* m_ViewportPos;
     ImVec2* m_ViewportSize;
 
