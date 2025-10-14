@@ -14,7 +14,8 @@ void EntityRegistry::RegisterEntity(UUID uuid, entt::entity entity) {
 
 void EntityRegistry::UnregisterEntity(UUID uuid) {
     auto it = m_UUIDToEntity.find(uuid);
-    if (it != m_UUIDToEntity.end()) {
+    if (it != m_UUIDToEntity.end())
+    {
         m_EntityToUUID.erase(static_cast<uint32_t>(it->second));
         m_UUIDToEntity.erase(it);
     }
@@ -39,4 +40,4 @@ bool EntityRegistry::HasEntity(UUID uuid) const {
     return m_UUIDToEntity.find(uuid) != m_UUIDToEntity.end();
 }
 
-}
+} // namespace PiiXeL

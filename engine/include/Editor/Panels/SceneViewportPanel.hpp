@@ -3,10 +3,11 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
-#include <raylib.h>
-#include <imgui.h>
 #include <functional>
+#include <imgui.h>
+#include <raylib.h>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
@@ -15,16 +16,9 @@ class EditorCamera;
 
 class SceneViewportPanel : public EditorPanel {
 public:
-    SceneViewportPanel(
-        Engine* engine,
-        RenderTexture2D* viewportTexture,
-        Rectangle* viewportBounds,
-        bool* viewportHovered,
-        bool* viewportFocused,
-        EditorCamera* editorCamera,
-        ImVec2* viewportPos,
-        ImVec2* viewportSize
-    );
+    SceneViewportPanel(Engine* engine, RenderTexture2D* viewportTexture, Rectangle* viewportBounds,
+                       bool* viewportHovered, bool* viewportFocused, EditorCamera* editorCamera, ImVec2* viewportPos,
+                       ImVec2* viewportSize);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Scene"; }
@@ -52,7 +46,7 @@ private:
     std::function<void()> m_RenderGizmosCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

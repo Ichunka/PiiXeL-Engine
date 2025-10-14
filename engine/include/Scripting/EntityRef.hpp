@@ -2,6 +2,7 @@
 #define PIIXELENGINE_ENTITYREF_HPP
 
 #include "Components/UUID.hpp"
+
 #include <entt/entt.hpp>
 
 namespace PiiXeL {
@@ -27,6 +28,6 @@ public:
     UUID m_UUID{0};
 };
 
-}
+} // namespace PiiXeL
 
 #endif

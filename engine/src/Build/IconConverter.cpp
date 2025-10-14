@@ -2,9 +2,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace PiiXeL {
 
@@ -15,26 +15,22 @@ struct IconPixelData {
 };
 
 bool ConvertIcoToRawPixels(const std::string& icoPath, IconPixelData& outData) {
-    HICON hIcon = static_cast<HICON>(::LoadImageA(
-        nullptr,
-        icoPath.c_str(),
-        IMAGE_ICON,
-        0, 0,
-        LR_LOADFROMFILE | LR_DEFAULTSIZE
-    ));
+    HICON hIcon =
+        static_cast<HICON>(::LoadImageA(nullptr, icoPath.c_str(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE));
 
-    if (!hIcon) {
-        return false;
-    }
+    if (!hIcon)
+    { return false; }
 
     ICONINFO iconInfo;
-    if (!::GetIconInfo(hIcon, &iconInfo)) {
+    if (!::GetIconInfo(hIcon, &iconInfo))
+    {
         ::DestroyIcon(hIcon);
         return false;
     }
 
     BITMAP bmp;
-    if (!::GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp)) {
+    if (!::GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp))
+    {
         ::DeleteObject(iconInfo.hbmColor);
         ::DeleteObject(iconInfo.hbmMask);
         ::DestroyIcon(hIcon);
@@ -60,8 +56,10 @@ bool ConvertIcoToRawPixels(const std::string& icoPath, IconPixelData& outData) {
     outData.height = height;
 
     bool success = false;
-    if (::GetDIBits(memDC, iconInfo.hbmColor, 0, height, outData.pixels.data(), &bmi, DIB_RGB_COLORS)) {
-        for (int i = 0; i < width * height; i++) {
+    if (::GetDIBits(memDC, iconInfo.hbmColor, 0, height, outData.pixels.data(), &bmi, DIB_RGB_COLORS))
+    {
+        for (int i = 0; i < width * height; i++)
+        {
             unsigned char b = outData.pixels[i * 4 + 0];
             unsigned char g = outData.pixels[i * 4 + 1];
             unsigned char r = outData.pixels[i * 4 + 2];
@@ -84,6 +82,6 @@ bool ConvertIcoToRawPixels(const std::string& icoPath, IconPixelData& outData) {
     return success;
 }
 
-}
+} // namespace PiiXeL
 
 #endif

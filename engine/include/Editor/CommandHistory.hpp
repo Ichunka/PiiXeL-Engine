@@ -3,9 +3,10 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "Command.hpp"
 #include <memory>
 #include <stack>
+
+#include "Command.hpp"
 
 namespace PiiXeL {
 

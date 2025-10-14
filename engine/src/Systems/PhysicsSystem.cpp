@@ -1,20 +1,17 @@
 #include "Systems/PhysicsSystem.hpp"
-#include "Core/Logger.hpp"
-#include "Scene/Scene.hpp"
-#include "Components/Transform.hpp"
-#include "Components/RigidBody2D.hpp"
+
 #include "Components/BoxCollider2D.hpp"
 #include "Components/CircleCollider2D.hpp"
+#include "Components/RigidBody2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Transform.hpp"
+#include "Core/Logger.hpp"
+#include "Scene/Scene.hpp"
 #include "Scripting/ScriptComponent.hpp"
 
 namespace PiiXeL {
 
-PhysicsSystem::PhysicsSystem()
-    : m_WorldId{b2_nullWorldId}
-    , m_TimeAccumulator{0.0f}
-{
-}
+PhysicsSystem::PhysicsSystem() : m_WorldId{b2_nullWorldId}, m_TimeAccumulator{0.0f} {}
 
 PhysicsSystem::~PhysicsSystem() {
     Shutdown();
@@ -27,20 +24,21 @@ void PhysicsSystem::Initialize() {
 }
 
 void PhysicsSystem::Shutdown() {
-    if (B2_IS_NON_NULL(m_WorldId)) {
+    if (B2_IS_NON_NULL(m_WorldId))
+    {
         b2DestroyWorld(m_WorldId);
         m_WorldId = b2_nullWorldId;
     }
 }
 
 void PhysicsSystem::Update(float deltaTime, entt::registry& registry) {
-    if (B2_IS_NULL(m_WorldId)) {
-        return;
-    }
+    if (B2_IS_NULL(m_WorldId))
+    { return; }
 
     m_TimeAccumulator += deltaTime;
 
-    while (m_TimeAccumulator >= m_FixedTimeStep) {
+    while (m_TimeAccumulator >= m_FixedTimeStep)
+    {
         b2World_Step(m_WorldId, m_FixedTimeStep, m_SubStepCount);
         m_TimeAccumulator -= m_FixedTimeStep;
     }
@@ -49,18 +47,17 @@ void PhysicsSystem::Update(float deltaTime, entt::registry& registry) {
 }
 
 void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
-    if (B2_IS_NULL(m_WorldId)) {
-        return;
-    }
+    if (B2_IS_NULL(m_WorldId))
+    { return; }
 
-    if (!registry.all_of<Transform, RigidBody2D>(entity)) {
-        return;
-    }
+    if (!registry.all_of<Transform, RigidBody2D>(entity))
+    { return; }
 
     Transform& transform = registry.get<Transform>(entity);
     RigidBody2D& rb = registry.get<RigidBody2D>(entity);
 
-    if (B2_IS_NON_NULL(rb.box2dBodyId)) {
+    if (B2_IS_NON_NULL(rb.box2dBodyId))
+    {
         b2DestroyBody(rb.box2dBodyId);
         rb.box2dBodyId = b2_nullBodyId;
     }
@@ -74,7 +71,8 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
     bodyDef.isAwake = true;
     bodyDef.userData = reinterpret_cast<void*>(static_cast<std::uintptr_t>(entity));
 
-    switch (rb.type) {
+    switch (rb.type)
+    {
         case BodyType::Static:
             bodyDef.type = b2_staticBody;
             break;
@@ -91,7 +89,8 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
     b2BodyId bodyId = b2CreateBody(m_WorldId, &bodyDef);
     rb.box2dBodyId = bodyId;
 
-    if (registry.all_of<BoxCollider2D>(entity)) {
+    if (registry.all_of<BoxCollider2D>(entity))
+    {
         BoxCollider2D& collider = registry.get<BoxCollider2D>(entity);
 
         float scaledWidth = collider.size.x * transform.scale.x;
@@ -115,14 +114,14 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
     }
-    if (registry.all_of<CircleCollider2D>(entity)) {
+    if (registry.all_of<CircleCollider2D>(entity))
+    {
         CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
 
         const float scaledRadius = collider.radius * (transform.scale.x + transform.scale.y) * 0.5f;
 
-        b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters,
-        collider.offset.y / m_PixelsToMeters}
-            , .radius = scaledRadius / m_PixelsToMeters};
+        b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters, collider.offset.y / m_PixelsToMeters},
+                        .radius = scaledRadius / m_PixelsToMeters};
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
@@ -142,9 +141,8 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
 
 void PhysicsSystem::SyncTransforms(entt::registry& registry) {
     registry.view<Transform, RigidBody2D>().each([this](Transform& transform, RigidBody2D& rb) {
-        if (B2_IS_NULL(rb.box2dBodyId)) {
-            return;
-        }
+        if (B2_IS_NULL(rb.box2dBodyId))
+        { return; }
 
         b2Vec2 position = b2Body_GetPosition(rb.box2dBodyId);
         b2Rot rotation = b2Body_GetRotation(rb.box2dBodyId);
@@ -161,13 +159,10 @@ void PhysicsSystem::SyncTransforms(entt::registry& registry) {
 }
 
 void PhysicsSystem::DestroyAllBodies(entt::registry& registry) {
-    if (B2_IS_NULL(m_WorldId)) {
-        return;
-    }
+    if (B2_IS_NULL(m_WorldId))
+    { return; }
 
-    registry.view<RigidBody2D>().each([](RigidBody2D& rb) {
-        rb.box2dBodyId = b2_nullBodyId;
-    });
+    registry.view<RigidBody2D>().each([](RigidBody2D& rb) { rb.box2dBodyId = b2_nullBodyId; });
 
     b2DestroyWorld(m_WorldId);
     m_WorldId = b2_nullWorldId;
@@ -176,14 +171,16 @@ void PhysicsSystem::DestroyAllBodies(entt::registry& registry) {
 }
 
 void PhysicsSystem::SetGravity(const Vector2& gravity) {
-    if (B2_IS_NON_NULL(m_WorldId)) {
+    if (B2_IS_NON_NULL(m_WorldId))
+    {
         b2World_SetGravity(m_WorldId, b2Vec2{gravity.x, gravity.y});
         PX_LOG_INFO(PHYSICS, "Physics gravity set to: (%.2f, %.2f)", gravity.x, gravity.y);
     }
 }
 
 Vector2 PhysicsSystem::GetGravity() const {
-    if (B2_IS_NON_NULL(m_WorldId)) {
+    if (B2_IS_NON_NULL(m_WorldId))
+    {
         b2Vec2 gravity = b2World_GetGravity(m_WorldId);
         return Vector2{gravity.x, gravity.y};
     }
@@ -191,13 +188,13 @@ Vector2 PhysicsSystem::GetGravity() const {
 }
 
 void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
-    if (B2_IS_NULL(m_WorldId) || !m_Scene) {
-        return;
-    }
+    if (B2_IS_NULL(m_WorldId) || !m_Scene)
+    { return; }
 
     b2ContactEvents contactEvents = b2World_GetContactEvents(m_WorldId);
 
-    for (int i = 0; i < contactEvents.beginCount; ++i) {
+    for (int i = 0; i < contactEvents.beginCount; ++i)
+    {
         b2ContactBeginTouchEvent* beginEvent = contactEvents.beginEvents + i;
 
         b2BodyId bodyIdA = b2Shape_GetBody(beginEvent->shapeIdA);
@@ -206,30 +203,35 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         void* userDataA = b2Body_GetUserData(bodyIdA);
         void* userDataB = b2Body_GetUserData(bodyIdB);
 
-        if (userDataA && userDataB) {
+        if (userDataA && userDataB)
+        {
             entt::entity entityA = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataA));
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
-            if (registry.valid(entityA) && registry.valid(entityB)) {
+            if (registry.valid(entityA) && registry.valid(entityB))
+            {
                 auto pair = std::minmax(entityA, entityB);
                 auto [it, inserted] = m_ActiveCollisions.insert(pair);
 
-                if (inserted) {
-                    if (registry.all_of<Script>(entityA)) {
+                if (inserted)
+                {
+                    if (registry.all_of<Script>(entityA))
+                    {
                         Script& scriptComponent = registry.get<Script>(entityA);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnCollisionEnter(entityB);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnCollisionEnter(entityB); }
                         }
                     }
 
-                    if (registry.all_of<Script>(entityB)) {
+                    if (registry.all_of<Script>(entityB))
+                    {
                         Script& scriptComponent = registry.get<Script>(entityB);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnCollisionEnter(entityA);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnCollisionEnter(entityA); }
                         }
                     }
                 }
@@ -237,7 +239,8 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         }
     }
 
-    for (int i = 0; i < contactEvents.endCount; ++i) {
+    for (int i = 0; i < contactEvents.endCount; ++i)
+    {
         b2ContactEndTouchEvent* endEvent = contactEvents.endEvents + i;
 
         b2BodyId bodyIdA = b2Shape_GetBody(endEvent->shapeIdA);
@@ -246,30 +249,35 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         void* userDataA = b2Body_GetUserData(bodyIdA);
         void* userDataB = b2Body_GetUserData(bodyIdB);
 
-        if (userDataA && userDataB) {
+        if (userDataA && userDataB)
+        {
             entt::entity entityA = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataA));
             entt::entity entityB = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(userDataB));
 
-            if (registry.valid(entityA) && registry.valid(entityB)) {
+            if (registry.valid(entityA) && registry.valid(entityB))
+            {
                 auto pair = std::minmax(entityA, entityB);
                 size_t erased = m_ActiveCollisions.erase(pair);
 
-                if (erased > 0) {
-                    if (registry.all_of<Script>(entityA)) {
+                if (erased > 0)
+                {
+                    if (registry.all_of<Script>(entityA))
+                    {
                         Script& scriptComponent = registry.get<Script>(entityA);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnCollisionExit(entityB);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnCollisionExit(entityB); }
                         }
                     }
 
-                    if (registry.all_of<Script>(entityB)) {
+                    if (registry.all_of<Script>(entityB))
+                    {
                         Script& scriptComponent = registry.get<Script>(entityB);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnCollisionExit(entityA);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnCollisionExit(entityA); }
                         }
                     }
                 }
@@ -277,23 +285,27 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         }
     }
 
-    for (const auto& [entityA, entityB] : m_ActiveCollisions) {
-        if (registry.valid(entityA) && registry.valid(entityB)) {
-            if (registry.all_of<Script>(entityA)) {
+    for (const auto& [entityA, entityB] : m_ActiveCollisions)
+    {
+        if (registry.valid(entityA) && registry.valid(entityB))
+        {
+            if (registry.all_of<Script>(entityA))
+            {
                 Script& scriptComponent = registry.get<Script>(entityA);
-                for (ScriptInstance& script : scriptComponent.scripts) {
-                    if (script.instance) {
-                        script.instance->OnCollisionStay(entityB);
-                    }
+                for (ScriptInstance& script : scriptComponent.scripts)
+                {
+                    if (script.instance)
+                    { script.instance->OnCollisionStay(entityB); }
                 }
             }
 
-            if (registry.all_of<Script>(entityB)) {
+            if (registry.all_of<Script>(entityB))
+            {
                 Script& scriptComponent = registry.get<Script>(entityB);
-                for (ScriptInstance& script : scriptComponent.scripts) {
-                    if (script.instance) {
-                        script.instance->OnCollisionStay(entityA);
-                    }
+                for (ScriptInstance& script : scriptComponent.scripts)
+                {
+                    if (script.instance)
+                    { script.instance->OnCollisionStay(entityA); }
                 }
             }
         }
@@ -301,7 +313,8 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
 
     b2SensorEvents sensorEvents = b2World_GetSensorEvents(m_WorldId);
 
-    for (int i = 0; i < sensorEvents.beginCount; ++i) {
+    for (int i = 0; i < sensorEvents.beginCount; ++i)
+    {
         b2SensorBeginTouchEvent* beginEvent = sensorEvents.beginEvents + i;
 
         b2BodyId visitorBodyId = b2Shape_GetBody(beginEvent->visitorShapeId);
@@ -310,30 +323,35 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         void* visitorData = b2Body_GetUserData(visitorBodyId);
         void* sensorData = b2Body_GetUserData(sensorBodyId);
 
-        if (visitorData && sensorData) {
+        if (visitorData && sensorData)
+        {
             entt::entity visitorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(visitorData));
             entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
 
-            if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+            if (registry.valid(visitorEntity) && registry.valid(sensorEntity))
+            {
                 auto pair = std::minmax(visitorEntity, sensorEntity);
                 auto [it, inserted] = m_ActiveTriggers.insert(pair);
 
-                if (inserted) {
-                    if (registry.all_of<Script>(sensorEntity)) {
+                if (inserted)
+                {
+                    if (registry.all_of<Script>(sensorEntity))
+                    {
                         Script& scriptComponent = registry.get<Script>(sensorEntity);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnTriggerEnter(visitorEntity);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnTriggerEnter(visitorEntity); }
                         }
                     }
 
-                    if (registry.all_of<Script>(visitorEntity)) {
+                    if (registry.all_of<Script>(visitorEntity))
+                    {
                         Script& scriptComponent = registry.get<Script>(visitorEntity);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnTriggerEnter(sensorEntity);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnTriggerEnter(sensorEntity); }
                         }
                     }
                 }
@@ -341,7 +359,8 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         }
     }
 
-    for (int i = 0; i < sensorEvents.endCount; ++i) {
+    for (int i = 0; i < sensorEvents.endCount; ++i)
+    {
         b2SensorEndTouchEvent* endEvent = sensorEvents.endEvents + i;
 
         b2BodyId visitorBodyId = b2Shape_GetBody(endEvent->visitorShapeId);
@@ -350,30 +369,35 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         void* visitorData = b2Body_GetUserData(visitorBodyId);
         void* sensorData = b2Body_GetUserData(sensorBodyId);
 
-        if (visitorData && sensorData) {
+        if (visitorData && sensorData)
+        {
             entt::entity visitorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(visitorData));
             entt::entity sensorEntity = static_cast<entt::entity>(reinterpret_cast<std::uintptr_t>(sensorData));
 
-            if (registry.valid(visitorEntity) && registry.valid(sensorEntity)) {
+            if (registry.valid(visitorEntity) && registry.valid(sensorEntity))
+            {
                 auto pair = std::minmax(visitorEntity, sensorEntity);
                 size_t erased = m_ActiveTriggers.erase(pair);
 
-                if (erased > 0) {
-                    if (registry.all_of<Script>(sensorEntity)) {
+                if (erased > 0)
+                {
+                    if (registry.all_of<Script>(sensorEntity))
+                    {
                         Script& scriptComponent = registry.get<Script>(sensorEntity);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnTriggerExit(visitorEntity);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnTriggerExit(visitorEntity); }
                         }
                     }
 
-                    if (registry.all_of<Script>(visitorEntity)) {
+                    if (registry.all_of<Script>(visitorEntity))
+                    {
                         Script& scriptComponent = registry.get<Script>(visitorEntity);
-                        for (ScriptInstance& script : scriptComponent.scripts) {
-                            if (script.instance) {
-                                script.instance->OnTriggerExit(sensorEntity);
-                            }
+                        for (ScriptInstance& script : scriptComponent.scripts)
+                        {
+                            if (script.instance)
+                            { script.instance->OnTriggerExit(sensorEntity); }
                         }
                     }
                 }
@@ -381,23 +405,27 @@ void PhysicsSystem::ProcessCollisionEvents(entt::registry& registry) {
         }
     }
 
-    for (const auto& [entityA, entityB] : m_ActiveTriggers) {
-        if (registry.valid(entityA) && registry.valid(entityB)) {
-            if (registry.all_of<Script>(entityA)) {
+    for (const auto& [entityA, entityB] : m_ActiveTriggers)
+    {
+        if (registry.valid(entityA) && registry.valid(entityB))
+        {
+            if (registry.all_of<Script>(entityA))
+            {
                 Script& scriptComponent = registry.get<Script>(entityA);
-                for (ScriptInstance& script : scriptComponent.scripts) {
-                    if (script.instance) {
-                        script.instance->OnTriggerStay(entityB);
-                    }
+                for (ScriptInstance& script : scriptComponent.scripts)
+                {
+                    if (script.instance)
+                    { script.instance->OnTriggerStay(entityB); }
                 }
             }
 
-            if (registry.all_of<Script>(entityB)) {
+            if (registry.all_of<Script>(entityB))
+            {
                 Script& scriptComponent = registry.get<Script>(entityB);
-                for (ScriptInstance& script : scriptComponent.scripts) {
-                    if (script.instance) {
-                        script.instance->OnTriggerStay(entityA);
-                    }
+                for (ScriptInstance& script : scriptComponent.scripts)
+                {
+                    if (script.instance)
+                    { script.instance->OnTriggerStay(entityA); }
                 }
             }
         }

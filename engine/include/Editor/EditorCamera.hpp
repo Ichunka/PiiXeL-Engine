@@ -30,6 +30,6 @@ private:
     bool m_IsPanning{false};
 };
 
-}
+} // namespace PiiXeL
 
 #endif

@@ -1,12 +1,13 @@
 #ifndef PIIXELENGINE_COMPONENTMODULE_HPP
 #define PIIXELENGINE_COMPONENTMODULE_HPP
 
-#include <nlohmann/json.hpp>
 #include <entt/entt.hpp>
+#include <nlohmann/json.hpp>
+
 #include <functional>
+#include <memory>
 #include <string>
 #include <typeindex>
-#include <memory>
 
 namespace PiiXeL {
 
@@ -31,7 +32,8 @@ public:
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
 
-    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history, EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) = 0;
+    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+                                   EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) = 0;
     virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity, CommandHistory& history) = 0;
     virtual void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) = 0;
     virtual int GetDisplayOrder() const = 0;
@@ -39,7 +41,7 @@ public:
 #endif
 };
 
-template<typename T>
+template <typename T>
 class ComponentModule : public IComponentModule {
 public:
     using SerializeFunc = std::function<nlohmann::json(const T&)>;
@@ -48,19 +50,20 @@ public:
 #ifdef BUILD_WITH_EDITOR
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
-    using EditorUIFunc = std::function<void(T&, entt::registry&, entt::entity, CommandHistory&, EntityPickerFunc, AssetPickerFunc)>;
+    using EditorUIFunc =
+        std::function<void(T&, entt::registry&, entt::entity, CommandHistory&, EntityPickerFunc, AssetPickerFunc)>;
     using CreateDefaultFunc = std::function<T(entt::registry&, entt::entity)>;
     using DuplicateFunc = std::function<T(const T&)>;
 #endif
 
-    explicit ComponentModule(const char* name)
-        : m_Name{name}
-        , m_TypeIndex{std::type_index(typeid(T))}
+    explicit ComponentModule(const char* name) :
+        m_Name{name}, m_TypeIndex{std::type_index(typeid(T))}
 #ifdef BUILD_WITH_EDITOR
-        , m_DisplayOrder{100}
-        , m_RenderInRegistry{true}
+        ,
+        m_DisplayOrder{100}, m_RenderInRegistry{true}
 #endif
-    {}
+    {
+    }
 
     const char* GetName() const override {
         return m_Name;
@@ -109,22 +112,19 @@ public:
 #endif
 
     nlohmann::json Serialize(entt::registry& registry, entt::entity entity) const override {
-        if (!registry.all_of<T>(entity)) {
-            return nlohmann::json{};
-        }
+        if (!registry.all_of<T>(entity))
+        { return nlohmann::json{}; }
 
         const T& component = registry.get<T>(entity);
-        if (m_Serializer) {
-            return m_Serializer(component);
-        }
+        if (m_Serializer)
+        { return m_Serializer(component); }
         return nlohmann::json{};
     }
 
     void Deserialize(entt::registry& registry, entt::entity entity, const nlohmann::json& data) override {
         T component{};
-        if (m_Deserializer) {
-            m_Deserializer(component, data);
-        }
+        if (m_Deserializer)
+        { m_Deserializer(component, data); }
         registry.emplace<T>(entity, component);
     }
 
@@ -133,49 +133,44 @@ public:
     }
 
     void RemoveComponent(entt::registry& registry, entt::entity entity) override {
-        if (registry.all_of<T>(entity)) {
-            registry.remove<T>(entity);
-        }
+        if (registry.all_of<T>(entity))
+        { registry.remove<T>(entity); }
     }
 
 #ifdef BUILD_WITH_EDITOR
-    void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history, EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) override {
-        if (!registry.all_of<T>(entity)) {
-            return;
-        }
+    void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+                           EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) override {
+        if (!registry.all_of<T>(entity))
+        { return; }
 
         T& component = registry.get<T>(entity);
-        if (m_EditorUI) {
-            m_EditorUI(component, registry, entity, history, entityPicker, assetPicker);
-        }
+        if (m_EditorUI)
+        { m_EditorUI(component, registry, entity, history, entityPicker, assetPicker); }
     }
 
-    void AddComponentToEntity(entt::registry& registry, entt::entity entity, [[maybe_unused]] CommandHistory& history) override {
-        if (registry.all_of<T>(entity)) {
-            return;
-        }
+    void AddComponentToEntity(entt::registry& registry, entt::entity entity,
+                              [[maybe_unused]] CommandHistory& history) override {
+        if (registry.all_of<T>(entity))
+        { return; }
 
         T component{};
-        if (m_CreateDefault) {
-            component = m_CreateDefault(registry, entity);
-        }
+        if (m_CreateDefault)
+        { component = m_CreateDefault(registry, entity); }
 
         registry.emplace<T>(entity, component);
     }
 
     void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) override {
-        if (!registry.all_of<T>(srcEntity)) {
-            return;
-        }
+        if (!registry.all_of<T>(srcEntity))
+        { return; }
 
         const T& original = registry.get<T>(srcEntity);
         T copy;
 
-        if (m_DuplicateFunc) {
-            copy = m_DuplicateFunc(original);
-        } else {
-            copy = original;
-        }
+        if (m_DuplicateFunc)
+        { copy = m_DuplicateFunc(original); }
+        else
+        { copy = original; }
 
         registry.emplace<T>(dstEntity, copy);
     }
@@ -197,6 +192,6 @@ private:
 #endif
 };
 
-}
+} // namespace PiiXeL
 
 #endif

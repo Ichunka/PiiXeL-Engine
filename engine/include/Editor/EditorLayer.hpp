@@ -3,16 +3,19 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include <raylib.h>
-#include <entt/entt.hpp>
-#include <imgui.h>
-#include <memory>
-#include <unordered_map>
 #include "Components/Transform.hpp"
 #include "Components/UUID.hpp"
-#include "CommandHistory.hpp"
 #include "Debug/Profiler.hpp"
 #include "Editor/Panels/ConsolePanel.hpp"
+
+#include <entt/entt.hpp>
+
+#include <imgui.h>
+#include <memory>
+#include <raylib.h>
+#include <unordered_map>
+
+#include "CommandHistory.hpp"
 
 namespace PiiXeL {
 
@@ -33,22 +36,11 @@ class EditorPanelManager;
 class EditorCamera;
 class EditorSelectionManager;
 
-enum class EditorState {
-    Edit,
-    Play
-};
+enum class EditorState { Edit, Play };
 
-enum class GizmoMode {
-    Translate,
-    Rotate,
-    Scale
-};
+enum class GizmoMode { Translate, Rotate, Scale };
 
-enum class GizmoAxis {
-    None,
-    X,
-    Y
-};
+enum class GizmoAxis { None, X, Y };
 
 struct EntityState {
     Transform transform;

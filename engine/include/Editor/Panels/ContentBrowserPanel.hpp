@@ -3,13 +3,16 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
-#include "Resources/AssetRegistry.hpp"
 #include "Resources/AssetManager.hpp"
+#include "Resources/AssetRegistry.hpp"
+
+#include <entt/entt.hpp>
+
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
-#include <entt/entt.hpp>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
@@ -20,14 +23,9 @@ class AnimatorControllerEditorPanel;
 
 class ContentBrowserPanel : public EditorPanel {
 public:
-    ContentBrowserPanel(
-        UUID* selectedAssetUUID,
-        std::string* selectedAssetPath,
-        entt::entity* selectedEntity,
-        SpriteSheetEditorPanel* spriteSheetEditor,
-        AnimationClipEditorPanel* animationClipEditor,
-        AnimatorControllerEditorPanel* animatorControllerEditor
-    );
+    ContentBrowserPanel(UUID* selectedAssetUUID, std::string* selectedAssetPath, entt::entity* selectedEntity,
+                        SpriteSheetEditorPanel* spriteSheetEditor, AnimationClipEditorPanel* animationClipEditor,
+                        AnimatorControllerEditorPanel* animatorControllerEditor);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Content Browser"; }
@@ -75,7 +73,7 @@ private:
     std::function<void()> m_LoadSceneCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

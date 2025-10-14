@@ -14,10 +14,9 @@ void TypeRegistry::RegisterType(TypeInfo typeInfo) {
 
 const TypeInfo* TypeRegistry::GetTypeInfo(std::type_index typeIndex) const {
     auto it = m_Types.find(typeIndex);
-    if (it != m_Types.end()) {
-        return &it->second;
-    }
+    if (it != m_Types.end())
+    { return &it->second; }
     return nullptr;
 }
 
-}
+} // namespace PiiXeL::Reflection

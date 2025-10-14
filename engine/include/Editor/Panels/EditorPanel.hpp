@@ -15,7 +15,7 @@ public:
     virtual void SetOpen(bool open) = 0;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

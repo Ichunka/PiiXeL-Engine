@@ -2,12 +2,13 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include <string>
-#include <vector>
+#include "Core/Logger.hpp"
+
+#include <imgui.h>
 #include <mutex>
 #include <raylib.h>
-#include <imgui.h>
-#include "Core/Logger.hpp"
+#include <string>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -18,8 +19,8 @@ struct LogEntry {
     LogCategory category;
     float timestamp;
 
-    LogEntry(const std::string& msg, LogLevel lvl, LogSource src, LogCategory cat, float time)
-        : message{msg}, level{lvl}, source{src}, category{cat}, timestamp{time} {}
+    LogEntry(const std::string& msg, LogLevel lvl, LogSource src, LogCategory cat, float time) :
+        message{msg}, level{lvl}, source{src}, category{cat}, timestamp{time} {}
 };
 
 class ConsoleLogger {
@@ -49,17 +50,37 @@ private:
 };
 
 // Helper macros for easy logging
-#define LOG_ENGINE_TRACE(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Trace, LogSource::Engine, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_ENGINE_DEBUG(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Debug, LogSource::Engine, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_ENGINE_INFO(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Info, LogSource::Engine, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_ENGINE_WARNING(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Warning, LogSource::Engine, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_ENGINE_ERROR(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Error, LogSource::Engine, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
+#define LOG_ENGINE_TRACE(msg)                                                                                          \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Trace, LogSource::Engine, LogCategory::UNKNOWN,                    \
+                                     static_cast<float>(GetTime()))
+#define LOG_ENGINE_DEBUG(msg)                                                                                          \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Debug, LogSource::Engine, LogCategory::UNKNOWN,                    \
+                                     static_cast<float>(GetTime()))
+#define LOG_ENGINE_INFO(msg)                                                                                           \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Info, LogSource::Engine, LogCategory::UNKNOWN,                     \
+                                     static_cast<float>(GetTime()))
+#define LOG_ENGINE_WARNING(msg)                                                                                        \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Warning, LogSource::Engine, LogCategory::UNKNOWN,                  \
+                                     static_cast<float>(GetTime()))
+#define LOG_ENGINE_ERROR(msg)                                                                                          \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Error, LogSource::Engine, LogCategory::UNKNOWN,                    \
+                                     static_cast<float>(GetTime()))
 
-#define LOG_GAME_TRACE(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Trace, LogSource::Game, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_GAME_DEBUG(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Debug, LogSource::Game, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_GAME_INFO(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Info, LogSource::Game, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_GAME_WARNING(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Warning, LogSource::Game, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
-#define LOG_GAME_ERROR(msg) ConsoleLogger::Instance().AddLog(msg, LogLevel::Error, LogSource::Game, LogCategory::UNKNOWN, static_cast<float>(GetTime()))
+#define LOG_GAME_TRACE(msg)                                                                                            \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Trace, LogSource::Game, LogCategory::UNKNOWN,                      \
+                                     static_cast<float>(GetTime()))
+#define LOG_GAME_DEBUG(msg)                                                                                            \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Debug, LogSource::Game, LogCategory::UNKNOWN,                      \
+                                     static_cast<float>(GetTime()))
+#define LOG_GAME_INFO(msg)                                                                                             \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Info, LogSource::Game, LogCategory::UNKNOWN,                       \
+                                     static_cast<float>(GetTime()))
+#define LOG_GAME_WARNING(msg)                                                                                          \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Warning, LogSource::Game, LogCategory::UNKNOWN,                    \
+                                     static_cast<float>(GetTime()))
+#define LOG_GAME_ERROR(msg)                                                                                            \
+    ConsoleLogger::Instance().AddLog(msg, LogLevel::Error, LogSource::Game, LogCategory::UNKNOWN,                      \
+                                     static_cast<float>(GetTime()))
 
 } // namespace PiiXeL
 

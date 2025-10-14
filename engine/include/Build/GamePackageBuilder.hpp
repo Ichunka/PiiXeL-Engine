@@ -1,8 +1,9 @@
 #ifndef PIIXELENGINE_GAMEPACKAGEBUILDER_HPP
 #define PIIXELENGINE_GAMEPACKAGEBUILDER_HPP
 
-#include "GamePackage.hpp"
 #include <string>
+
+#include "GamePackage.hpp"
 
 namespace PiiXeL {
 

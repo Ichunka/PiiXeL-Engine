@@ -1,26 +1,30 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AssetInspectorPanel.hpp"
+
 #include "Resources/AssetRegistry.hpp"
-#include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Resources/TextureAsset.hpp"
+
+#include <cinttypes>
 #include <imgui.h>
 #include <rlImGui.h>
-#include <cinttypes>
 
 namespace PiiXeL {
 
 void AssetInspectorPanel::Render() {
     ImGui::Begin("Asset Inspector");
 
-    if (!HasSelection()) {
+    if (!HasSelection())
+    {
         ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "No asset selected");
         ImGui::End();
         return;
     }
 
     std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
-    if (!asset) {
+    if (!asset)
+    {
         ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "Asset not found");
         ImGui::End();
         return;
@@ -43,7 +47,8 @@ void AssetInspectorPanel::Render() {
 
     ImGui::Separator();
 
-    switch (metadata.type) {
+    switch (metadata.type)
+    {
         case AssetType::Texture:
             RenderTextureAsset(asset);
             break;
@@ -55,9 +60,8 @@ void AssetInspectorPanel::Render() {
             break;
     }
 
-    if (ImGui::Button("Reimport")) {
-        AssetRegistry::Instance().ReimportAsset(metadata.sourceFile);
-    }
+    if (ImGui::Button("Reimport"))
+    { AssetRegistry::Instance().ReimportAsset(metadata.sourceFile); }
 
     ImGui::End();
 }
@@ -72,7 +76,8 @@ void AssetInspectorPanel::ClearSelection() {
 
 void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
     TextureAsset* texAsset = dynamic_cast<TextureAsset*>(asset.get());
-    if (!texAsset) return;
+    if (!texAsset)
+        return;
 
     ImGui::Text("Dimensions: %dx%d", texAsset->GetWidth(), texAsset->GetHeight());
     ImGui::Text("Mipmaps: %d", texAsset->GetMipmaps());
@@ -82,7 +87,8 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
     ImGui::Text("Preview:");
 
     Texture2D texture = texAsset->GetTexture();
-    if (texture.id != 0) {
+    if (texture.id != 0)
+    {
         float maxWidth = ImGui::GetContentRegionAvail().x - 20.0f;
         float maxHeight = 256.0f;
 
@@ -90,7 +96,8 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
         float displayWidth = maxWidth;
         float displayHeight = displayWidth / aspectRatio;
 
-        if (displayHeight > maxHeight) {
+        if (displayHeight > maxHeight)
+        {
             displayHeight = maxHeight;
             displayWidth = displayHeight * aspectRatio;
         }
@@ -101,21 +108,21 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
 
 void AssetInspectorPanel::RenderAudioAsset(std::shared_ptr<Asset> asset) {
     AudioAsset* audioAsset = dynamic_cast<AudioAsset*>(asset.get());
-    if (!audioAsset) return;
+    if (!audioAsset)
+        return;
 
     ImGui::Text("Frames: %u", audioAsset->GetFrameCount());
 
     ImGui::Separator();
 
     Sound sound = audioAsset->GetSound();
-    if (sound.frameCount > 0) {
-        if (ImGui::Button("Play")) {
-            PlaySound(sound);
-        }
+    if (sound.frameCount > 0)
+    {
+        if (ImGui::Button("Play"))
+        { PlaySound(sound); }
         ImGui::SameLine();
-        if (ImGui::Button("Stop")) {
-            StopSound(sound);
-        }
+        if (ImGui::Button("Stop"))
+        { StopSound(sound); }
     }
 }
 

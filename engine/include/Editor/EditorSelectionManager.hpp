@@ -2,8 +2,10 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include <entt/entt.hpp>
 #include "Components/UUID.hpp"
+
+#include <entt/entt.hpp>
+
 #include <string>
 
 namespace PiiXeL {
@@ -15,15 +17,8 @@ class EditorSelectionManager {
 public:
     EditorSelectionManager();
 
-    void HandleEntitySelection(
-        Engine* engine,
-        EditorCamera* editorCamera,
-        float viewportPosX,
-        float viewportPosY,
-        float viewportWidth,
-        float viewportHeight,
-        bool isDragging
-    );
+    void HandleEntitySelection(Engine* engine, EditorCamera* editorCamera, float viewportPosX, float viewportPosY,
+                               float viewportWidth, float viewportHeight, bool isDragging);
 
     [[nodiscard]] entt::entity GetSelectedEntity() const { return m_SelectedEntity; }
     void SetSelectedEntity(entt::entity entity) { m_SelectedEntity = entity; }
@@ -56,6 +51,6 @@ private:
     std::string m_SelectedAssetPath;
 };
 
-}
+} // namespace PiiXeL
 
 #endif

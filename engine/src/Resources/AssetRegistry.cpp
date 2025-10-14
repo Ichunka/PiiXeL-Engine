@@ -1,15 +1,17 @@
 #include "Resources/AssetRegistry.hpp"
-#include "Resources/TextureAsset.hpp"
-#include "Resources/AudioAsset.hpp"
-#include "Animation/SpriteSheet.hpp"
+
 #include "Animation/AnimationClip.hpp"
 #include "Animation/AnimatorController.hpp"
+#include "Animation/SpriteSheet.hpp"
 #include "Core/Logger.hpp"
-#include <raylib.h>
+#include "Resources/AudioAsset.hpp"
+#include "Resources/TextureAsset.hpp"
+
 #include <cinttypes>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <raylib.h>
 
 namespace PiiXeL {
 
@@ -20,9 +22,8 @@ AssetRegistry::~AssetRegistry() {
 }
 
 void AssetRegistry::Initialize() {
-    if (m_IsInitialized) {
-        return;
-    }
+    if (m_IsInitialized)
+    { return; }
 
     m_Importer.LoadUUIDCache();
     m_IsInitialized = true;
@@ -31,9 +32,8 @@ void AssetRegistry::Initialize() {
 }
 
 void AssetRegistry::Shutdown() {
-    if (!m_IsInitialized) {
-        return;
-    }
+    if (!m_IsInitialized)
+    { return; }
 
     UnloadAll();
     m_Importer.SaveUUIDCache();
@@ -44,30 +44,35 @@ void AssetRegistry::Shutdown() {
 
 std::shared_ptr<Asset> AssetRegistry::LoadAsset(UUID uuid) {
     auto it = m_Assets.find(uuid);
-    if (it != m_Assets.end()) {
-        if (it->second->IsLoaded()) {
-            return it->second;
-        }
+    if (it != m_Assets.end())
+    {
+        if (it->second->IsLoaded())
+        { return it->second; }
     }
 
     auto pathIt = m_UUIDToPath.find(uuid);
-    if (pathIt == m_UUIDToPath.end()) {
+    if (pathIt == m_UUIDToPath.end())
+    {
         PX_LOG_WARNING(ASSET, "Asset not found in registry: %" PRIu64, uuid.Get());
         return nullptr;
     }
 
     auto cacheIt = m_PackageDataCache.find(uuid);
-    if (cacheIt != m_PackageDataCache.end()) {
+    if (cacheIt != m_PackageDataCache.end())
+    {
         AssetMetadata metadata{};
         std::vector<uint8_t> data{};
 
         AssetPackage package{};
-        if (package.LoadFromMemory(cacheIt->second.data(), cacheIt->second.size(), metadata, data)) {
+        if (package.LoadFromMemory(cacheIt->second.data(), cacheIt->second.size(), metadata, data))
+        {
             auto asset = CreateAsset(metadata.type, metadata.uuid, metadata.name);
-            if (asset) {
+            if (asset)
+            {
                 metadata.sourceFile = pathIt->second;
                 asset->SetMetadata(metadata);
-                if (asset->Load(data.data(), data.size())) {
+                if (asset->Load(data.data(), data.size()))
+                {
                     m_Assets[metadata.uuid] = asset;
                     return asset;
                 }
@@ -84,12 +89,12 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path)
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
     auto it = m_PathToUUID.find(normalizedPath);
-    if (it != m_PathToUUID.end()) {
-        return LoadAsset(it->second);
-    }
+    if (it != m_PathToUUID.end())
+    { return LoadAsset(it->second); }
 
     auto result = m_Importer.ImportAsset(path);
-    if (!result.success) {
+    if (!result.success)
+    {
         PX_LOG_ERROR(ASSET, "Failed to import asset: %s", path.c_str());
         return nullptr;
     }
@@ -102,43 +107,44 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPath(const std::string& path)
 
 std::shared_ptr<Asset> AssetRegistry::GetAsset(UUID uuid) {
     auto it = m_Assets.find(uuid);
-    if (it != m_Assets.end()) {
-        return it->second;
-    }
+    if (it != m_Assets.end())
+    { return it->second; }
 
     auto pathIt = m_UUIDToPath.find(uuid);
-    if (pathIt != m_UUIDToPath.end()) {
-        return LoadAsset(uuid);
-    }
+    if (pathIt != m_UUIDToPath.end())
+    { return LoadAsset(uuid); }
 
     return nullptr;
 }
 
 void AssetRegistry::UnloadAsset(UUID uuid) {
     auto it = m_Assets.find(uuid);
-    if (it != m_Assets.end()) {
+    if (it != m_Assets.end())
+    {
         it->second->Unload();
         m_Assets.erase(it);
     }
 }
 
 void AssetRegistry::UnloadAll() {
-    for (auto& [uuid, asset] : m_Assets) {
-        asset->Unload();
-    }
+    for (auto& [uuid, asset] : m_Assets)
+    { asset->Unload(); }
     m_Assets.clear();
 }
 
 void AssetRegistry::ImportDirectory(const std::string& directory) {
     auto results = m_Importer.ImportDirectory(directory, true);
 
-    for (const auto& result : results) {
-        if (result.success) {
+    for (const auto& result : results)
+    {
+        if (result.success)
+        {
             AssetMetadata metadata{};
             std::vector<uint8_t> data{};
 
             AssetPackage package{};
-            if (package.LoadFromFile(result.packagePath, metadata, data)) {
+            if (package.LoadFromFile(result.packagePath, metadata, data))
+            {
                 std::string normalizedPath = metadata.sourceFile;
                 std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
                 m_PathToUUID[normalizedPath] = metadata.uuid;
@@ -153,9 +159,11 @@ void AssetRegistry::ImportDirectory(const std::string& directory) {
 void AssetRegistry::ReimportAsset(const std::string& sourcePath) {
     auto result = m_Importer.ImportAsset(sourcePath, true);
 
-    if (result.success) {
+    if (result.success)
+    {
         auto it = m_Assets.find(result.uuid);
-        if (it != m_Assets.end()) {
+        if (it != m_Assets.end())
+        {
             it->second->Unload();
             m_Assets.erase(it);
         }
@@ -173,25 +181,29 @@ void AssetRegistry::RegisterExtractedAssets() {
     PX_LOG_INFO(ASSET, "Scanning for .pxa assets in content/...");
 
     std::vector<std::filesystem::path> pxaFiles;
-    try {
+    try
+    {
         std::filesystem::path contentPath = "content";
-        if (std::filesystem::exists(contentPath)) {
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(contentPath)) {
-                if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
-                    pxaFiles.push_back(entry.path());
-                }
+        if (std::filesystem::exists(contentPath))
+        {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(contentPath))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".pxa")
+                { pxaFiles.push_back(entry.path()); }
             }
         }
-    } catch (const std::filesystem::filesystem_error& e) {
-        PX_LOG_ERROR(ASSET, "Failed to scan content directory: %s", e.what());
     }
+    catch (const std::filesystem::filesystem_error& e)
+    { PX_LOG_ERROR(ASSET, "Failed to scan content directory: %s", e.what()); }
 
     size_t registeredCount = 0;
-    for (const auto& pxaPath : pxaFiles) {
+    for (const auto& pxaPath : pxaFiles)
+    {
         AssetMetadata metadata{};
         AssetPackage package{};
 
-        if (package.LoadMetadataOnly(pxaPath.string(), metadata)) {
+        if (package.LoadMetadataOnly(pxaPath.string(), metadata))
+        {
             std::string normalizedPath = metadata.sourceFile;
             std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
@@ -209,13 +221,17 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
 
     std::vector<fs::path> pxaFiles{};
 
-    try {
-        for (const auto& entry : fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
-                pxaFiles.push_back(entry.path());
-            }
+    try
+    {
+        for (const auto& entry :
+             fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".pxa")
+            { pxaFiles.push_back(entry.path()); }
         }
-    } catch (const fs::filesystem_error& e) {
+    }
+    catch (const fs::filesystem_error& e)
+    {
         PX_LOG_ERROR(ASSET, "Filesystem error during scan: %s", e.what());
         return;
     }
@@ -223,11 +239,13 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
     size_t total = pxaFiles.size();
     size_t current = 0;
 
-    for (const auto& pxaPath : pxaFiles) {
+    for (const auto& pxaPath : pxaFiles)
+    {
         AssetMetadata metadata{};
 
         AssetPackage package{};
-        if (package.LoadMetadataOnly(pxaPath.string(), metadata)) {
+        if (package.LoadMetadataOnly(pxaPath.string(), metadata))
+        {
             std::string normalizedPath = metadata.sourceFile;
             std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
             m_UUIDToPath[metadata.uuid] = normalizedPath;
@@ -235,9 +253,8 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
         }
 
         current++;
-        if (callback) {
-            callback(current, total, pxaPath.string());
-        }
+        if (callback)
+        { callback(current, total, pxaPath.string()); }
     }
 
     PX_LOG_INFO(ASSET, "Scanned %llu .pxa files from %s", static_cast<unsigned long long>(total), rootPath.c_str());
@@ -253,17 +270,15 @@ UUID AssetRegistry::GetUUIDFromPath(const std::string& path) const {
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
     auto it = m_PathToUUID.find(normalizedPath);
-    if (it != m_PathToUUID.end()) {
-        return it->second;
-    }
+    if (it != m_PathToUUID.end())
+    { return it->second; }
     return UUID{0};
 }
 
 std::string AssetRegistry::GetPathFromUUID(UUID uuid) const {
     auto it = m_UUIDToPath.find(uuid);
-    if (it != m_UUIDToPath.end()) {
-        return it->second;
-    }
+    if (it != m_UUIDToPath.end())
+    { return it->second; }
     return "";
 }
 
@@ -271,9 +286,8 @@ std::vector<AssetMetadata> AssetRegistry::GetAllAssetMetadata() const {
     std::vector<AssetMetadata> metadata{};
     metadata.reserve(m_Assets.size());
 
-    for (const auto& [uuid, asset] : m_Assets) {
-        metadata.push_back(asset->GetMetadata());
-    }
+    for (const auto& [uuid, asset] : m_Assets)
+    { metadata.push_back(asset->GetMetadata()); }
 
     return metadata;
 }
@@ -288,9 +302,8 @@ const std::unordered_map<UUID, std::string>& AssetRegistry::GetAllKnownAssetPath
 
 size_t AssetRegistry::GetTotalMemoryUsage() const {
     size_t total = 0;
-    for (const auto& [uuid, asset] : m_Assets) {
-        total += asset->GetMemoryUsage();
-    }
+    for (const auto& [uuid, asset] : m_Assets)
+    { total += asset->GetMemoryUsage(); }
     return total;
 }
 
@@ -300,7 +313,8 @@ AssetRegistry& AssetRegistry::Instance() {
 }
 
 std::shared_ptr<Asset> AssetRegistry::CreateAsset(AssetType type, UUID uuid, const std::string& name) {
-    switch (type) {
+    switch (type)
+    {
         case AssetType::Texture:
             return std::make_shared<TextureAsset>(uuid, name);
         case AssetType::Audio:
@@ -317,25 +331,27 @@ std::shared_ptr<Asset> AssetRegistry::CreateAsset(AssetType type, UUID uuid, con
     }
 }
 
-std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath, const std::string& sourcePath) {
+std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath,
+                                                           const std::string& sourcePath) {
     AssetMetadata metadata{};
     std::vector<uint8_t> data{};
 
     AssetPackage package{};
-    if (!package.LoadFromFile(packagePath, metadata, data)) {
+    if (!package.LoadFromFile(packagePath, metadata, data))
+    {
         PX_LOG_ERROR(ASSET, "Failed to load package: %s", packagePath.c_str());
         return nullptr;
     }
 
     auto asset = CreateAsset(metadata.type, metadata.uuid, metadata.name);
-    if (!asset) {
-        return nullptr;
-    }
+    if (!asset)
+    { return nullptr; }
 
     metadata.sourceFile = sourcePath;
     asset->SetMetadata(metadata);
 
-    if (!asset->Load(data.data(), data.size())) {
+    if (!asset->Load(data.data(), data.size()))
+    {
         PX_LOG_ERROR(ASSET, "Failed to load asset data: %s", metadata.name.c_str());
         return nullptr;
     }
@@ -352,9 +368,8 @@ std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& pa
 }
 
 void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize) {
-    if (!data || dataSize < sizeof(uint32_t)) {
-        return;
-    }
+    if (!data || dataSize < sizeof(uint32_t))
+    { return; }
 
     size_t offset = 0;
     uint32_t count = 0;
@@ -362,19 +377,23 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
     offset += sizeof(count);
 
     size_t registeredCount = 0;
-    for (uint32_t i = 0; i < count; ++i) {
-        if (offset + sizeof(uint32_t) > dataSize) break;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        if (offset + sizeof(uint32_t) > dataSize)
+            break;
 
         uint32_t pathLen = 0;
         std::memcpy(&pathLen, data + offset, sizeof(pathLen));
         offset += sizeof(pathLen);
 
-        if (offset + pathLen > dataSize) break;
+        if (offset + pathLen > dataSize)
+            break;
 
         std::string sourcePath(reinterpret_cast<const char*>(data + offset), pathLen);
         offset += pathLen;
 
-        if (offset + sizeof(uint64_t) > dataSize) break;
+        if (offset + sizeof(uint64_t) > dataSize)
+            break;
 
         uint64_t uuidValue = 0;
         std::memcpy(&uuidValue, data + offset, sizeof(uuidValue));
@@ -392,7 +411,7 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
 }
 
 void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,
-                                              const std::vector<uint8_t>& packageData) {
+                                            const std::vector<uint8_t>& packageData) {
     std::string normalizedPath = sourcePath;
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 

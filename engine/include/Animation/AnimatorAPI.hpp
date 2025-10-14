@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Components/Animator.hpp"
+
 #include <entt/entt.hpp>
+
 #include <string>
 
 namespace PiiXeL {

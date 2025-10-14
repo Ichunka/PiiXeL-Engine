@@ -6,8 +6,9 @@
 #include "Animation/AnimationClip.hpp"
 #include "Animation/SpriteSheet.hpp"
 #include "Components/UUID.hpp"
-#include <string>
+
 #include <memory>
+#include <string>
 #include <vector>
 
 struct ImVec2;

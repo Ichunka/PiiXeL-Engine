@@ -3,9 +3,11 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
 #include <entt/entt.hpp>
+
 #include <functional>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
@@ -16,15 +18,9 @@ class UUID;
 
 class HierarchyPanel : public EditorPanel {
 public:
-    HierarchyPanel(
-        Engine* engine,
-        CommandHistory* commandHistory,
-        entt::entity* selectedEntity,
-        bool* inspectorLocked,
-        UUID* selectedAssetUUID,
-        std::string* selectedAssetPath,
-        AnimatorControllerEditorPanel* animatorControllerEditor
-    );
+    HierarchyPanel(Engine* engine, CommandHistory* commandHistory, entt::entity* selectedEntity, bool* inspectorLocked,
+                   UUID* selectedAssetUUID, std::string* selectedAssetPath,
+                   AnimatorControllerEditorPanel* animatorControllerEditor);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Hierarchy"; }
@@ -52,7 +48,7 @@ private:
     std::function<void(entt::entity)> m_CopyEntityCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

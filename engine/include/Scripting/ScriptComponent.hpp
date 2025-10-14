@@ -1,10 +1,12 @@
 #ifndef PIIXELENGINE_SCRIPTCOMPONENT_HPP
 #define PIIXELENGINE_SCRIPTCOMPONENT_HPP
 
-#include <entt/entt.hpp>
-#include <raylib.h>
-#include <optional>
 #include "Physics/ComponentHandles.hpp"
+
+#include <entt/entt.hpp>
+
+#include <optional>
+#include <raylib.h>
 
 namespace PiiXeL {
 
@@ -23,8 +25,10 @@ public:
     }
 
     void ExecuteUpdate(float deltaTime) {
-        if (m_Initialized && m_Enabled) {
-            if (!m_Started) {
+        if (m_Initialized && m_Enabled)
+        {
+            if (!m_Started)
+            {
                 m_Started = true;
                 OnStart();
             }
@@ -33,9 +37,8 @@ public:
     }
 
     void ExecuteFixedUpdate(float fixedDeltaTime) {
-        if (m_Initialized && m_Enabled) {
-            OnFixedUpdate(fixedDeltaTime);
-        }
+        if (m_Initialized && m_Enabled)
+        { OnFixedUpdate(fixedDeltaTime); }
     }
 
     void SetEnabled(bool enabled) { m_Enabled = enabled; }
@@ -43,20 +46,20 @@ public:
     [[nodiscard]] entt::entity GetEntity() const { return m_Entity; }
     [[nodiscard]] Scene* GetScene() const { return m_Scene; }
 
-    template<typename T>
+    template <typename T>
     T* GetComponent();
 
-    template<typename T>
+    template <typename T>
     T* AddComponent();
 
-    template<typename T>
+    template <typename T>
     void RemoveComponent();
 
     Vector2 GetPosition();
     void SetPosition(Vector2 position);
     void Translate(Vector2 offset);
 
-    template<typename Component>
+    template <typename Component>
     [[nodiscard]] std::optional<typename ComponentHandle<Component>::Type> GetHandle();
 
     virtual void OnCollisionEnter(entt::entity other) { (void)other; }

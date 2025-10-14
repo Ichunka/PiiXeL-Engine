@@ -21,6 +21,6 @@ private:
     bool m_DockingLayoutInitialized{false};
 };
 
-}
+} // namespace PiiXeL
 
 #endif

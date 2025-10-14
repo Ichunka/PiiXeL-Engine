@@ -1,16 +1,13 @@
 #include "Physics/RigidBodyHandle.hpp"
+
+#include "Components/RigidBody2D.hpp"
 #include "Physics/Physics2D.hpp"
 #include "Scene/Scene.hpp"
-#include "Components/RigidBody2D.hpp"
 
 namespace PiiXeL {
 
-RigidBodyHandle::RigidBodyHandle(Scene* scene, entt::entity entity, RigidBody2D* component)
-    : m_Scene{scene}
-    , m_Entity{entity}
-    , m_Component{component}
-{
-}
+RigidBodyHandle::RigidBodyHandle(Scene* scene, entt::entity entity, RigidBody2D* component) :
+    m_Scene{scene}, m_Entity{entity}, m_Component{component} {}
 
 bool RigidBodyHandle::IsValid() const {
     return m_Scene && m_Component && m_Entity != entt::null;

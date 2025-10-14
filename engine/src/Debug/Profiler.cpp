@@ -1,10 +1,11 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Debug/Profiler.hpp"
+
+#include <algorithm>
+#include <iomanip>
 #include <raylib.h>
 #include <sstream>
-#include <iomanip>
-#include <algorithm>
 
 namespace PiiXeL {
 
@@ -14,12 +15,14 @@ Profiler& Profiler::Instance() {
 }
 
 void Profiler::BeginFrame() {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     m_FrameStart = std::chrono::high_resolution_clock::now();
     m_CurrentDepth = 0;
 
-    for (auto& [name, data] : m_Scopes) {
+    for (auto& [name, data] : m_Scopes)
+    {
         data.totalDuration = 0.0;
         data.callCount = 0;
         data.firstStartTime = 0.0;
@@ -28,7 +31,8 @@ void Profiler::BeginFrame() {
 }
 
 void Profiler::EndFrame() {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     auto frameEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> frameDuration = frameEnd - m_FrameStart;
@@ -36,17 +40,17 @@ void Profiler::EndFrame() {
     m_FPS = 1000.0 / m_FrameTime;
 
     m_Results.clear();
-    for (const auto& [name, data] : m_Scopes) {
-        if (data.callCount > 0) {
-            m_Results.push_back({name, data.totalDuration, data.callCount, data.firstStartTime, data.depth});
-        }
+    for (const auto& [name, data] : m_Scopes)
+    {
+        if (data.callCount > 0)
+        { m_Results.push_back({name, data.totalDuration, data.callCount, data.firstStartTime, data.depth}); }
     }
 
-    std::sort(m_Results.begin(), m_Results.end(), [](const ProfileResult& a, const ProfileResult& b) {
-        return a.startTime < b.startTime;
-    });
+    std::sort(m_Results.begin(), m_Results.end(),
+              [](const ProfileResult& a, const ProfileResult& b) { return a.startTime < b.startTime; });
 
-    if (m_Recording) {
+    if (m_Recording)
+    {
         FrameSnapshot snapshot;
         snapshot.results = m_Results;
         snapshot.frameTime = m_FrameTime;
@@ -54,20 +58,21 @@ void Profiler::EndFrame() {
 
         m_FrameHistory.push_back(snapshot);
 
-        if (m_FrameHistory.size() > MAX_HISTORY) {
-            m_FrameHistory.pop_front();
-        }
+        if (m_FrameHistory.size() > MAX_HISTORY)
+        { m_FrameHistory.pop_front(); }
     }
 }
 
 void Profiler::BeginScope(const std::string& name) {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     auto now = std::chrono::high_resolution_clock::now();
     auto& scope = m_Scopes[name];
     scope.startTime = now;
 
-    if (scope.callCount == 0) {
+    if (scope.callCount == 0)
+    {
         std::chrono::duration<double, std::milli> elapsed = now - m_FrameStart;
         scope.firstStartTime = elapsed.count();
         scope.depth = m_CurrentDepth;
@@ -77,7 +82,8 @@ void Profiler::BeginScope(const std::string& name) {
 }
 
 void Profiler::EndScope(const std::string& name) {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     m_CurrentDepth--;
 
@@ -100,11 +106,11 @@ std::string Profiler::GetCurrentFrameAsText() const {
     ss << "Scope Timings:\n";
     ss << "----------------------------------------\n";
 
-    for (const ProfileResult& result : m_Results) {
+    for (const ProfileResult& result : m_Results)
+    {
         float percentage = static_cast<float>(result.duration / m_FrameTime) * 100.0f;
         ss << std::string(result.depth * 2, ' ');
-        ss << result.name << ": " << result.duration << " ms ("
-           << std::setprecision(1) << percentage << "%) ["
+        ss << result.name << ": " << result.duration << " ms (" << std::setprecision(1) << percentage << "%) ["
            << result.callCount << " calls]\n";
         ss << std::setprecision(3);
     }

@@ -25,6 +25,6 @@ private:
     std::string m_CurrentScenePath;
 };
 
-}
+} // namespace PiiXeL
 
 #endif

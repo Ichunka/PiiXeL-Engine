@@ -1,7 +1,10 @@
 #include "Resources/EmbeddedAssetLoader.hpp"
-#include "EmbeddedAssetRegistry.generated.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <raylib.h>
+
+#include "EmbeddedAssetRegistry.generated.hpp"
 
 namespace PiiXeL {
 
@@ -9,9 +12,8 @@ std::optional<std::span<const std::byte>> EmbeddedAssetLoader::GetAssetData(std:
     const auto& registry = EmbeddedAssets::Registry;
     const auto it = registry.find(assetName);
 
-    if (it != registry.end()) {
-        return it->second;
-    }
+    if (it != registry.end())
+    { return it->second; }
 
     return std::nullopt;
 }
@@ -19,7 +21,8 @@ std::optional<std::span<const std::byte>> EmbeddedAssetLoader::GetAssetData(std:
 Texture2D EmbeddedAssetLoader::LoadTextureFromEmbedded(std::string_view assetName) {
     const auto data = GetAssetData(assetName);
 
-    if (!data.has_value()) {
+    if (!data.has_value())
+    {
         PX_LOG_ERROR(ASSET, "Embedded asset not found: %.*s", static_cast<int>(assetName.size()), assetName.data());
         return Texture2D{};
     }
@@ -29,8 +32,10 @@ Texture2D EmbeddedAssetLoader::LoadTextureFromEmbedded(std::string_view assetNam
     const int dataSize = static_cast<int>(span.size());
 
     const Image image = LoadImageFromMemory(".png", dataPtr, dataSize);
-    if (image.data == nullptr) {
-        PX_LOG_ERROR(ASSET, "Failed to load embedded image: %.*s", static_cast<int>(assetName.size()), assetName.data());
+    if (image.data == nullptr)
+    {
+        PX_LOG_ERROR(ASSET, "Failed to load embedded image: %.*s", static_cast<int>(assetName.size()),
+                     assetName.data());
         return Texture2D{};
     }
 
@@ -43,7 +48,8 @@ Texture2D EmbeddedAssetLoader::LoadTextureFromEmbedded(std::string_view assetNam
 Image EmbeddedAssetLoader::LoadImageFromEmbedded(std::string_view assetName) {
     const auto data = GetAssetData(assetName);
 
-    if (!data.has_value()) {
+    if (!data.has_value())
+    {
         PX_LOG_ERROR(ASSET, "Embedded asset not found: %.*s", static_cast<int>(assetName.size()), assetName.data());
         return Image{};
     }
@@ -53,8 +59,10 @@ Image EmbeddedAssetLoader::LoadImageFromEmbedded(std::string_view assetName) {
     const int dataSize = static_cast<int>(span.size());
 
     const Image image = LoadImageFromMemory(".png", dataPtr, dataSize);
-    if (image.data == nullptr) {
-        PX_LOG_ERROR(ASSET, "Failed to load embedded image: %.*s", static_cast<int>(assetName.size()), assetName.data());
+    if (image.data == nullptr)
+    {
+        PX_LOG_ERROR(ASSET, "Failed to load embedded image: %.*s", static_cast<int>(assetName.size()),
+                     assetName.data());
         return Image{};
     }
 
@@ -66,4 +74,4 @@ bool EmbeddedAssetLoader::HasAsset(std::string_view assetName) {
     return registry.find(assetName) != registry.end();
 }
 
-}
+} // namespace PiiXeL

@@ -3,21 +3,16 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
 #include "Debug/Profiler.hpp"
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
 class ProfilerPanel : public EditorPanel {
 public:
-    ProfilerPanel(
-        bool* paused,
-        FrameSnapshot* pausedSnapshot,
-        int* selectedFrame,
-        FrameSnapshot* selectedFrameSnapshot,
-        float* flameGraphZoom,
-        float* flameGraphScroll
-    );
+    ProfilerPanel(bool* paused, FrameSnapshot* pausedSnapshot, int* selectedFrame, FrameSnapshot* selectedFrameSnapshot,
+                  float* flameGraphZoom, float* flameGraphScroll);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Profiler"; }
@@ -35,7 +30,7 @@ private:
     bool m_IsOpen{true};
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

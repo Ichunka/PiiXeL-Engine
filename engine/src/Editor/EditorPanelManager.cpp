@@ -1,16 +1,15 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorPanelManager.hpp"
+
 #include "Debug/Profiler.hpp"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
 namespace PiiXeL {
 
-EditorPanelManager::EditorPanelManager()
-    : m_DockingLayoutInitialized{false}
-{
-}
+EditorPanelManager::EditorPanelManager() : m_DockingLayoutInitialized{false} {}
 
 void EditorPanelManager::BeginDockspace() {
     PROFILE_FUNCTION();
@@ -24,7 +23,8 @@ void EditorPanelManager::BeginDockspace() {
     ImGui::SetNextWindowViewport(viewport->ID);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |=
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
@@ -36,11 +36,13 @@ void EditorPanelManager::BeginDockspace() {
     ImGui::PopStyleVar(2);
 
     ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+    {
         ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 
-        if (!m_DockingLayoutInitialized) {
+        if (!m_DockingLayoutInitialized)
+        {
             SetupDockingLayout();
             m_DockingLayoutInitialized = true;
         }
@@ -77,6 +79,6 @@ void EditorPanelManager::SetupDockingLayout() {
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
-}
+} // namespace PiiXeL
 
 #endif

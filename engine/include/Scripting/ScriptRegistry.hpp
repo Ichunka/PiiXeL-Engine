@@ -1,10 +1,10 @@
 #ifndef PIIXELENGINE_SCRIPTREGISTRY_HPP
 #define PIIXELENGINE_SCRIPTREGISTRY_HPP
 
-#include <string>
 #include <functional>
-#include <unordered_map>
 #include <memory>
+#include <string>
+#include <unordered_map>
 
 namespace PiiXeL {
 
@@ -27,17 +27,16 @@ private:
     std::unordered_map<std::string, ScriptFactoryFunc> m_Scripts;
 };
 
-#define REGISTER_SCRIPT(ClassName) \
-    namespace { \
-        struct ClassName##Registrar { \
-            ClassName##Registrar() { \
-                PiiXeL::ScriptRegistry::Instance().RegisterScript(#ClassName, \
-                    []() -> std::shared_ptr<PiiXeL::ScriptComponent> { \
-                        return std::make_shared<ClassName>(); \
-                    }); \
-            } \
-        }; \
-        static ClassName##Registrar g_##ClassName##Registrar; \
+#define REGISTER_SCRIPT(ClassName)                                                                                     \
+    namespace {                                                                                                        \
+    struct ClassName##Registrar {                                                                                      \
+        ClassName##Registrar() {                                                                                       \
+            PiiXeL::ScriptRegistry::Instance().RegisterScript(                                                         \
+                #ClassName,                                                                                            \
+                []() -> std::shared_ptr<PiiXeL::ScriptComponent> { return std::make_shared<ClassName>(); });           \
+        }                                                                                                              \
+    };                                                                                                                 \
+    static ClassName##Registrar g_##ClassName##Registrar;                                                              \
     }
 
 } // namespace PiiXeL

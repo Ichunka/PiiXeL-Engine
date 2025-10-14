@@ -3,10 +3,11 @@
 
 #include "Resources/Asset.hpp"
 #include "Resources/AssetPackage.hpp"
-#include <string>
-#include <vector>
+
 #include <filesystem>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace PiiXeL {
 

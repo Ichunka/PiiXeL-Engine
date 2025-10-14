@@ -3,8 +3,9 @@
 
 #include <entt/entt.hpp>
 #include <nlohmann/json.hpp>
-#include <string>
+
 #include <functional>
+#include <string>
 #include <unordered_map>
 
 namespace PiiXeL {
@@ -18,24 +19,18 @@ public:
         return instance;
     }
 
-    void RegisterComponent(const std::string& name, DeserializeFunc func) {
-        m_Components[name] = func;
-    }
+    void RegisterComponent(const std::string& name, DeserializeFunc func) { m_Components[name] = func; }
 
-    bool HasComponent(const std::string& name) const {
-        return m_Components.find(name) != m_Components.end();
-    }
+    bool HasComponent(const std::string& name) const { return m_Components.find(name) != m_Components.end(); }
 
-    void DeserializeComponent(const std::string& name, entt::registry& registry, entt::entity entity, const nlohmann::json& data) {
+    void DeserializeComponent(const std::string& name, entt::registry& registry, entt::entity entity,
+                              const nlohmann::json& data) {
         auto it = m_Components.find(name);
-        if (it != m_Components.end()) {
-            it->second(registry, entity, data);
-        }
+        if (it != m_Components.end())
+        { it->second(registry, entity, data); }
     }
 
-    const std::unordered_map<std::string, DeserializeFunc>& GetAll() const {
-        return m_Components;
-    }
+    const std::unordered_map<std::string, DeserializeFunc>& GetAll() const { return m_Components; }
 
 private:
     ComponentRegistry() = default;

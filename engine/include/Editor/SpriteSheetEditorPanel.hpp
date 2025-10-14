@@ -5,19 +5,17 @@
 
 #include "Animation/SpriteSheet.hpp"
 #include "Components/UUID.hpp"
-#include <string>
+
 #include <memory>
-#include <vector>
 #include <set>
+#include <string>
+#include <vector>
 
 struct ImVec2;
 
 namespace PiiXeL {
 
-enum class SelectionMode {
-    Grid,
-    Manual
-};
+enum class SelectionMode { Grid, Manual };
 
 class SpriteSheetEditorPanel {
 public:
@@ -43,7 +41,8 @@ private:
     void CreateGroupFromSelection();
     void Save();
 
-    int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight, float spacingX = 0.0f, float spacingY = 0.0f);
+    int GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight,
+                                 float spacingX = 0.0f, float spacingY = 0.0f);
 
     bool m_IsOpen{false};
     std::string m_CurrentPath;

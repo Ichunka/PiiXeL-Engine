@@ -1,61 +1,74 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/Panels/ConsolePanel.hpp"
+
 #include "Core/Logger.hpp"
-#include "Editor/ConsoleLogger.hpp"
 #include "Debug/Profiler.hpp"
-#include <imgui.h>
+#include "Editor/ConsoleLogger.hpp"
+
 #include <algorithm>
+#include <imgui.h>
 
 namespace PiiXeL {
 
-ConsolePanel::ConsolePanel(
-    ConsoleFilters* filters,
-    bool* autoScroll,
-    int* selectedTab,
-    std::vector<int>* selectedLines,
-    int* lastClickedLine
-)
-    : m_Filters{filters}
-    , m_AutoScroll{autoScroll}
-    , m_SelectedTab{selectedTab}
-    , m_SelectedLines{selectedLines}
-    , m_LastClickedLine{lastClickedLine}
-{}
+ConsolePanel::ConsolePanel(ConsoleFilters* filters, bool* autoScroll, int* selectedTab, std::vector<int>* selectedLines,
+                           int* lastClickedLine) :
+    m_Filters{filters},
+    m_AutoScroll{autoScroll}, m_SelectedTab{selectedTab}, m_SelectedLines{selectedLines}, m_LastClickedLine{
+                                                                                              lastClickedLine} {}
 
 void ConsolePanel::OnImGuiRender() {
     PROFILE_FUNCTION();
-    if (!ImGui::Begin("Console")) {
+    if (!ImGui::Begin("Console"))
+    {
         ImGui::End();
         return;
     }
 
-    if (ImGui::Button("Clear")) {
+    if (ImGui::Button("Clear"))
+    {
         ConsoleLogger::Instance().Clear();
         m_SelectedLines->clear();
         *m_LastClickedLine = -1;
     }
 
     ImGui::SameLine();
-    if (ImGui::Button("Copy Selected")) {
-        if (!m_SelectedLines->empty()) {
+    if (ImGui::Button("Copy Selected"))
+    {
+        if (!m_SelectedLines->empty())
+        {
             std::string clipboardText;
             const auto& logs = ConsoleLogger::Instance().GetLogs();
 
-            for (int selectedIdx : *m_SelectedLines) {
-                if (selectedIdx >= 0 && selectedIdx < static_cast<int>(logs.size())) {
+            for (int selectedIdx : *m_SelectedLines)
+            {
+                if (selectedIdx >= 0 && selectedIdx < static_cast<int>(logs.size()))
+                {
                     const auto& log = logs[selectedIdx];
 
                     const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
                     const char* categoryStr = Logger::GetCategoryName(log.category);
                     const char* levelStr;
-                    switch (log.level) {
-                        case LogLevel::Trace:   levelStr = "[TRACE]"; break;
-                        case LogLevel::Debug:   levelStr = "[DEBUG]"; break;
-                        case LogLevel::Info:    levelStr = "[INFO] "; break;
-                        case LogLevel::Warning: levelStr = "[WARN] "; break;
-                        case LogLevel::Error:   levelStr = "[ERROR]"; break;
-                        default:                levelStr = "[?????]"; break;
+                    switch (log.level)
+                    {
+                        case LogLevel::Trace:
+                            levelStr = "[TRACE]";
+                            break;
+                        case LogLevel::Debug:
+                            levelStr = "[DEBUG]";
+                            break;
+                        case LogLevel::Info:
+                            levelStr = "[INFO] ";
+                            break;
+                        case LogLevel::Warning:
+                            levelStr = "[WARN] ";
+                            break;
+                        case LogLevel::Error:
+                            levelStr = "[ERROR]";
+                            break;
+                        default:
+                            levelStr = "[?????]";
+                            break;
                     }
 
                     clipboardText += sourceStr;
@@ -75,62 +88,113 @@ void ConsolePanel::OnImGuiRender() {
     }
 
     ImGui::SameLine();
-    if (ImGui::Button("Copy All Filtered")) {
+    if (ImGui::Button("Copy All Filtered"))
+    {
         std::string clipboardText;
         const auto& logs = ConsoleLogger::Instance().GetLogs();
 
-        for (size_t i = 0; i < logs.size(); ++i) {
+        for (size_t i = 0; i < logs.size(); ++i)
+        {
             const auto& log = logs[i];
 
             bool showByLevel = false;
-            switch (log.level) {
-                case LogLevel::Trace:   showByLevel = m_Filters->showTrace; break;
-                case LogLevel::Debug:   showByLevel = m_Filters->showDebug; break;
-                case LogLevel::Info:    showByLevel = m_Filters->showInfo; break;
-                case LogLevel::Warning: showByLevel = m_Filters->showWarning; break;
-                case LogLevel::Error:   showByLevel = m_Filters->showError; break;
+            switch (log.level)
+            {
+                case LogLevel::Trace:
+                    showByLevel = m_Filters->showTrace;
+                    break;
+                case LogLevel::Debug:
+                    showByLevel = m_Filters->showDebug;
+                    break;
+                case LogLevel::Info:
+                    showByLevel = m_Filters->showInfo;
+                    break;
+                case LogLevel::Warning:
+                    showByLevel = m_Filters->showWarning;
+                    break;
+                case LogLevel::Error:
+                    showByLevel = m_Filters->showError;
+                    break;
             }
 
-            if (!showByLevel) continue;
+            if (!showByLevel)
+                continue;
 
             bool showBySource = false;
-            if (*m_SelectedTab == 0) {
-                showBySource = true;
-            } else if (*m_SelectedTab == 1 && log.source == LogSource::Engine) {
-                showBySource = true;
-            } else if (*m_SelectedTab == 2 && log.source == LogSource::Game) {
-                showBySource = true;
-            }
+            if (*m_SelectedTab == 0)
+            { showBySource = true; }
+            else if (*m_SelectedTab == 1 && log.source == LogSource::Engine)
+            { showBySource = true; }
+            else if (*m_SelectedTab == 2 && log.source == LogSource::Game)
+            { showBySource = true; }
 
-            if (!showBySource) continue;
+            if (!showBySource)
+                continue;
 
             bool showByCategory = false;
-            switch (log.category) {
-                case LogCategory::ENGINE:    showByCategory = m_Filters->showCategoryEngine; break;
-                case LogCategory::ASSET:     showByCategory = m_Filters->showCategoryAsset; break;
-                case LogCategory::EDITOR:    showByCategory = m_Filters->showCategoryEditor; break;
-                case LogCategory::PHYSICS:   showByCategory = m_Filters->showCategoryPhysics; break;
-                case LogCategory::RENDER:    showByCategory = m_Filters->showCategoryRender; break;
-                case LogCategory::SCENE:     showByCategory = m_Filters->showCategoryScene; break;
-                case LogCategory::SCRIPT:    showByCategory = m_Filters->showCategoryScript; break;
-                case LogCategory::ANIMATION: showByCategory = m_Filters->showCategoryAnimation; break;
-                case LogCategory::BUILD:     showByCategory = m_Filters->showCategoryBuild; break;
-                case LogCategory::GAME:      showByCategory = m_Filters->showCategoryGame; break;
-                case LogCategory::UNKNOWN:   showByCategory = m_Filters->showCategoryUnknown; break;
+            switch (log.category)
+            {
+                case LogCategory::ENGINE:
+                    showByCategory = m_Filters->showCategoryEngine;
+                    break;
+                case LogCategory::ASSET:
+                    showByCategory = m_Filters->showCategoryAsset;
+                    break;
+                case LogCategory::EDITOR:
+                    showByCategory = m_Filters->showCategoryEditor;
+                    break;
+                case LogCategory::PHYSICS:
+                    showByCategory = m_Filters->showCategoryPhysics;
+                    break;
+                case LogCategory::RENDER:
+                    showByCategory = m_Filters->showCategoryRender;
+                    break;
+                case LogCategory::SCENE:
+                    showByCategory = m_Filters->showCategoryScene;
+                    break;
+                case LogCategory::SCRIPT:
+                    showByCategory = m_Filters->showCategoryScript;
+                    break;
+                case LogCategory::ANIMATION:
+                    showByCategory = m_Filters->showCategoryAnimation;
+                    break;
+                case LogCategory::BUILD:
+                    showByCategory = m_Filters->showCategoryBuild;
+                    break;
+                case LogCategory::GAME:
+                    showByCategory = m_Filters->showCategoryGame;
+                    break;
+                case LogCategory::UNKNOWN:
+                    showByCategory = m_Filters->showCategoryUnknown;
+                    break;
             }
 
-            if (!showByCategory) continue;
+            if (!showByCategory)
+                continue;
 
             const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
             const char* categoryStr = Logger::GetCategoryName(log.category);
             const char* levelStr;
-            switch (log.level) {
-                case LogLevel::Trace:   levelStr = "[TRACE]"; break;
-                case LogLevel::Debug:   levelStr = "[DEBUG]"; break;
-                case LogLevel::Info:    levelStr = "[INFO] "; break;
-                case LogLevel::Warning: levelStr = "[WARN] "; break;
-                case LogLevel::Error:   levelStr = "[ERROR]"; break;
-                default:                levelStr = "[?????]"; break;
+            switch (log.level)
+            {
+                case LogLevel::Trace:
+                    levelStr = "[TRACE]";
+                    break;
+                case LogLevel::Debug:
+                    levelStr = "[DEBUG]";
+                    break;
+                case LogLevel::Info:
+                    levelStr = "[INFO] ";
+                    break;
+                case LogLevel::Warning:
+                    levelStr = "[WARN] ";
+                    break;
+                case LogLevel::Error:
+                    levelStr = "[ERROR]";
+                    break;
+                default:
+                    levelStr = "[?????]";
+                    break;
             }
 
             clipboardText += sourceStr;
@@ -144,9 +208,8 @@ void ConsolePanel::OnImGuiRender() {
             clipboardText += "\n";
         }
 
-        if (!clipboardText.empty()) {
-            ImGui::SetClipboardText(clipboardText.c_str());
-        }
+        if (!clipboardText.empty())
+        { ImGui::SetClipboardText(clipboardText.c_str()); }
     }
 
     ImGui::SameLine();
@@ -168,7 +231,8 @@ void ConsolePanel::OnImGuiRender() {
 
     ImGui::Text("Category Filters:");
     ImGui::SameLine();
-    if (ImGui::SmallButton("All##Categories")) {
+    if (ImGui::SmallButton("All##Categories"))
+    {
         m_Filters->showCategoryEngine = true;
         m_Filters->showCategoryAsset = true;
         m_Filters->showCategoryEditor = true;
@@ -182,7 +246,8 @@ void ConsolePanel::OnImGuiRender() {
         m_Filters->showCategoryUnknown = true;
     }
     ImGui::SameLine();
-    if (ImGui::SmallButton("None##Categories")) {
+    if (ImGui::SmallButton("None##Categories"))
+    {
         m_Filters->showCategoryEngine = false;
         m_Filters->showCategoryAsset = false;
         m_Filters->showCategoryEditor = false;
@@ -220,16 +285,20 @@ void ConsolePanel::OnImGuiRender() {
 
     ImGui::Separator();
 
-    if (ImGui::BeginTabBar("ConsoleSourceTabs")) {
-        if (ImGui::BeginTabItem("All")) {
+    if (ImGui::BeginTabBar("ConsoleSourceTabs"))
+    {
+        if (ImGui::BeginTabItem("All"))
+        {
             *m_SelectedTab = 0;
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Engine")) {
+        if (ImGui::BeginTabItem("Engine"))
+        {
             *m_SelectedTab = 1;
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Game")) {
+        if (ImGui::BeginTabItem("Game"))
+        {
             *m_SelectedTab = 2;
             ImGui::EndTabItem();
         }
@@ -245,88 +314,131 @@ void ConsolePanel::OnImGuiRender() {
     ImGuiIO& io = ImGui::GetIO();
     int visibleLineIndex = 0;
 
-    for (size_t i = 0; i < logs.size(); ++i) {
+    for (size_t i = 0; i < logs.size(); ++i)
+    {
         const auto& log = logs[i];
 
         bool showByLevel = false;
-        switch (log.level) {
-            case LogLevel::Trace:   showByLevel = m_Filters->showTrace; break;
-            case LogLevel::Debug:   showByLevel = m_Filters->showDebug; break;
-            case LogLevel::Info:    showByLevel = m_Filters->showInfo; break;
-            case LogLevel::Warning: showByLevel = m_Filters->showWarning; break;
-            case LogLevel::Error:   showByLevel = m_Filters->showError; break;
+        switch (log.level)
+        {
+            case LogLevel::Trace:
+                showByLevel = m_Filters->showTrace;
+                break;
+            case LogLevel::Debug:
+                showByLevel = m_Filters->showDebug;
+                break;
+            case LogLevel::Info:
+                showByLevel = m_Filters->showInfo;
+                break;
+            case LogLevel::Warning:
+                showByLevel = m_Filters->showWarning;
+                break;
+            case LogLevel::Error:
+                showByLevel = m_Filters->showError;
+                break;
         }
 
-        if (!showByLevel) {
-            continue;
-        }
+        if (!showByLevel)
+        { continue; }
 
         bool showBySource = false;
-        if (*m_SelectedTab == 0) {
-            showBySource = true;
-        } else if (*m_SelectedTab == 1 && log.source == LogSource::Engine) {
-            showBySource = true;
-        } else if (*m_SelectedTab == 2 && log.source == LogSource::Game) {
-            showBySource = true;
-        }
+        if (*m_SelectedTab == 0)
+        { showBySource = true; }
+        else if (*m_SelectedTab == 1 && log.source == LogSource::Engine)
+        { showBySource = true; }
+        else if (*m_SelectedTab == 2 && log.source == LogSource::Game)
+        { showBySource = true; }
 
-        if (!showBySource) {
-            continue;
-        }
+        if (!showBySource)
+        { continue; }
 
         bool showByCategory = false;
-        switch (log.category) {
-            case LogCategory::ENGINE:    showByCategory = m_Filters->showCategoryEngine; break;
-            case LogCategory::ASSET:     showByCategory = m_Filters->showCategoryAsset; break;
-            case LogCategory::EDITOR:    showByCategory = m_Filters->showCategoryEditor; break;
-            case LogCategory::PHYSICS:   showByCategory = m_Filters->showCategoryPhysics; break;
-            case LogCategory::RENDER:    showByCategory = m_Filters->showCategoryRender; break;
-            case LogCategory::SCENE:     showByCategory = m_Filters->showCategoryScene; break;
-            case LogCategory::SCRIPT:    showByCategory = m_Filters->showCategoryScript; break;
-            case LogCategory::ANIMATION: showByCategory = m_Filters->showCategoryAnimation; break;
-            case LogCategory::BUILD:     showByCategory = m_Filters->showCategoryBuild; break;
-            case LogCategory::GAME:      showByCategory = m_Filters->showCategoryGame; break;
-            case LogCategory::UNKNOWN:   showByCategory = m_Filters->showCategoryUnknown; break;
+        switch (log.category)
+        {
+            case LogCategory::ENGINE:
+                showByCategory = m_Filters->showCategoryEngine;
+                break;
+            case LogCategory::ASSET:
+                showByCategory = m_Filters->showCategoryAsset;
+                break;
+            case LogCategory::EDITOR:
+                showByCategory = m_Filters->showCategoryEditor;
+                break;
+            case LogCategory::PHYSICS:
+                showByCategory = m_Filters->showCategoryPhysics;
+                break;
+            case LogCategory::RENDER:
+                showByCategory = m_Filters->showCategoryRender;
+                break;
+            case LogCategory::SCENE:
+                showByCategory = m_Filters->showCategoryScene;
+                break;
+            case LogCategory::SCRIPT:
+                showByCategory = m_Filters->showCategoryScript;
+                break;
+            case LogCategory::ANIMATION:
+                showByCategory = m_Filters->showCategoryAnimation;
+                break;
+            case LogCategory::BUILD:
+                showByCategory = m_Filters->showCategoryBuild;
+                break;
+            case LogCategory::GAME:
+                showByCategory = m_Filters->showCategoryGame;
+                break;
+            case LogCategory::UNKNOWN:
+                showByCategory = m_Filters->showCategoryUnknown;
+                break;
         }
 
-        if (!showByCategory) {
-            continue;
-        }
+        if (!showByCategory)
+        { continue; }
 
-        bool isSelected = std::find(m_SelectedLines->begin(), m_SelectedLines->end(), static_cast<int>(i)) != m_SelectedLines->end();
+        bool isSelected =
+            std::find(m_SelectedLines->begin(), m_SelectedLines->end(), static_cast<int>(i)) != m_SelectedLines->end();
 
         ImVec4 bgColor;
-        if (isSelected) {
+        if (isSelected)
+        {
             bgColor = ImVec4{0.3f, 0.5f, 0.8f, 0.5f}; // Blue highlight for selection
-        } else if (visibleLineIndex % 2 == 0) {
+        }
+        else if (visibleLineIndex % 2 == 0)
+        {
             bgColor = ImVec4{0.15f, 0.15f, 0.15f, 0.3f}; // lightly darker
-        } else {
+        }
+        else
+        {
             bgColor = ImVec4{0.12f, 0.12f, 0.12f, 0.3f}; // Default dark
         }
 
         ImVec2 cursorPos = ImGui::GetCursorScreenPos();
         ImVec2 lineSize = ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeight()};
-        ImGui::GetWindowDrawList()->AddRectFilled(cursorPos, ImVec2{cursorPos.x + lineSize.x, cursorPos.y + lineSize.y}, ImGui::ColorConvertFloat4ToU32(bgColor));
+        ImGui::GetWindowDrawList()->AddRectFilled(cursorPos, ImVec2{cursorPos.x + lineSize.x, cursorPos.y + lineSize.y},
+                                                  ImGui::ColorConvertFloat4ToU32(bgColor));
 
         ImGui::PushID(static_cast<int>(i));
-        ImGui::Selectable("##line", isSelected, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns, ImVec2{0, 0});
+        ImGui::Selectable("##line", isSelected,
+                          ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns, ImVec2{0, 0});
 
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-            if (io.KeyCtrl) {
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        {
+            if (io.KeyCtrl)
+            {
                 auto it = std::find(m_SelectedLines->begin(), m_SelectedLines->end(), static_cast<int>(i));
-                if (it != m_SelectedLines->end()) {
-                    m_SelectedLines->erase(it);
-                } else {
-                    m_SelectedLines->push_back(static_cast<int>(i));
-                }
-            } else if (io.KeyShift && *m_LastClickedLine != -1) {
+                if (it != m_SelectedLines->end())
+                { m_SelectedLines->erase(it); }
+                else
+                { m_SelectedLines->push_back(static_cast<int>(i)); }
+            }
+            else if (io.KeyShift && *m_LastClickedLine != -1)
+            {
                 m_SelectedLines->clear();
                 int start = std::min(*m_LastClickedLine, static_cast<int>(i));
                 int end = std::max(*m_LastClickedLine, static_cast<int>(i));
-                for (int idx = start; idx <= end; ++idx) {
-                    m_SelectedLines->push_back(idx);
-                }
-            } else {
+                for (int idx = start; idx <= end; ++idx)
+                { m_SelectedLines->push_back(idx); }
+            }
+            else
+            {
                 m_SelectedLines->clear();
                 m_SelectedLines->push_back(static_cast<int>(i));
             }
@@ -337,7 +449,8 @@ void ConsolePanel::OnImGuiRender() {
 
         ImVec4 textColor;
         const char* levelStr;
-        switch (log.level) {
+        switch (log.level)
+        {
             case LogLevel::Trace:
                 textColor = ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
                 levelStr = "[TRACE]";
@@ -364,9 +477,8 @@ void ConsolePanel::OnImGuiRender() {
                 break;
         }
 
-        ImVec4 sourceColor = (log.source == LogSource::Engine)
-            ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f}
-            : ImVec4{0.4f, 1.0f, 0.4f, 1.0f};
+        ImVec4 sourceColor =
+            (log.source == LogSource::Engine) ? ImVec4{0.4f, 0.7f, 1.0f, 1.0f} : ImVec4{0.4f, 1.0f, 0.4f, 1.0f};
 
         const char* sourceStr = (log.source == LogSource::Engine) ? "[ENGINE]" : "[GAME]  ";
 
@@ -396,17 +508,14 @@ void ConsolePanel::OnImGuiRender() {
         visibleLineIndex++;
     }
 
-    if (*m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
-        ImGui::SetScrollHereY(1.0f);
-    }
+    if (*m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+    { ImGui::SetScrollHereY(1.0f); }
 
     ImGui::EndChild();
 
     ImGui::End();
 }
 
-
-
-}
+} // namespace PiiXeL
 
 #endif

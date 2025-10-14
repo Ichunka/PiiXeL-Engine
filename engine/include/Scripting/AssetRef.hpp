@@ -2,12 +2,13 @@
 #define PIIXELENGINE_ASSETREF_HPP
 
 #include "Components/UUID.hpp"
-#include <string>
+
 #include <raylib.h>
+#include <string>
 
 namespace PiiXeL {
 
-template<typename T>
+template <typename T>
 class AssetRef {
 public:
     AssetRef() = default;
@@ -40,7 +41,7 @@ private:
     mutable bool m_IsLoaded{false};
 };
 
-template<>
+template <>
 class AssetRef<Texture2D> {
 public:
     AssetRef() = default;

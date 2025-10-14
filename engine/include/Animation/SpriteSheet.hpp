@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Resources/Asset.hpp"
+
 #include <raylib.h>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -36,11 +37,17 @@ public:
     const SpriteFrame* GetFrame(size_t index) const;
     size_t GetFrameCount() const { return m_Frames.size(); }
 
-    void SetGridSize(int columns, int rows) { m_GridColumns = columns; m_GridRows = rows; }
+    void SetGridSize(int columns, int rows) {
+        m_GridColumns = columns;
+        m_GridRows = rows;
+    }
     int GetGridColumns() const { return m_GridColumns; }
     int GetGridRows() const { return m_GridRows; }
 
-    void SetGridSpacing(int spacingX, int spacingY) { m_GridSpacingX = spacingX; m_GridSpacingY = spacingY; }
+    void SetGridSpacing(int spacingX, int spacingY) {
+        m_GridSpacingX = spacingX;
+        m_GridSpacingY = spacingY;
+    }
     int GetGridSpacingX() const { return m_GridSpacingX; }
     int GetGridSpacingY() const { return m_GridSpacingY; }
 

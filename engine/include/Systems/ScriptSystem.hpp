@@ -2,8 +2,9 @@
 #define PIIXELENGINE_SCRIPTSYSTEM_HPP
 
 #include <entt/entt.hpp>
-#include <string>
+
 #include <memory>
+#include <string>
 
 namespace PiiXeL {
 

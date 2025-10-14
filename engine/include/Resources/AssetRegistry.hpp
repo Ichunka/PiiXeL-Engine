@@ -2,13 +2,14 @@
 #define PIIXELENGINE_ASSETREGISTRY_HPP
 
 #include "Resources/Asset.hpp"
-#include "Resources/AssetPackage.hpp"
 #include "Resources/AssetImporter.hpp"
+#include "Resources/AssetPackage.hpp"
+
+#include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
-#include <functional>
 
 namespace PiiXeL {
 

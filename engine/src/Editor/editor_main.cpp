@@ -2,10 +2,12 @@
 
 #include "Core/Application.hpp"
 #include "Reflection/ReflectionInit.hpp"
+
 #include <iostream>
 
 int main() {
-    try {
+    try
+    {
         PiiXeL::Reflection::InitializeReflection();
 
         PiiXeL::ApplicationConfig config{};
@@ -22,7 +24,8 @@ int main() {
 
         return 0;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << "Fatal error: " << e.what() << std::endl;
         return 1;
     }
