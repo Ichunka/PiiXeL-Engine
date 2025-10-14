@@ -13,12 +13,12 @@ namespace PiiXeL {
 void AssetBrowserPanel::Render() {
     ImGui::Begin("Asset Browser");
 
-    if (ImGui::Button("Refresh"))
-    { RefreshAssetList(); }
+    if (ImGui::Button("Refresh")) {
+        RefreshAssetList();
+    }
 
     ImGui::SameLine();
-    if (ImGui::Button("Import Directory"))
-    {
+    if (ImGui::Button("Import Directory")) {
         AssetRegistry::Instance().ImportDirectory(m_CurrentDirectory);
         RefreshAssetList();
     }
@@ -37,10 +37,8 @@ void AssetBrowserPanel::Render() {
 void AssetBrowserPanel::RefreshAssetList() {
     std::vector<std::string> sourceFiles;
 
-    if (std::filesystem::exists(m_CurrentDirectory))
-    {
-        for (const auto& entry : std::filesystem::recursive_directory_iterator{m_CurrentDirectory})
-        {
+    if (std::filesystem::exists(m_CurrentDirectory)) {
+        for (const auto& entry : std::filesystem::recursive_directory_iterator{m_CurrentDirectory}) {
             if (!entry.is_regular_file())
                 continue;
 
@@ -54,32 +52,33 @@ void AssetBrowserPanel::RefreshAssetList() {
                 std::string pxaPath = entry.path().string();
                 pxaPath = pxaPath.substr(0, pxaPath.find_last_of('.')) + ".pxa";
 
-                if (!std::filesystem::exists(pxaPath))
-                { sourceFiles.push_back(entry.path().string()); }
+                if (!std::filesystem::exists(pxaPath)) {
+                    sourceFiles.push_back(entry.path().string());
+                }
             }
         }
     }
 
-    if (!sourceFiles.empty())
-    {
+    if (!sourceFiles.empty()) {
         AssetRegistry& registry = AssetRegistry::Instance();
-        for (const auto& sourcePath : sourceFiles)
-        { registry.LoadAssetFromPath(sourcePath); }
+        for (const auto& sourcePath : sourceFiles) {
+            registry.LoadAssetFromPath(sourcePath);
+        }
     }
 
     m_CurrentAssets = AssetRegistry::Instance().GetAllAssetMetadata();
 }
 
 void AssetBrowserPanel::RenderDirectoryTree() {
-    if (!std::filesystem::exists(m_CurrentDirectory))
-    { return; }
+    if (!std::filesystem::exists(m_CurrentDirectory)) {
+        return;
+    }
 
-    for (const auto& entry : std::filesystem::directory_iterator{m_CurrentDirectory})
-    {
-        if (entry.is_directory())
-        {
-            if (ImGui::TreeNode(entry.path().filename().string().c_str()))
-            { ImGui::TreePop(); }
+    for (const auto& entry : std::filesystem::directory_iterator{m_CurrentDirectory}) {
+        if (entry.is_directory()) {
+            if (ImGui::TreeNode(entry.path().filename().string().c_str())) {
+                ImGui::TreePop();
+            }
         }
     }
 }
@@ -94,8 +93,7 @@ void AssetBrowserPanel::RenderAssetGrid() {
 
     ImGui::Columns(columnCount, nullptr, false);
 
-    for (const AssetMetadata& metadata : m_CurrentAssets)
-    {
+    for (const AssetMetadata& metadata : m_CurrentAssets) {
         RenderAssetItem(metadata);
         ImGui::NextColumn();
     }
@@ -107,32 +105,32 @@ void AssetBrowserPanel::RenderAssetItem(const AssetMetadata& metadata) {
     ImGui::PushID(static_cast<int>(metadata.uuid.Get()));
 
     bool isSelected = (m_SelectedAsset == metadata.uuid);
-    if (isSelected)
-    { ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.3f, 0.5f, 0.8f, 1.0f}); }
-
-    ImVec2 buttonSize{70.0f, 70.0f};
-    if (ImGui::Button("##asset", buttonSize))
-    {
-        m_SelectedAsset = metadata.uuid;
-        if (m_OnAssetSelected)
-        { m_OnAssetSelected(metadata.uuid); }
+    if (isSelected) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.3f, 0.5f, 0.8f, 1.0f});
     }
 
-    if (ImGui::BeginDragDropSource())
-    {
+    ImVec2 buttonSize{70.0f, 70.0f};
+    if (ImGui::Button("##asset", buttonSize)) {
+        m_SelectedAsset = metadata.uuid;
+        if (m_OnAssetSelected) {
+            m_OnAssetSelected(metadata.uuid);
+        }
+    }
+
+    if (ImGui::BeginDragDropSource()) {
         ImGui::SetDragDropPayload("ASSET_UUID", &metadata.uuid, sizeof(UUID));
         ImGui::Text("%s", metadata.name.c_str());
         ImGui::EndDragDropSource();
     }
 
-    if (isSelected)
-    { ImGui::PopStyleColor(); }
+    if (isSelected) {
+        ImGui::PopStyleColor();
+    }
 
     ImGui::TextWrapped("%s", metadata.name.c_str());
 
     const char* typeStr = "Unknown";
-    switch (metadata.type)
-    {
+    switch (metadata.type) {
         case AssetType::Texture:
             typeStr = "Texture";
             break;

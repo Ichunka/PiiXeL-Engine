@@ -22,18 +22,20 @@ public:
     static bool RenderProperties(T& object, EntityPickerCallback entityPicker = nullptr,
                                  AssetPickerCallback assetPicker = nullptr) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
-        if (!typeInfo)
-        { return false; }
+        if (!typeInfo) {
+            return false;
+        }
 
         bool modified = false;
-        for (const FieldInfo& field : typeInfo->GetFields())
-        {
-            if (field.flags & FieldFlags::ReadOnly)
-            { continue; }
+        for (const FieldInfo& field : typeInfo->GetFields()) {
+            if (field.flags & FieldFlags::ReadOnly) {
+                continue;
+            }
 
             void* fieldPtr = field.getPtr(static_cast<void*>(&object));
-            if (RenderField(field, fieldPtr, entityPicker, assetPicker))
-            { modified = true; }
+            if (RenderField(field, fieldPtr, entityPicker, assetPicker)) {
+                modified = true;
+            }
         }
 
         return modified;

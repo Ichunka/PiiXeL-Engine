@@ -6,13 +6,11 @@
 #include <iostream>
 
 int main() {
-    try
-    {
+    try {
         PiiXeL::Reflection::InitializeReflection();
 
         PiiXeL::GamePackageLoader packageLoader{};
-        if (!packageLoader.LoadPackage("datas/game.package"))
-        {
+        if (!packageLoader.LoadPackage("datas/game.package")) {
             std::cerr << "Failed to load game package" << std::endl;
             return 1;
         }
@@ -36,8 +34,7 @@ int main() {
 
         return 0;
     }
-    catch (const std::exception& e)
-    {
+    catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << std::endl;
         return 1;
     }

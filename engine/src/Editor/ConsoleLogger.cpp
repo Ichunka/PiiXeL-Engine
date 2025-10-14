@@ -19,8 +19,9 @@ void ConsoleLogger::AddLog(const std::string& message, LogLevel level, LogSource
 
     m_Logs.emplace_back(message, level, source, category, timestamp);
 
-    if (m_Logs.size() > 10000)
-    { m_Logs.erase(m_Logs.begin(), m_Logs.begin() + 1000); }
+    if (m_Logs.size() > 10000) {
+        m_Logs.erase(m_Logs.begin(), m_Logs.begin() + 1000);
+    }
 }
 
 void ConsoleLogger::Clear() {
@@ -29,8 +30,7 @@ void ConsoleLogger::Clear() {
 }
 
 LogLevel ConsoleLogger::ConvertRaylibLogLevel(int raylibLevel) {
-    switch (raylibLevel)
-    {
+    switch (raylibLevel) {
         case LOG_TRACE:
             return LogLevel::Trace;
         case LOG_DEBUG:
@@ -47,8 +47,7 @@ LogLevel ConsoleLogger::ConvertRaylibLogLevel(int raylibLevel) {
 }
 
 ImVec4 ConsoleLogger::GetCategoryColor(LogCategory category) {
-    switch (category)
-    {
+    switch (category) {
         case LogCategory::ENGINE:
             return ImVec4{0.4f, 0.7f, 1.0f, 1.0f};
         case LogCategory::ASSET:
@@ -87,8 +86,9 @@ void ConsoleLogger::RaylibLogCallback(int logLevel, const char* text, va_list ar
     LogCategory category{LogCategory::ENGINE};
 
     float timestamp{0.0f};
-    if (IsWindowReady())
-    { timestamp = static_cast<float>(GetTime()); }
+    if (IsWindowReady()) {
+        timestamp = static_cast<float>(GetTime());
+    }
 
     ConsoleLogger::Instance().AddLog(message, level, source, category, timestamp);
 

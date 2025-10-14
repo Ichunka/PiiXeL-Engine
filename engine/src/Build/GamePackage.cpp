@@ -20,8 +20,7 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
                              {"engineVersion", m_Header.engineVersion}};
 
     packageJson["scenes"] = nlohmann::json::array();
-    for (const std::pair<std::string, nlohmann::json>& scenePair : m_Scenes)
-    {
+    for (const std::pair<std::string, nlohmann::json>& scenePair : m_Scenes) {
         nlohmann::json sceneEntry{};
         sceneEntry["name"] = scenePair.first;
         sceneEntry["data"] = scenePair.second;
@@ -29,8 +28,7 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
     }
 
     packageJson["assets"] = nlohmann::json::array();
-    for (const AssetData& asset : m_Assets)
-    {
+    for (const AssetData& asset : m_Assets) {
         nlohmann::json assetEntry{};
         assetEntry["path"] = asset.path;
         assetEntry["type"] = asset.type;
@@ -41,8 +39,7 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
 
         const char* base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         size_t i = 0;
-        for (; i + 2 < asset.data.size(); i += 3)
-        {
+        for (; i + 2 < asset.data.size(); i += 3) {
             uint32_t val = (asset.data[i] << 16) | (asset.data[i + 1] << 8) | asset.data[i + 2];
             base64Data += base64Chars[(val >> 18) & 0x3F];
             base64Data += base64Chars[(val >> 12) & 0x3F];
@@ -50,11 +47,11 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
             base64Data += base64Chars[val & 0x3F];
         }
 
-        if (i < asset.data.size())
-        {
+        if (i < asset.data.size()) {
             uint32_t val = asset.data[i] << 16;
-            if (i + 1 < asset.data.size())
-            { val |= asset.data[i + 1] << 8; }
+            if (i + 1 < asset.data.size()) {
+                val |= asset.data[i + 1] << 8;
+            }
             base64Data += base64Chars[(val >> 18) & 0x3F];
             base64Data += base64Chars[(val >> 12) & 0x3F];
             base64Data += (i + 1 < asset.data.size()) ? base64Chars[(val >> 6) & 0x3F] : '=';
@@ -68,8 +65,7 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
     packageJson["config"] = m_Config;
 
     std::ofstream file{filepath, std::ios::binary};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(BUILD, "Failed to create package file: %s", filepath.c_str());
         return false;
     }
@@ -83,24 +79,22 @@ bool GamePackage::SaveToFile(const std::string& filepath) {
 
 bool GamePackage::LoadFromFile(const std::string& filepath) {
     std::ifstream file{filepath, std::ios::binary};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(BUILD, "Failed to open package file: %s", filepath.c_str());
         return false;
     }
 
     nlohmann::json packageJson{};
-    try
-    { file >> packageJson; }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        file >> packageJson;
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(BUILD, "Failed to parse package: %s", e.what());
         return false;
     }
     file.close();
 
-    if (packageJson.contains("header"))
-    {
+    if (packageJson.contains("header")) {
         const nlohmann::json& header = packageJson["header"];
         m_Header.version = header.value("version", 1u);
         m_Header.sceneCount = header.value("sceneCount", 0u);
@@ -108,35 +102,30 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
         m_Header.engineVersion = header.value("engineVersion", "0.1.0");
     }
 
-    if (packageJson.contains("scenes") && packageJson["scenes"].is_array())
-    {
-        for (const nlohmann::json& sceneEntry : packageJson["scenes"])
-        {
+    if (packageJson.contains("scenes") && packageJson["scenes"].is_array()) {
+        for (const nlohmann::json& sceneEntry : packageJson["scenes"]) {
             std::string name = sceneEntry.value("name", "Unnamed Scene");
             nlohmann::json sceneData = sceneEntry.value("data", nlohmann::json{});
             m_Scenes.push_back({name, sceneData});
         }
     }
 
-    if (packageJson.contains("assets") && packageJson["assets"].is_array())
-    {
-        for (const nlohmann::json& assetEntry : packageJson["assets"])
-        {
+    if (packageJson.contains("assets") && packageJson["assets"].is_array()) {
+        for (const nlohmann::json& assetEntry : packageJson["assets"]) {
             AssetData asset{};
             asset.path = assetEntry.value("path", "");
             asset.type = assetEntry.value("type", "");
 
             std::string base64Data = assetEntry.value("data", "");
-            if (!base64Data.empty())
-            {
+            if (!base64Data.empty()) {
                 const char* base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
                 std::vector<int> decodeTable(256, -1);
-                for (int i = 0; i < 64; ++i)
-                { decodeTable[static_cast<unsigned char>(base64Chars[i])] = i; }
+                for (int i = 0; i < 64; ++i) {
+                    decodeTable[static_cast<unsigned char>(base64Chars[i])] = i;
+                }
 
                 asset.data.reserve(base64Data.size() * 3 / 4);
-                for (size_t i = 0; i + 3 < base64Data.size(); i += 4)
-                {
+                for (size_t i = 0; i + 3 < base64Data.size(); i += 4) {
                     int val0 = decodeTable[static_cast<unsigned char>(base64Data[i])];
                     int val1 = decodeTable[static_cast<unsigned char>(base64Data[i + 1])];
                     int val2 = decodeTable[static_cast<unsigned char>(base64Data[i + 2])];
@@ -146,11 +135,11 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
                         break;
 
                     asset.data.push_back(static_cast<unsigned char>((val0 << 2) | (val1 >> 4)));
-                    if (val2 != -1)
-                    {
+                    if (val2 != -1) {
                         asset.data.push_back(static_cast<unsigned char>((val1 << 4) | (val2 >> 2)));
-                        if (val3 != -1)
-                        { asset.data.push_back(static_cast<unsigned char>((val2 << 6) | val3)); }
+                        if (val3 != -1) {
+                            asset.data.push_back(static_cast<unsigned char>((val2 << 6) | val3));
+                        }
                     }
                 }
             }
@@ -160,8 +149,9 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
         }
     }
 
-    if (packageJson.contains("config"))
-    { m_Config = packageJson["config"]; }
+    if (packageJson.contains("config")) {
+        m_Config = packageJson["config"];
+    }
 
     PX_LOG_INFO(BUILD, "Game package loaded: %s (%llu scenes, %llu assets)", filepath.c_str(),
                 static_cast<unsigned long long>(m_Scenes.size()), static_cast<unsigned long long>(m_Assets.size()));
@@ -189,8 +179,9 @@ void GamePackage::SetConfig(const nlohmann::json& config) {
 
 const AssetData* GamePackage::GetAsset(const std::string& path) const {
     auto it = m_AssetIndexMap.find(path);
-    if (it != m_AssetIndexMap.end())
-    { return &m_Assets[it->second]; }
+    if (it != m_AssetIndexMap.end()) {
+        return &m_Assets[it->second];
+    }
     return nullptr;
 }
 

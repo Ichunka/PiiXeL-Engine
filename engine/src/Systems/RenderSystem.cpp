@@ -30,28 +30,31 @@ RenderSystem::RenderSystem()
     m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
     UnloadImage(whiteImage);
 
-    if (m_DefaultWhiteTexture.id != 0)
-    {
+    if (m_DefaultWhiteTexture.id != 0) {
         SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
         PX_LOG_INFO(RENDER, "RenderSystem: Default white texture created (64x64)");
     }
-    else
-    { PX_LOG_ERROR(RENDER, "RenderSystem: Failed to create default white texture"); }
+    else {
+        PX_LOG_ERROR(RENDER, "RenderSystem: Failed to create default white texture");
+    }
 }
 
 RenderSystem::~RenderSystem() {
-    if (m_DefaultWhiteTexture.id != 0)
-    { UnloadTexture(m_DefaultWhiteTexture); }
+    if (m_DefaultWhiteTexture.id != 0) {
+        UnloadTexture(m_DefaultWhiteTexture);
+    }
 }
 
 void RenderSystem::Render(entt::registry& registry) {
     RenderSprites(registry);
 
-    if (m_ShowColliders)
-    { RenderColliders(registry); }
+    if (m_ShowColliders) {
+        RenderColliders(registry);
+    }
 
-    if (m_ShowDebug)
-    { RenderDebug(registry); }
+    if (m_ShowDebug) {
+        RenderDebug(registry);
+    }
 
     DebugDraw::Instance().Render();
     DebugDraw::Instance().Clear();
@@ -62,11 +65,13 @@ void RenderSystem::RenderWithCamera(entt::registry& registry, const Camera2D& ca
 
     RenderSprites(registry);
 
-    if (m_ShowColliders)
-    { RenderColliders(registry); }
+    if (m_ShowColliders) {
+        RenderColliders(registry);
+    }
 
-    if (m_ShowDebug)
-    { RenderDebug(registry); }
+    if (m_ShowDebug) {
+        RenderDebug(registry);
+    }
 
     DebugDraw::Instance().Render();
 
@@ -102,16 +107,14 @@ void RenderSystem::RenderSprites(entt::registry& registry) {
 
     {
         PROFILE_SCOPE("RenderSprites::Draw");
-        for (const SpriteEntity& spriteEntity : sprites)
-        {
+        for (const SpriteEntity& spriteEntity : sprites) {
             const Sprite* sprite{spriteEntity.sprite};
             const Transform* transform{spriteEntity.transform};
 
             Texture2D texture = sprite->GetTexture();
             Rectangle sourceRect = sprite->sourceRect;
 
-            if (texture.id == 0)
-            {
+            if (texture.id == 0) {
                 texture = m_DefaultWhiteTexture;
                 sourceRect = {0.0f, 0.0f, 64.0f, 64.0f};
             }

@@ -77,13 +77,15 @@ private:
 class ProfileScope {
 public:
     explicit ProfileScope(const std::string& name) : m_Name(name) {
-        if (Profiler::Instance().IsEnabled())
-        { Profiler::Instance().BeginScope(m_Name); }
+        if (Profiler::Instance().IsEnabled()) {
+            Profiler::Instance().BeginScope(m_Name);
+        }
     }
 
     ~ProfileScope() {
-        if (Profiler::Instance().IsEnabled())
-        { Profiler::Instance().EndScope(m_Name); }
+        if (Profiler::Instance().IsEnabled()) {
+            Profiler::Instance().EndScope(m_Name);
+        }
     }
 
 private:

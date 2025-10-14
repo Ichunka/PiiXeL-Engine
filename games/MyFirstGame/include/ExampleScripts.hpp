@@ -34,17 +34,21 @@ protected:
 
         Vector2 vel = rb->GetVelocity();
 
-        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-        { vel.x = -moveSpeed; }
-        else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-        { vel.x = moveSpeed; }
-        else
-        { vel.x = 0.0f; }
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+            vel.x = -moveSpeed;
+        }
+        else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+            vel.x = moveSpeed;
+        }
+        else {
+            vel.x = 0.0f;
+        }
 
         rb->SetVelocity(vel);
 
-        if (rb->IsGrounded() && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE)))
-        { rb->AddImpulse({0.0f, -jumpForce}); }
+        if (rb->IsGrounded() && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
+            rb->AddImpulse({0.0f, -jumpForce});
+        }
     }
 
     void OnCollisionEnter(entt::entity other) override {
@@ -90,13 +94,11 @@ protected:
         m_Time += deltaTime;
 
         auto rb = GetHandle<PiiXeL::RigidBody2D>();
-        if (rb)
-        {
+        if (rb) {
             float offset = sinf(m_Time * frequency) * amplitude;
             rb->SetKinematicTarget({m_StartX, m_StartY + offset});
         }
-        else
-        {
+        else {
             Vector2 pos = GetPosition();
             float offset = sinf(m_Time * frequency) * amplitude;
             SetPosition({pos.x, m_StartY + offset});
@@ -138,8 +140,7 @@ protected:
         if (!registry.valid(target.Get()))
             return;
 
-        if (registry.all_of<PiiXeL::Transform>(target.Get()))
-        {
+        if (registry.all_of<PiiXeL::Transform>(target.Get())) {
             Vector2 targetPos = registry.get<PiiXeL::Transform>(target.Get()).position;
             Vector2 desiredPos = {targetPos.x + offset.x, targetPos.y + offset.y};
 
@@ -171,8 +172,7 @@ protected:
         m_Animator = GetHandle<PiiXeL::Animator>();
         m_RigidBody = GetHandle<PiiXeL::RigidBody2D>();
 
-        if (m_Animator)
-        {
+        if (m_Animator) {
             m_Animator->Play();
             PX_LOG_INFO(GAME, "AnimatedCharacter: Animator initialized");
         }
@@ -188,16 +188,17 @@ protected:
         float horizontalInput = 0.0f;
         bool isGrounded = m_RigidBody->IsGrounded(groundCheckDistance);
 
-        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-        { horizontalInput = -1.0f; }
-        else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-        { horizontalInput = 1.0f; }
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+            horizontalInput = -1.0f;
+        }
+        else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+            horizontalInput = 1.0f;
+        }
 
         velocity.x = horizontalInput * moveSpeed;
         m_RigidBody->SetVelocity(velocity);
 
-        if (isGrounded && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE)))
-        {
+        if (isGrounded && (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE))) {
             m_RigidBody->AddImpulse({0.0f, -jumpForce});
             m_Animator->SetTrigger("Jump");
         }
@@ -211,13 +212,16 @@ protected:
         m_Animator->SetBool("IsMoving", absHorizontalVelocity > 10.0f);
         m_Animator->SetBool("IsFalling", !isGrounded && velocity.y > 0.0f);
 
-        if (IsKeyPressed(KEY_E))
-        { m_Animator->SetTrigger("Attack"); }
+        if (IsKeyPressed(KEY_E)) {
+            m_Animator->SetTrigger("Attack");
+        }
 
-        if (IsKeyPressed(KEY_LEFT_SHIFT))
-        { m_Animator->SetSpeed(2.0f); }
-        else if (IsKeyReleased(KEY_LEFT_SHIFT))
-        { m_Animator->SetSpeed(1.0f); }
+        if (IsKeyPressed(KEY_LEFT_SHIFT)) {
+            m_Animator->SetSpeed(2.0f);
+        }
+        else if (IsKeyReleased(KEY_LEFT_SHIFT)) {
+            m_Animator->SetSpeed(1.0f);
+        }
     }
 
 private:

@@ -15,16 +15,14 @@ namespace PiiXeL {
 void AssetInspectorPanel::Render() {
     ImGui::Begin("Asset Inspector");
 
-    if (!HasSelection())
-    {
+    if (!HasSelection()) {
         ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "No asset selected");
         ImGui::End();
         return;
     }
 
     std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(m_SelectedAssetUUID);
-    if (!asset)
-    {
+    if (!asset) {
         ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "Asset not found");
         ImGui::End();
         return;
@@ -47,8 +45,7 @@ void AssetInspectorPanel::Render() {
 
     ImGui::Separator();
 
-    switch (metadata.type)
-    {
+    switch (metadata.type) {
         case AssetType::Texture:
             RenderTextureAsset(asset);
             break;
@@ -60,8 +57,9 @@ void AssetInspectorPanel::Render() {
             break;
     }
 
-    if (ImGui::Button("Reimport"))
-    { AssetRegistry::Instance().ReimportAsset(metadata.sourceFile); }
+    if (ImGui::Button("Reimport")) {
+        AssetRegistry::Instance().ReimportAsset(metadata.sourceFile);
+    }
 
     ImGui::End();
 }
@@ -87,8 +85,7 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
     ImGui::Text("Preview:");
 
     Texture2D texture = texAsset->GetTexture();
-    if (texture.id != 0)
-    {
+    if (texture.id != 0) {
         float maxWidth = ImGui::GetContentRegionAvail().x - 20.0f;
         float maxHeight = 256.0f;
 
@@ -96,8 +93,7 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
         float displayWidth = maxWidth;
         float displayHeight = displayWidth / aspectRatio;
 
-        if (displayHeight > maxHeight)
-        {
+        if (displayHeight > maxHeight) {
             displayHeight = maxHeight;
             displayWidth = displayHeight * aspectRatio;
         }
@@ -116,13 +112,14 @@ void AssetInspectorPanel::RenderAudioAsset(std::shared_ptr<Asset> asset) {
     ImGui::Separator();
 
     Sound sound = audioAsset->GetSound();
-    if (sound.frameCount > 0)
-    {
-        if (ImGui::Button("Play"))
-        { PlaySound(sound); }
+    if (sound.frameCount > 0) {
+        if (ImGui::Button("Play")) {
+            PlaySound(sound);
+        }
         ImGui::SameLine();
-        if (ImGui::Button("Stop"))
-        { StopSound(sound); }
+        if (ImGui::Button("Stop")) {
+            StopSound(sound);
+        }
     }
 }
 

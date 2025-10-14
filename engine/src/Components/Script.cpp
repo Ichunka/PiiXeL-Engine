@@ -18,8 +18,9 @@ void Script::AddScript(std::shared_ptr<ScriptComponent> instance, const std::str
 }
 
 void Script::RemoveScript(size_t index) {
-    if (index < scripts.size())
-    { scripts.erase(scripts.begin() + static_cast<std::ptrdiff_t>(index)); }
+    if (index < scripts.size()) {
+        scripts.erase(scripts.begin() + static_cast<std::ptrdiff_t>(index));
+    }
 }
 
 void Script::RemoveScript(const std::string& scriptName) {
@@ -30,16 +31,17 @@ void Script::RemoveScript(const std::string& scriptName) {
 }
 
 ScriptInstance* Script::GetScript(size_t index) {
-    if (index < scripts.size())
-    { return &scripts[index]; }
+    if (index < scripts.size()) {
+        return &scripts[index];
+    }
     return nullptr;
 }
 
 ScriptInstance* Script::GetScript(const std::string& scriptName) {
-    for (ScriptInstance& script : scripts)
-    {
-        if (script.scriptName == scriptName)
-        { return &script; }
+    for (ScriptInstance& script : scripts) {
+        if (script.scriptName == scriptName) {
+            return &script;
+        }
     }
     return nullptr;
 }

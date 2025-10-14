@@ -11,31 +11,30 @@ namespace PiiXeL {
 AnimationClip::AnimationClip(UUID uuid, const std::string& name) : Asset(uuid, AssetType::AnimationClip, name) {}
 
 bool AnimationClip::Load(const void* data, size_t size) {
-    if (!data || size == 0)
-    {
+    if (!data || size == 0) {
         PX_LOG_ERROR(ANIMATION, "Invalid data for AnimationClip");
         return false;
     }
 
-    try
-    {
+    try {
         std::string jsonStr{reinterpret_cast<const char*>(data), size};
         nlohmann::json json = nlohmann::json::parse(jsonStr);
 
-        if (json.contains("spriteSheetUUID"))
-        { m_SpriteSheetUUID = UUID{json["spriteSheetUUID"].get<uint64_t>()}; }
+        if (json.contains("spriteSheetUUID")) {
+            m_SpriteSheetUUID = UUID{json["spriteSheetUUID"].get<uint64_t>()};
+        }
 
-        if (json.contains("frameRate"))
-        { m_FrameRate = json["frameRate"].get<float>(); }
+        if (json.contains("frameRate")) {
+            m_FrameRate = json["frameRate"].get<float>();
+        }
 
-        if (json.contains("wrapMode"))
-        { m_WrapMode = static_cast<AnimationWrapMode>(json["wrapMode"].get<int>()); }
+        if (json.contains("wrapMode")) {
+            m_WrapMode = static_cast<AnimationWrapMode>(json["wrapMode"].get<int>());
+        }
 
-        if (json.contains("frames") && json["frames"].is_array())
-        {
+        if (json.contains("frames") && json["frames"].is_array()) {
             m_Frames.clear();
-            for (const auto& frameJson : json["frames"])
-            {
+            for (const auto& frameJson : json["frames"]) {
                 AnimationFrame frame{};
                 frame.frameIndex = frameJson.value("frameIndex", 0);
                 frame.duration = frameJson.value("duration", 0.1f);
@@ -46,8 +45,7 @@ bool AnimationClip::Load(const void* data, size_t size) {
         m_IsLoaded = true;
         return true;
     }
-    catch (const nlohmann::json::exception& e)
-    {
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse AnimationClip JSON: %s", e.what());
         return false;
     }
@@ -80,14 +78,16 @@ void AnimationClip::SetFrames(const std::vector<AnimationFrame>& frames) {
 void AnimationClip::SetFrameRate(float fps) {
     m_FrameRate = fps;
     float frameDuration = 1.0f / fps;
-    for (AnimationFrame& frame : m_Frames)
-    { frame.duration = frameDuration; }
+    for (AnimationFrame& frame : m_Frames) {
+        frame.duration = frameDuration;
+    }
 }
 
 float AnimationClip::GetTotalDuration() const {
     float total = 0.0f;
-    for (const AnimationFrame& frame : m_Frames)
-    { total += frame.duration; }
+    for (const AnimationFrame& frame : m_Frames) {
+        total += frame.duration;
+    }
     return total;
 }
 

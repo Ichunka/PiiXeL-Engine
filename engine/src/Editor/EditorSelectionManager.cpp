@@ -21,14 +21,17 @@ EditorSelectionManager::EditorSelectionManager() :
 void EditorSelectionManager::HandleEntitySelection(Engine* engine, EditorCamera* editorCamera, float viewportPosX,
                                                    float viewportPosY, float viewportWidth, float viewportHeight,
                                                    bool isDragging) {
-    if (isDragging || editorCamera->IsPanning())
-    { return; }
+    if (isDragging || editorCamera->IsPanning()) {
+        return;
+    }
 
-    if (!engine || !engine->GetActiveScene())
-    { return; }
+    if (!engine || !engine->GetActiveScene()) {
+        return;
+    }
 
-    if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-    { return; }
+    if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        return;
+    }
 
     Scene* scene = engine->GetActiveScene();
     entt::registry& registry = scene->GetRegistry();
@@ -38,7 +41,9 @@ void EditorSelectionManager::HandleEntitySelection(Engine* engine, EditorCamera*
 
     if (mouseViewportPos.x < 0 || mouseViewportPos.y < 0 || mouseViewportPos.x > viewportWidth ||
         mouseViewportPos.y > viewportHeight)
-    { return; }
+    {
+        return;
+    }
 
     Vector2 mouseWorldPos = editorCamera->ScreenToWorld(mouseViewportPos, viewportWidth, viewportHeight);
 
@@ -46,8 +51,9 @@ void EditorSelectionManager::HandleEntitySelection(Engine* engine, EditorCamera*
     float closestDistance = 99999.0f;
 
     registry.view<Transform, Sprite>().each([&](entt::entity entity, const Transform& transform, const Sprite& sprite) {
-        if (!sprite.IsValid())
-        { return; }
+        if (!sprite.IsValid()) {
+            return;
+        }
 
         float halfW = sprite.sourceRect.width * transform.scale.x * 0.5f;
         float halfH = sprite.sourceRect.height * transform.scale.y * 0.5f;
@@ -58,19 +64,16 @@ void EditorSelectionManager::HandleEntitySelection(Engine* engine, EditorCamera*
         float sinR = std::sin(-transform.rotation * DEG2RAD);
         Vector2 rotatedPos{localPos.x * cosR - localPos.y * sinR, localPos.x * sinR + localPos.y * cosR};
 
-        if (std::abs(rotatedPos.x) <= halfW && std::abs(rotatedPos.y) <= halfH)
-        {
+        if (std::abs(rotatedPos.x) <= halfW && std::abs(rotatedPos.y) <= halfH) {
             float distance = localPos.x * localPos.x + localPos.y * localPos.y;
-            if (distance < closestDistance)
-            {
+            if (distance < closestDistance) {
                 closestDistance = distance;
                 clickedEntity = entity;
             }
         }
     });
 
-    if (clickedEntity != entt::null)
-    {
+    if (clickedEntity != entt::null) {
         m_SelectedEntity = clickedEntity;
         m_SelectedAssetUUID = UUID{0};
         m_SelectedAssetPath.clear();

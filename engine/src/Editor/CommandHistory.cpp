@@ -18,21 +18,19 @@ void CommandHistory::ExecuteCommand(std::unique_ptr<Command> command) {
 void CommandHistory::AddCommand(std::unique_ptr<Command> command) {
     m_UndoStack.push(std::move(command));
 
-    while (!m_RedoStack.empty())
-    { m_RedoStack.pop(); }
+    while (!m_RedoStack.empty()) {
+        m_RedoStack.pop();
+    }
 
-    while (m_UndoStack.size() > m_MaxHistorySize)
-    {
+    while (m_UndoStack.size() > m_MaxHistorySize) {
         std::stack<std::unique_ptr<Command>> temp;
-        while (m_UndoStack.size() > 1)
-        {
+        while (m_UndoStack.size() > 1) {
             temp.push(std::move(const_cast<std::unique_ptr<Command>&>(m_UndoStack.top())));
             m_UndoStack.pop();
         }
         m_UndoStack.pop();
 
-        while (!temp.empty())
-        {
+        while (!temp.empty()) {
             m_UndoStack.push(std::move(const_cast<std::unique_ptr<Command>&>(temp.top())));
             temp.pop();
         }
@@ -40,8 +38,9 @@ void CommandHistory::AddCommand(std::unique_ptr<Command> command) {
 }
 
 void CommandHistory::Undo() {
-    if (!CanUndo())
-    { return; }
+    if (!CanUndo()) {
+        return;
+    }
 
     std::unique_ptr<Command> command = std::move(const_cast<std::unique_ptr<Command>&>(m_UndoStack.top()));
     m_UndoStack.pop();
@@ -51,8 +50,9 @@ void CommandHistory::Undo() {
 }
 
 void CommandHistory::Redo() {
-    if (!CanRedo())
-    { return; }
+    if (!CanRedo()) {
+        return;
+    }
 
     std::unique_ptr<Command> command = std::move(const_cast<std::unique_ptr<Command>&>(m_RedoStack.top()));
     m_RedoStack.pop();
@@ -70,10 +70,12 @@ bool CommandHistory::CanRedo() const {
 }
 
 void CommandHistory::Clear() {
-    while (!m_UndoStack.empty())
-    { m_UndoStack.pop(); }
-    while (!m_RedoStack.empty())
-    { m_RedoStack.pop(); }
+    while (!m_UndoStack.empty()) {
+        m_UndoStack.pop();
+    }
+    while (!m_RedoStack.empty()) {
+        m_RedoStack.pop();
+    }
 }
 
 } // namespace PiiXeL

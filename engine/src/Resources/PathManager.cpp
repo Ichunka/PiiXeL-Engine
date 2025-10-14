@@ -13,8 +13,9 @@ PathManager& PathManager::Instance() {
 }
 
 void PathManager::Initialize() {
-    if (m_Initialized)
-    { return; }
+    if (m_Initialized) {
+        return;
+    }
 
     std::filesystem::path executablePath{GetApplicationDirectory()};
 
@@ -33,16 +34,18 @@ void PathManager::Initialize() {
 }
 
 std::string PathManager::GetEngineAssetsPath(const std::string& relativePath) const {
-    if (relativePath.empty())
-    { return m_EngineAssetsPath; }
+    if (relativePath.empty()) {
+        return m_EngineAssetsPath;
+    }
 
     std::filesystem::path fullPath = std::filesystem::path{m_EngineAssetsPath} / relativePath;
     return fullPath.string();
 }
 
 std::string PathManager::GetGameAssetsPath(const std::string& relativePath) const {
-    if (relativePath.empty())
-    { return m_GameAssetsPath; }
+    if (relativePath.empty()) {
+        return m_GameAssetsPath;
+    }
 
     std::filesystem::path fullPath = std::filesystem::path{m_GameAssetsPath} / relativePath;
     return fullPath.string();

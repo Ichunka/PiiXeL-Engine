@@ -20,23 +20,21 @@ void ScriptSystem::OnUpdate(Scene* scene, float deltaTime) {
     entt::registry& registry = scene->GetRegistry();
 
     auto view = registry.view<Script>();
-    for (auto entity : view)
-    {
+    for (auto entity : view) {
         Script& scriptComponent = view.get<Script>(entity);
 
-        for (ScriptInstance& script : scriptComponent.scripts)
-        {
-            if (!script.instance && !script.scriptName.empty())
-            {
+        for (ScriptInstance& script : scriptComponent.scripts) {
+            if (!script.instance && !script.scriptName.empty()) {
                 script.instance = CreateScript(script.scriptName);
-                if (script.instance)
-                { script.instance->Initialize(entity, scene); }
+                if (script.instance) {
+                    script.instance->Initialize(entity, scene);
+                }
             }
 
-            if (script.instance)
-            {
-                if (!script.instance->GetScene())
-                { script.instance->Initialize(entity, scene); }
+            if (script.instance) {
+                if (!script.instance->GetScene()) {
+                    script.instance->Initialize(entity, scene);
+                }
 
                 script.instance->ExecuteUpdate(deltaTime);
             }
@@ -51,21 +49,20 @@ void ScriptSystem::OnFixedUpdate(Scene* scene, float fixedDeltaTime) {
     entt::registry& registry = scene->GetRegistry();
 
     auto view = registry.view<Script>();
-    for (auto entity : view)
-    {
+    for (auto entity : view) {
         Script& scriptComponent = view.get<Script>(entity);
 
-        for (ScriptInstance& script : scriptComponent.scripts)
-        {
-            if (!script.instance && !script.scriptName.empty())
-            {
+        for (ScriptInstance& script : scriptComponent.scripts) {
+            if (!script.instance && !script.scriptName.empty()) {
                 script.instance = CreateScript(script.scriptName);
-                if (script.instance)
-                { script.instance->Initialize(entity, scene); }
+                if (script.instance) {
+                    script.instance->Initialize(entity, scene);
+                }
             }
 
-            if (script.instance && script.instance->GetScene())
-            { script.instance->ExecuteFixedUpdate(fixedDeltaTime); }
+            if (script.instance && script.instance->GetScene()) {
+                script.instance->ExecuteFixedUpdate(fixedDeltaTime);
+            }
         }
     }
 }

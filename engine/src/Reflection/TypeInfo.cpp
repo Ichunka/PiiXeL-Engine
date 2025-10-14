@@ -10,10 +10,10 @@ void TypeInfo::AddField(FieldInfo field) {
 }
 
 const FieldInfo* TypeInfo::GetField(const std::string& name) const {
-    for (const FieldInfo& field : m_Fields)
-    {
-        if (field.name == name)
-        { return &field; }
+    for (const FieldInfo& field : m_Fields) {
+        if (field.name == name) {
+            return &field;
+        }
     }
     return nullptr;
 }

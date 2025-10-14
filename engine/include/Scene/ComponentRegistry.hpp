@@ -26,8 +26,9 @@ public:
     void DeserializeComponent(const std::string& name, entt::registry& registry, entt::entity entity,
                               const nlohmann::json& data) {
         auto it = m_Components.find(name);
-        if (it != m_Components.end())
-        { it->second(registry, entity, data); }
+        if (it != m_Components.end()) {
+            it->second(registry, entity, data);
+        }
     }
 
     const std::unordered_map<std::string, DeserializeFunc>& GetAll() const { return m_Components; }

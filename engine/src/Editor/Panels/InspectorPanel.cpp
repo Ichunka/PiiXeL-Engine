@@ -71,8 +71,7 @@ void InspectorPanel::OnImGuiRender() {
         return;
     }
 
-    if (m_SelectedAssetUUID->Get() != 0 || !m_SelectedAssetPath->empty())
-    {
+    if (m_SelectedAssetUUID->Get() != 0 || !m_SelectedAssetPath->empty()) {
         RenderAssetInspector();
         ImGui::End();
         return;
@@ -90,32 +89,27 @@ void InspectorPanel::RenderAssetInspector() {
     std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*m_SelectedAssetUUID);
 
     bool isSceneFile = false;
-    if (m_SelectedAssetPath->size() >= 6)
-    {
+    if (m_SelectedAssetPath->size() >= 6) {
         std::string extension = m_SelectedAssetPath->substr(m_SelectedAssetPath->size() - 6);
         isSceneFile = (extension == ".scene");
     }
 
-    if (!asset && m_SelectedAssetUUID->Get() == 0 && !m_SelectedAssetPath->empty() && !isSceneFile)
-    {
+    if (!asset && m_SelectedAssetUUID->Get() == 0 && !m_SelectedAssetPath->empty() && !isSceneFile) {
         auto result = AssetRegistry::Instance().LoadAssetFromPath(*m_SelectedAssetPath);
-        if (result)
-        {
+        if (result) {
             asset = result;
             *m_SelectedAssetUUID = asset->GetUUID();
         }
     }
 
-    if (asset)
-    {
+    if (asset) {
         const AssetMetadata& metadata = asset->GetMetadata();
 
         ImGui::Text("Name: %s", metadata.name.c_str());
         ImGui::Text("UUID: %" PRIu64, metadata.uuid.Get());
 
         const char* typeStr = "Unknown";
-        switch (metadata.type)
-        {
+        switch (metadata.type) {
             case AssetType::Texture:
                 typeStr = "Texture";
                 break;
@@ -145,11 +139,9 @@ void InspectorPanel::RenderAssetInspector() {
 
         ImGui::Separator();
 
-        if (metadata.type == AssetType::Texture)
-        {
+        if (metadata.type == AssetType::Texture) {
             TextureAsset* texAsset = dynamic_cast<TextureAsset*>(asset.get());
-            if (texAsset)
-            {
+            if (texAsset) {
                 ImGui::Text("Dimensions: %dx%d", texAsset->GetWidth(), texAsset->GetHeight());
                 ImGui::Text("Mipmaps: %d", texAsset->GetMipmaps());
                 ImGui::Text("Format: %d", texAsset->GetFormat());
@@ -158,8 +150,7 @@ void InspectorPanel::RenderAssetInspector() {
                 ImGui::Text("Preview:");
 
                 Texture2D texture = texAsset->GetTexture();
-                if (texture.id != 0)
-                {
+                if (texture.id != 0) {
                     float maxWidth = ImGui::GetContentRegionAvail().x - 20.0f;
                     float maxHeight = 256.0f;
 
@@ -167,8 +158,7 @@ void InspectorPanel::RenderAssetInspector() {
                     float displayWidth = maxWidth;
                     float displayHeight = displayWidth / aspectRatio;
 
-                    if (displayHeight > maxHeight)
-                    {
+                    if (displayHeight > maxHeight) {
                         displayHeight = maxHeight;
                         displayWidth = displayHeight * aspectRatio;
                     }
@@ -177,49 +167,43 @@ void InspectorPanel::RenderAssetInspector() {
                 }
             }
         }
-        else if (metadata.type == AssetType::Audio)
-        {
+        else if (metadata.type == AssetType::Audio) {
             AudioAsset* audioAsset = dynamic_cast<AudioAsset*>(asset.get());
-            if (audioAsset)
-            {
+            if (audioAsset) {
                 ImGui::Text("Frames: %u", audioAsset->GetFrameCount());
 
                 ImGui::Separator();
 
                 Sound sound = audioAsset->GetSound();
-                if (sound.frameCount > 0)
-                {
-                    if (ImGui::Button("Play"))
-                    { PlaySound(sound); }
+                if (sound.frameCount > 0) {
+                    if (ImGui::Button("Play")) {
+                        PlaySound(sound);
+                    }
                     ImGui::SameLine();
-                    if (ImGui::Button("Stop"))
-                    { StopSound(sound); }
+                    if (ImGui::Button("Stop")) {
+                        StopSound(sound);
+                    }
                 }
             }
         }
-        else if (metadata.type == AssetType::SpriteSheet)
-        {
+        else if (metadata.type == AssetType::SpriteSheet) {
             SpriteSheet* spriteSheet = dynamic_cast<SpriteSheet*>(asset.get());
-            if (spriteSheet)
-            {
+            if (spriteSheet) {
                 ImGui::Text("Texture UUID: %" PRIu64, spriteSheet->GetTextureUUID().Get());
                 ImGui::Text("Grid: %dx%d", spriteSheet->GetGridColumns(), spriteSheet->GetGridRows());
                 ImGui::Text("Frame Count: %zu", spriteSheet->GetFrames().size());
             }
         }
-        else if (metadata.type == AssetType::AnimationClip)
-        {
+        else if (metadata.type == AssetType::AnimationClip) {
             AnimationClip* animClip = dynamic_cast<AnimationClip*>(asset.get());
-            if (animClip)
-            {
+            if (animClip) {
                 ImGui::Text("Sprite Sheet UUID: %" PRIu64, animClip->GetSpriteSheetUUID().Get());
                 ImGui::Text("Frame Count: %zu", animClip->GetFrames().size());
                 ImGui::Text("Frame Rate: %.1f fps", animClip->GetFrameRate());
                 ImGui::Text("Duration: %.2f seconds", animClip->GetTotalDuration());
 
                 const char* wrapModeStr = "Unknown";
-                switch (animClip->GetWrapMode())
-                {
+                switch (animClip->GetWrapMode()) {
                     case AnimationWrapMode::Once:
                         wrapModeStr = "Once";
                         break;
@@ -233,11 +217,9 @@ void InspectorPanel::RenderAssetInspector() {
                 ImGui::Text("Wrap Mode: %s", wrapModeStr);
             }
         }
-        else if (metadata.type == AssetType::AnimatorController)
-        {
+        else if (metadata.type == AssetType::AnimatorController) {
             AnimatorController* controller = dynamic_cast<AnimatorController*>(asset.get());
-            if (controller)
-            {
+            if (controller) {
                 ImGui::Text("Default State: %s", controller->GetDefaultState().c_str());
                 ImGui::Text("Parameters: %zu", controller->GetParameters().size());
                 ImGui::Text("States: %zu", controller->GetStates().size());
@@ -247,37 +229,34 @@ void InspectorPanel::RenderAssetInspector() {
 
         ImGui::Separator();
 
-        if (ImGui::Button("Reimport"))
-        { AssetRegistry::Instance().ReimportAsset(metadata.sourceFile); }
+        if (ImGui::Button("Reimport")) {
+            AssetRegistry::Instance().ReimportAsset(metadata.sourceFile);
+        }
     }
-    else
-    {
+    else {
         ImGui::Text("Path: %s", m_SelectedAssetPath->c_str());
         ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "Scene file (not an importable asset)");
     }
 }
 
 void InspectorPanel::RenderEntityInspector() {
-    if (ImGui::Button(*m_InspectorLocked ? "Unlock" : "Lock"))
-    {
+    if (ImGui::Button(*m_InspectorLocked ? "Unlock" : "Lock")) {
         *m_InspectorLocked = !*m_InspectorLocked;
-        if (*m_InspectorLocked)
-        { *m_LockedEntity = *m_SelectedEntity; }
+        if (*m_InspectorLocked) {
+            *m_LockedEntity = *m_SelectedEntity;
+        }
     }
     ImGui::SameLine();
     ImGui::TextDisabled(*m_InspectorLocked ? "(Inspector Locked)" : "(Inspector Unlocked)");
 
     entt::entity inspectedEntity = *m_InspectorLocked ? *m_LockedEntity : *m_SelectedEntity;
 
-    if (inspectedEntity != entt::null && m_Engine && m_Engine->GetActiveScene())
-    {
+    if (inspectedEntity != entt::null && m_Engine && m_Engine->GetActiveScene()) {
         Scene* scene = m_Engine->GetActiveScene();
         entt::registry& registry = scene->GetRegistry();
 
-        if (registry.valid(inspectedEntity))
-        {
-            if (registry.all_of<Tag>(inspectedEntity))
-            {
+        if (registry.valid(inspectedEntity)) {
+            if (registry.all_of<Tag>(inspectedEntity)) {
                 Tag& tag = registry.get<Tag>(inspectedEntity);
 
                 char buffer[256]{};
@@ -285,24 +264,28 @@ void InspectorPanel::RenderEntityInspector() {
                 std::memcpy(buffer, tag.name.c_str(), copyLen);
                 buffer[sizeof(buffer) - 1] = '\0';
 
-                if (ImGui::InputText("Name", buffer, sizeof(buffer)))
-                { tag.name = std::string(buffer); }
+                if (ImGui::InputText("Name", buffer, sizeof(buffer))) {
+                    tag.name = std::string(buffer);
+                }
             }
 
             ImGui::Separator();
 
-            if (registry.all_of<Transform>(inspectedEntity))
-            { RenderTransformComponent(registry, inspectedEntity); }
+            if (registry.all_of<Transform>(inspectedEntity)) {
+                RenderTransformComponent(registry, inspectedEntity);
+            }
 
-            if (registry.all_of<Sprite>(inspectedEntity))
-            { RenderSpriteComponent(registry, inspectedEntity); }
+            if (registry.all_of<Sprite>(inspectedEntity)) {
+                RenderSpriteComponent(registry, inspectedEntity);
+            }
 
             ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, *m_CommandHistory,
                                                                          m_RenderEntityPickerCallback,
                                                                          m_RenderAssetPickerCallback);
 
-            if (registry.all_of<Script>(inspectedEntity))
-            { RenderScriptComponent(registry, inspectedEntity); }
+            if (registry.all_of<Script>(inspectedEntity)) {
+                RenderScriptComponent(registry, inspectedEntity);
+            }
 
             ImGui::Separator();
 
@@ -312,25 +295,24 @@ void InspectorPanel::RenderEntityInspector() {
 }
 
 void InspectorPanel::RenderTransformComponent(entt::registry& registry, entt::entity entity) {
-    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
-    {
+    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
         Transform& transform = registry.get<Transform>(entity);
 
-        if (!*m_IsModifyingTransform)
-        { *m_CachedTransform = transform; }
+        if (!*m_IsModifyingTransform) {
+            *m_CachedTransform = transform;
+        }
 
         bool posModified = ImGui::DragFloat2("Position", &transform.position.x, 1.0f);
         bool rotModified = ImGui::DragFloat("Rotation", &transform.rotation, 0.5f);
         bool scaleModified = ImGui::DragFloat2("Scale", &transform.scale.x, 1.0f);
 
-        if (posModified || rotModified || scaleModified)
-        {
-            if (!*m_IsModifyingTransform)
-            { *m_IsModifyingTransform = true; }
+        if (posModified || rotModified || scaleModified) {
+            if (!*m_IsModifyingTransform) {
+                *m_IsModifyingTransform = true;
+            }
         }
 
-        if (*m_IsModifyingTransform && !ImGui::IsAnyItemActive())
-        {
+        if (*m_IsModifyingTransform && !ImGui::IsAnyItemActive()) {
             if (m_CachedTransform->position.x != transform.position.x ||
                 m_CachedTransform->position.y != transform.position.y ||
                 m_CachedTransform->rotation != transform.rotation || m_CachedTransform->scale.x != transform.scale.x ||
@@ -351,11 +333,11 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
     ImGui::AlignTextToFramePadding();
     bool spriteOpen = ImGui::TreeNodeEx("Sprite", ImGuiTreeNodeFlags_DefaultOpen);
     ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 25);
-    if (ImGui::SmallButton("X##RemoveSprite"))
-    { removeSprite = true; }
+    if (ImGui::SmallButton("X##RemoveSprite")) {
+        removeSprite = true;
+    }
 
-    if (spriteOpen)
-    {
+    if (spriteOpen) {
         Sprite& sprite = registry.get<Sprite>(entity);
 
         ImGui::Text("Texture");
@@ -367,11 +349,9 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
         float previewHeight = 100.0f;
         bool isDefaultTexture = true;
 
-        if (sprite.IsValid())
-        {
+        if (sprite.IsValid()) {
             Texture2D texture = sprite.GetTexture();
-            if (texture.id != 0)
-            {
+            if (texture.id != 0) {
                 displayTexture = texture;
                 isDefaultTexture = false;
                 float aspectRatio = static_cast<float>(texture.width) / static_cast<float>(texture.height);
@@ -379,24 +359,20 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
             }
         }
 
-        if (displayTexture.id == 0)
-        { ImGui::TextColored(ImVec4{1.0f, 0.0f, 0.0f, 1.0f}, "ERROR: No texture to display!"); }
-        else
-        {
+        if (displayTexture.id == 0) {
+            ImGui::TextColored(ImVec4{1.0f, 0.0f, 0.0f, 1.0f}, "ERROR: No texture to display!");
+        }
+        else {
             ImTextureID texId = static_cast<ImTextureID>(static_cast<intptr_t>(displayTexture.id));
-            if (ImGui::ImageButton("##TexturePreview", texId, ImVec2{previewWidth, previewHeight}))
-            {}
+            if (ImGui::ImageButton("##TexturePreview", texId, ImVec2{previewWidth, previewHeight})) {
+            }
 
-            if (ImGui::BeginDragDropTarget())
-            {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE"))
-                {
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
                     AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
-                    if (assetInfo)
-                    {
+                    if (assetInfo) {
                         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
-                        if (asset && asset->GetMetadata().type == AssetType::Texture)
-                        {
+                        if (asset && asset->GetMetadata().type == AssetType::Texture) {
                             sprite.SetTexture(asset->GetUUID());
                             PX_LOG_INFO(EDITOR, "Texture assigned: %s", assetInfo->path.c_str());
                         }
@@ -405,8 +381,7 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
                 ImGui::EndDragDropTarget();
             }
 
-            if (isDefaultTexture)
-            {
+            if (isDefaultTexture) {
                 ImGui::SameLine();
                 ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "(None)");
             }
@@ -414,11 +389,11 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
 
         ImGui::PopStyleColor();
 
-        if (sprite.IsValid())
-        {
+        if (sprite.IsValid()) {
             Texture2D texture = sprite.GetTexture();
-            if (texture.id != 0)
-            { ImGui::Text("%dx%d", texture.width, texture.height); }
+            if (texture.id != 0) {
+                ImGui::Text("%dx%d", texture.width, texture.height);
+            }
         }
 
         Reflection::ImGuiRenderer::RenderProperties(sprite, m_RenderEntityPickerCallback, m_RenderAssetPickerCallback);
@@ -426,8 +401,9 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
         ImGui::TreePop();
     }
 
-    if (removeSprite)
-    { m_CommandHistory->ExecuteCommand(std::make_unique<RemoveComponentCommand<Sprite>>(&registry, entity)); }
+    if (removeSprite) {
+        m_CommandHistory->ExecuteCommand(std::make_unique<RemoveComponentCommand<Sprite>>(&registry, entity));
+    }
 }
 
 void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entity entity) {
@@ -438,16 +414,15 @@ void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entit
     bool scriptOpen = ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_DefaultOpen);
 
     ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
-    if (ImGui::SmallButton("X##RemoveScript"))
-    { removeScriptComponent = true; }
+    if (ImGui::SmallButton("X##RemoveScript")) {
+        removeScriptComponent = true;
+    }
 
-    if (scriptOpen)
-    {
+    if (scriptOpen) {
         Script& scriptComponent = registry.get<Script>(entity);
 
         int scriptToRemove = -1;
-        for (size_t i = 0; i < scriptComponent.scripts.size(); ++i)
-        {
+        for (size_t i = 0; i < scriptComponent.scripts.size(); ++i) {
             ImGui::PushID(static_cast<int>(i));
             ScriptInstance& script = scriptComponent.scripts[i];
 
@@ -459,22 +434,19 @@ void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entit
             ImGui::Text("[%zu] %s", i, script.scriptName.c_str());
 
             ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
-            if (ImGui::SmallButton("X"))
-            { scriptToRemove = static_cast<int>(i); }
+            if (ImGui::SmallButton("X")) {
+                scriptToRemove = static_cast<int>(i);
+            }
 
-            if (scriptItemOpen)
-            {
-                if (script.instance)
-                {
+            if (scriptItemOpen) {
+                if (script.instance) {
                     ImGui::Checkbox("Enabled", &script.instance->m_Enabled);
                     ImGui::Spacing();
 
                     const Reflection::TypeInfo* typeInfo =
                         Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-                    if (typeInfo)
-                    {
-                        for (const Reflection::FieldInfo& field : typeInfo->GetFields())
-                        {
+                    if (typeInfo) {
+                        for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                             if (field.flags & Reflection::FieldFlags::ReadOnly)
                                 continue;
                             void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
@@ -483,8 +455,7 @@ void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entit
                         }
                     }
                 }
-                else
-                {
+                else {
                     ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.0f, 1.0f}, "Script not loaded: %s",
                                        script.scriptName.c_str());
                 }
@@ -495,29 +466,26 @@ void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entit
             ImGui::PopID();
         }
 
-        if (scriptToRemove >= 0)
-        { scriptComponent.RemoveScript(static_cast<size_t>(scriptToRemove)); }
+        if (scriptToRemove >= 0) {
+            scriptComponent.RemoveScript(static_cast<size_t>(scriptToRemove));
+        }
 
         ImGui::Spacing();
-        if (m_Engine && m_Engine->GetScriptSystem())
-        {
+        if (m_Engine && m_Engine->GetScriptSystem()) {
             ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
             const auto& registeredScripts = ScriptRegistry::Instance().GetAllScripts();
 
-            if (ImGui::Button("+ Add Script", ImVec2{-1, 0}))
-            { ImGui::OpenPopup("AddScriptPopup"); }
+            if (ImGui::Button("+ Add Script", ImVec2{-1, 0})) {
+                ImGui::OpenPopup("AddScriptPopup");
+            }
 
-            if (ImGui::BeginPopup("AddScriptPopup"))
-            {
+            if (ImGui::BeginPopup("AddScriptPopup")) {
                 ImGui::Text("Select a script:");
                 ImGui::Separator();
-                for (const auto& [name, factory] : registeredScripts)
-                {
-                    if (ImGui::Selectable(name.c_str()))
-                    {
+                for (const auto& [name, factory] : registeredScripts) {
+                    if (ImGui::Selectable(name.c_str())) {
                         std::shared_ptr<ScriptComponent> instance = scriptSystem->CreateScript(name);
-                        if (instance)
-                        {
+                        if (instance) {
                             instance->Initialize(entity, m_Engine->GetActiveScene());
                             scriptComponent.AddScript(instance, name);
                         }
@@ -531,30 +499,29 @@ void InspectorPanel::RenderScriptComponent(entt::registry& registry, entt::entit
         ImGui::TreePop();
     }
 
-    if (removeScriptComponent)
-    { registry.remove<Script>(entity); }
+    if (removeScriptComponent) {
+        registry.remove<Script>(entity);
+    }
 }
 
 void InspectorPanel::RenderAddComponentMenu(entt::registry& registry, entt::entity entity) {
-    if (ImGui::Button("Add Component"))
-    { ImGui::OpenPopup("AddComponentPopup"); }
+    if (ImGui::Button("Add Component")) {
+        ImGui::OpenPopup("AddComponentPopup");
+    }
 
-    if (ImGui::BeginPopup("AddComponentPopup"))
-    {
-        if (ImGui::MenuItem("Sprite"))
-        {
-            if (!registry.all_of<Sprite>(entity))
-            {
+    if (ImGui::BeginPopup("AddComponentPopup")) {
+        if (ImGui::MenuItem("Sprite")) {
+            if (!registry.all_of<Sprite>(entity)) {
                 m_CommandHistory->ExecuteCommand(
                     std::make_unique<AddComponentCommand<Sprite>>(&registry, entity, Sprite{}));
             }
         }
         ComponentModuleRegistry::Instance().RenderAddComponentMenu(registry, entity, *m_CommandHistory);
 
-        if (ImGui::MenuItem("Script"))
-        {
-            if (!registry.all_of<Script>(entity))
-            { registry.emplace<Script>(entity); }
+        if (ImGui::MenuItem("Script")) {
+            if (!registry.all_of<Script>(entity)) {
+                registry.emplace<Script>(entity);
+            }
         }
         ImGui::EndPopup();
     }

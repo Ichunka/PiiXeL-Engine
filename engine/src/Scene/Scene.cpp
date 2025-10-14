@@ -38,15 +38,15 @@ entt::entity Scene::CreateEntity(const std::string& name) {
 }
 
 void Scene::DestroyEntity(entt::entity entity) {
-    if (m_Registry.all_of<UUID>(entity))
-    {
+    if (m_Registry.all_of<UUID>(entity)) {
         UUID uuid = m_Registry.get<UUID>(entity);
         EntityRegistry::Instance().UnregisterEntity(uuid);
     }
 
     auto it = std::find(m_EntityOrder.begin(), m_EntityOrder.end(), entity);
-    if (it != m_EntityOrder.end())
-    { m_EntityOrder.erase(it); }
+    if (it != m_EntityOrder.end()) {
+        m_EntityOrder.erase(it);
+    }
 
     m_Registry.destroy(entity);
 }

@@ -9,14 +9,14 @@ namespace PiiXeL {
 EditorCamera::EditorCamera() : m_Position{0.0f, 0.0f}, m_Zoom{1.0f}, m_LastMousePos{0.0f, 0.0f}, m_IsPanning{false} {}
 
 void EditorCamera::HandleInput(bool isViewportHovered, bool isViewportFocused) {
-    if (!isViewportHovered || !isViewportFocused)
-    { return; }
+    if (!isViewportHovered || !isViewportFocused) {
+        return;
+    }
 
     Vector2 mousePos = GetMousePosition();
     float wheel = GetMouseWheelMove();
 
-    if (wheel != 0.0f)
-    {
+    if (wheel != 0.0f) {
         m_Zoom += wheel * 0.1f * m_Zoom;
         if (m_Zoom < 0.1f)
             m_Zoom = 0.1f;
@@ -24,17 +24,16 @@ void EditorCamera::HandleInput(bool isViewportHovered, bool isViewportFocused) {
             m_Zoom = 10.0f;
     }
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))
-    {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
         m_IsPanning = true;
         m_LastMousePos = mousePos;
     }
 
-    if (IsMouseButtonReleased(MOUSE_BUTTON_MIDDLE))
-    { m_IsPanning = false; }
+    if (IsMouseButtonReleased(MOUSE_BUTTON_MIDDLE)) {
+        m_IsPanning = false;
+    }
 
-    if (m_IsPanning)
-    {
+    if (m_IsPanning) {
         Vector2 delta{mousePos.x - m_LastMousePos.x, mousePos.y - m_LastMousePos.y};
         m_Position.x -= delta.x / m_Zoom;
         m_Position.y -= delta.y / m_Zoom;

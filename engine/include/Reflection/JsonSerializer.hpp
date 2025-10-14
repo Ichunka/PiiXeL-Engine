@@ -16,14 +16,15 @@ public:
     template <typename T>
     static nlohmann::json Serialize(const T& object) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
-        if (!typeInfo)
-        { return nlohmann::json::object(); }
+        if (!typeInfo) {
+            return nlohmann::json::object();
+        }
 
         nlohmann::json j;
-        for (const FieldInfo& field : typeInfo->GetFields())
-        {
-            if (!(field.flags & FieldFlags::Serializable))
-            { continue; }
+        for (const FieldInfo& field : typeInfo->GetFields()) {
+            if (!(field.flags & FieldFlags::Serializable)) {
+                continue;
+            }
 
             const void* fieldPtr = field.getConstPtr(static_cast<const void*>(&object));
             j[field.name] = SerializeField(field, fieldPtr);
@@ -35,16 +36,18 @@ public:
     template <typename T>
     static void Deserialize(const nlohmann::json& j, T& object) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
-        if (!typeInfo)
-        { return; }
+        if (!typeInfo) {
+            return;
+        }
 
-        for (const FieldInfo& field : typeInfo->GetFields())
-        {
-            if (!(field.flags & FieldFlags::Serializable))
-            { continue; }
+        for (const FieldInfo& field : typeInfo->GetFields()) {
+            if (!(field.flags & FieldFlags::Serializable)) {
+                continue;
+            }
 
-            if (!j.contains(field.name))
-            { continue; }
+            if (!j.contains(field.name)) {
+                continue;
+            }
 
             void* fieldPtr = field.getPtr(static_cast<void*>(&object));
             DeserializeField(field, j[field.name], fieldPtr);

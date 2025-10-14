@@ -40,63 +40,68 @@ Application::~Application() {
 }
 
 void Application::Initialize() {
-    if (m_Initialized)
-    { return; }
+    if (m_Initialized) {
+        return;
+    }
 
     PathManager::Instance().Initialize();
     SetExitKey(0);
 
 #ifndef BUILD_WITH_EDITOR
-    if (m_Config.resizable)
-    { SetConfigFlags(FLAG_WINDOW_RESIZABLE); }
-    if (m_Config.vsync)
-    { SetConfigFlags(FLAG_VSYNC_HINT); }
+    if (m_Config.resizable) {
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    }
+    if (m_Config.vsync) {
+        SetConfigFlags(FLAG_VSYNC_HINT);
+    }
 
     InitWindow(m_Config.windowWidth, m_Config.windowHeight, m_Config.title.c_str());
     SetTargetFPS(m_Config.targetFPS);
 
-    if (m_Config.fullscreen)
-    { ToggleFullscreen(); }
+    if (m_Config.fullscreen) {
+        ToggleFullscreen();
+    }
 
-    if (!m_Config.iconPath.empty())
-    {
+    if (!m_Config.iconPath.empty()) {
         Image iconImage{};
 
-        if (m_Config.packageLoader)
-        {
+        if (m_Config.packageLoader) {
             const GamePackage& package = m_Config.packageLoader->GetPackage();
             const AssetData* iconAsset = package.GetAsset(m_Config.iconPath);
 
-            if (iconAsset && iconAsset->type == "texture")
-            {
+            if (iconAsset && iconAsset->type == "texture") {
                 iconImage =
                     LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
-                if (iconImage.data != nullptr)
-                { PX_LOG_INFO(ENGINE, "Window icon loaded from package: %s", m_Config.iconPath.c_str()); }
-                else
-                { PX_LOG_WARNING(ENGINE, "Failed to load window icon from package: %s", m_Config.iconPath.c_str()); }
+                if (iconImage.data != nullptr) {
+                    PX_LOG_INFO(ENGINE, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
+                }
+                else {
+                    PX_LOG_WARNING(ENGINE, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
+                }
             }
-            else
-            { PX_LOG_WARNING(ENGINE, "Window icon not found in package: %s", m_Config.iconPath.c_str()); }
+            else {
+                PX_LOG_WARNING(ENGINE, "Window icon not found in package: %s", m_Config.iconPath.c_str());
+            }
         }
-        else
-        {
-            if (FileExists(m_Config.iconPath.c_str()))
-            {
+        else {
+            if (FileExists(m_Config.iconPath.c_str())) {
                 iconImage = LoadImage(m_Config.iconPath.c_str());
-                if (iconImage.data != nullptr)
-                { PX_LOG_INFO(ENGINE, "Window icon loaded from disk: %s", m_Config.iconPath.c_str()); }
-                else
-                { PX_LOG_WARNING(ENGINE, "Failed to load window icon: %s", m_Config.iconPath.c_str()); }
+                if (iconImage.data != nullptr) {
+                    PX_LOG_INFO(ENGINE, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
+                }
+                else {
+                    PX_LOG_WARNING(ENGINE, "Failed to load window icon: %s", m_Config.iconPath.c_str());
+                }
             }
-            else
-            { PX_LOG_WARNING(ENGINE, "Window icon file not found: %s", m_Config.iconPath.c_str()); }
+            else {
+                PX_LOG_WARNING(ENGINE, "Window icon file not found: %s", m_Config.iconPath.c_str());
+            }
         }
 
-        if (iconImage.data != nullptr)
-        {
-            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
-            { ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); }
+        if (iconImage.data != nullptr) {
+            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            }
             SetWindowIcon(iconImage);
             UnloadImage(iconImage);
             PX_LOG_INFO(ENGINE, "Window icon set successfully");
@@ -108,8 +113,7 @@ void Application::Initialize() {
 
     float lastTime{static_cast<float>(GetTime())};
 
-    while (!splashScreen.IsFinished() && !WindowShouldClose())
-    {
+    while (!splashScreen.IsFinished() && !WindowShouldClose()) {
         float currentTime{static_cast<float>(GetTime())};
         float deltaTime{currentTime - lastTime};
         lastTime = currentTime;
@@ -120,8 +124,7 @@ void Application::Initialize() {
         splashScreen.Render();
         EndDrawing();
 
-        if (!m_Initialized)
-        {
+        if (!m_Initialized) {
             m_Engine = std::make_unique<Engine>();
             m_Engine->Initialize();
 
@@ -137,10 +140,12 @@ void Application::Initialize() {
         }
     }
 #else
-    if (m_Config.resizable)
-    { SetConfigFlags(FLAG_WINDOW_RESIZABLE); }
-    if (m_Config.vsync)
-    { SetConfigFlags(FLAG_VSYNC_HINT); }
+    if (m_Config.resizable) {
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    }
+    if (m_Config.vsync) {
+        SetConfigFlags(FLAG_VSYNC_HINT);
+    }
 
     InitWindow(800, 450, "PiiXeL Engine - Loading Assets");
     SetTargetFPS(60);
@@ -178,16 +183,16 @@ void Application::Initialize() {
     SetWindowTitle(m_Config.title.c_str());
     SetTargetFPS(m_Config.targetFPS);
 
-    if (m_Config.fullscreen)
-    { ToggleFullscreen(); }
+    if (m_Config.fullscreen) {
+        ToggleFullscreen();
+    }
 
-    if (!m_Config.iconPath.empty() && FileExists(m_Config.iconPath.c_str()))
-    {
+    if (!m_Config.iconPath.empty() && FileExists(m_Config.iconPath.c_str())) {
         Image iconImage = LoadImage(m_Config.iconPath.c_str());
-        if (iconImage.data != nullptr)
-        {
-            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
-            { ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); }
+        if (iconImage.data != nullptr) {
+            if (iconImage.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                ImageFormat(&iconImage, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            }
             SetWindowIcon(iconImage);
             UnloadImage(iconImage);
         }
@@ -215,8 +220,7 @@ void Application::Run() {
 
     float lastTime{static_cast<float>(GetTime())};
 
-    while (m_Running && !WindowShouldClose())
-    {
+    while (m_Running && !WindowShouldClose()) {
 #ifdef BUILD_WITH_EDITOR
         Profiler::Instance().BeginFrame();
 #endif
@@ -266,21 +270,24 @@ void Application::Run() {
 }
 
 void Application::Update(float deltaTime) {
-    if (IsKeyPressed(KEY_F11))
-    {
+    if (IsKeyPressed(KEY_F11)) {
         ToggleFullscreen();
-        if (IsWindowFullscreen())
-        { PX_LOG_INFO(ENGINE, "Switched to FULLSCREEN mode (F11 to exit)"); }
-        else
-        { PX_LOG_INFO(ENGINE, "Switched to WINDOWED mode (F11 for fullscreen)"); }
+        if (IsWindowFullscreen()) {
+            PX_LOG_INFO(ENGINE, "Switched to FULLSCREEN mode (F11 to exit)");
+        }
+        else {
+            PX_LOG_INFO(ENGINE, "Switched to WINDOWED mode (F11 for fullscreen)");
+        }
     }
 
-    if (m_Engine)
-    { m_Engine->Update(deltaTime); }
+    if (m_Engine) {
+        m_Engine->Update(deltaTime);
+    }
 
 #ifdef BUILD_WITH_EDITOR
-    if (m_EditorLayer)
-    { m_EditorLayer->OnUpdate(deltaTime); }
+    if (m_EditorLayer) {
+        m_EditorLayer->OnUpdate(deltaTime);
+    }
 #endif
 }
 
@@ -291,37 +298,40 @@ void Application::Render() {
         rlImGuiBegin();
     }
 
-    if (m_EditorLayer)
-    { m_EditorLayer->OnImGuiRender(); }
+    if (m_EditorLayer) {
+        m_EditorLayer->OnImGuiRender();
+    }
 
     {
         PROFILE_SCOPE("rlImGuiEnd");
         rlImGuiEnd();
     }
 #else
-    if (m_Engine)
-    { m_Engine->Render(); }
+    if (m_Engine) {
+        m_Engine->Render();
+    }
 #endif
 }
 
 void Application::Shutdown() {
-    if (!m_Initialized)
-    { return; }
+    if (!m_Initialized) {
+        return;
+    }
 
     m_Running = false;
     Cleanup();
 }
 
 void Application::Cleanup() {
-    if (!m_Initialized)
-    { return; }
+    if (!m_Initialized) {
+        return;
+    }
 
 #ifdef BUILD_WITH_EDITOR
     m_EditorLayer.reset();
 #endif
 
-    if (m_Engine)
-    {
+    if (m_Engine) {
         m_Engine->Shutdown();
         m_Engine.reset();
     }

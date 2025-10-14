@@ -23,8 +23,9 @@ struct ScriptInstance {
 
     template <typename T>
     T* As() {
-        if (typeIndex == std::type_index(typeid(T)))
-        { return static_cast<T*>(instance.get()); }
+        if (typeIndex == std::type_index(typeid(T))) {
+            return static_cast<T*>(instance.get());
+        }
         return nullptr;
     }
 
@@ -49,20 +50,20 @@ struct Script {
 
     template <typename T>
     T* GetScriptOfType() {
-        for (ScriptInstance& script : scripts)
-        {
-            if (T* typedScript = script.As<T>())
-            { return typedScript; }
+        for (ScriptInstance& script : scripts) {
+            if (T* typedScript = script.As<T>()) {
+                return typedScript;
+            }
         }
         return nullptr;
     }
 
     template <typename T>
     bool HasScriptOfType() const {
-        for (const ScriptInstance& script : scripts)
-        {
-            if (script.Is<T>())
-            { return true; }
+        for (const ScriptInstance& script : scripts) {
+            if (script.Is<T>()) {
+                return true;
+            }
         }
         return false;
     }

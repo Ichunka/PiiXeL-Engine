@@ -23,8 +23,9 @@ module->SetSerializer([](const ReflectedType& animator) -> nlohmann::json {
 });
 
 module->SetDeserializer([](ReflectedType& animator, const nlohmann::json& data) {
-    if (data.contains("controllerUUID"))
-    { animator.controllerUUID = UUID{data["controllerUUID"].get<uint64_t>()}; }
+    if (data.contains("controllerUUID")) {
+        animator.controllerUUID = UUID{data["controllerUUID"].get<uint64_t>()};
+    }
     animator.isPlaying = data.value("isPlaying", true);
     animator.playbackSpeed = data.value("playbackSpeed", 1.0f);
 });
@@ -37,8 +38,7 @@ EDITOR_UI() {
 
     ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
 
-    if (!component.currentState.empty())
-    {
+    if (!component.currentState.empty()) {
         ImGui::Separator();
         ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "State: %s", component.currentState.c_str());
         ImGui::Text("Time: %.2f", component.stateTime);

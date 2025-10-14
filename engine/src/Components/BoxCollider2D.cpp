@@ -25,10 +25,8 @@ EDITOR_DISPLAY_ORDER(29)
 EDITOR_UI() {
     ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
 
-    if (registry.all_of<Sprite>(entity))
-    {
-        if (ImGui::Button("Fit to Sprite"))
-        {
+    if (registry.all_of<Sprite>(entity)) {
+        if (ImGui::Button("Fit to Sprite")) {
             const Sprite& sprite = registry.get<Sprite>(entity);
             Vector2 spriteSize = sprite.GetSize();
             component.size = spriteSize;
@@ -41,11 +39,11 @@ EDITOR_UI_END()
 EDITOR_CREATE_DEFAULT() {
     ReflectedType collider{};
     collider.size = Vector2{16.0f, 16.0f};
-    if (registry.all_of<Sprite>(entity))
-    {
+    if (registry.all_of<Sprite>(entity)) {
         const Sprite& sprite = registry.get<Sprite>(entity);
-        if (sprite.sourceRect.width > 0.0f && sprite.sourceRect.height > 0.0f)
-        { collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height}; }
+        if (sprite.sourceRect.width > 0.0f && sprite.sourceRect.height > 0.0f) {
+            collider.size = Vector2{sprite.sourceRect.width, sprite.sourceRect.height};
+        }
     }
     return collider;
 }

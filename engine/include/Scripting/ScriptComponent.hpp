@@ -25,10 +25,8 @@ public:
     }
 
     void ExecuteUpdate(float deltaTime) {
-        if (m_Initialized && m_Enabled)
-        {
-            if (!m_Started)
-            {
+        if (m_Initialized && m_Enabled) {
+            if (!m_Started) {
                 m_Started = true;
                 OnStart();
             }
@@ -37,8 +35,9 @@ public:
     }
 
     void ExecuteFixedUpdate(float fixedDeltaTime) {
-        if (m_Initialized && m_Enabled)
-        { OnFixedUpdate(fixedDeltaTime); }
+        if (m_Initialized && m_Enabled) {
+            OnFixedUpdate(fixedDeltaTime);
+        }
     }
 
     void SetEnabled(bool enabled) { m_Enabled = enabled; }

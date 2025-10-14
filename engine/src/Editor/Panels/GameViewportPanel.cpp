@@ -29,16 +29,14 @@ void GameViewportPanel::OnImGuiRender() {
 
     entt::entity primaryCameraEntity = m_GetPrimaryCameraCallback();
 
-    if (primaryCameraEntity == entt::null)
-    {
+    if (primaryCameraEntity == entt::null) {
         ImVec2 windowSize = ImGui::GetWindowSize();
         const char* message = "No Primary Camera";
         ImVec2 textSize = ImGui::CalcTextSize(message);
         ImGui::SetCursorPos(ImVec2{(windowSize.x - textSize.x) * 0.5f, (windowSize.y - textSize.y) * 0.5f});
         ImGui::TextDisabled("%s", message);
     }
-    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0)
-    {
+    else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
         if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture->texture.width ||
             static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture->texture.height)
         {
@@ -56,13 +54,11 @@ void GameViewportPanel::OnImGuiRender() {
         camera.rotation = 0.0f;
         camera.zoom = 1.0f;
 
-        if (m_Engine && m_Engine->GetActiveScene())
-        {
+        if (m_Engine && m_Engine->GetActiveScene()) {
             Scene* scene = m_Engine->GetActiveScene();
             entt::registry& registry = scene->GetRegistry();
 
-            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity))
-            {
+            if (registry.valid(primaryCameraEntity) && registry.all_of<Camera, Transform>(primaryCameraEntity)) {
                 const Camera& cameraComp = registry.get<Camera>(primaryCameraEntity);
                 const Transform& transform = registry.get<Transform>(primaryCameraEntity);
 
@@ -73,14 +69,12 @@ void GameViewportPanel::OnImGuiRender() {
 
         BeginMode2D(camera);
 
-        if (m_Engine)
-        {
+        if (m_Engine) {
             RenderSystem* renderSystem = m_Engine->GetRenderSystem();
             bool savedShowColliders = false;
             bool savedShowDebug = false;
 
-            if (renderSystem)
-            {
+            if (renderSystem) {
                 savedShowColliders = renderSystem->GetShowColliders();
                 savedShowDebug = renderSystem->GetShowDebug();
                 renderSystem->SetShowColliders(false);
@@ -89,8 +83,7 @@ void GameViewportPanel::OnImGuiRender() {
 
             m_Engine->Render();
 
-            if (renderSystem)
-            {
+            if (renderSystem) {
                 renderSystem->SetShowColliders(savedShowColliders);
                 renderSystem->SetShowDebug(savedShowDebug);
             }
@@ -107,10 +100,8 @@ void GameViewportPanel::OnImGuiRender() {
                          static_cast<int>(viewportPanelSize.y), sourceRec);
     }
 
-    if (*m_EditorState == EditorState::Play)
-    {
-        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered())
-        {
+    if (*m_EditorState == EditorState::Play) {
+        if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
             ImGuiIO& io = ImGui::GetIO();
             io.WantCaptureMouse = false;
             io.WantCaptureKeyboard = false;

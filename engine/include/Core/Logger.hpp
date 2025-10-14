@@ -31,23 +31,23 @@ private:
     PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Error, PiiXeL::LogCategory::category, __VA_ARGS__)
 #else
 #define PX_LOG_INFO(category, ...)                                                                                     \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category))                                          \
-        { PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Info, PiiXeL::LogCategory::category, __VA_ARGS__); }            \
+    do {                                                                                                               \
+        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category)) {                                        \
+            PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Info, PiiXeL::LogCategory::category, __VA_ARGS__);            \
+        }                                                                                                              \
     } while (0)
 
 #define PX_LOG_WARNING(category, ...)                                                                                  \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category))                                          \
-        { PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Warning, PiiXeL::LogCategory::category, __VA_ARGS__); }         \
+    do {                                                                                                               \
+        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category)) {                                        \
+            PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Warning, PiiXeL::LogCategory::category, __VA_ARGS__);         \
+        }                                                                                                              \
     } while (0)
 
 #define PX_LOG_ERROR(category, ...)                                                                                    \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category))                                          \
-        { PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Error, PiiXeL::LogCategory::category, __VA_ARGS__); }           \
+    do {                                                                                                               \
+        if (PiiXeL::Logger::IsCategoryEnabled(PiiXeL::LogCategory::category)) {                                        \
+            PiiXeL::Logger::LogMessage(PiiXeL::LogLevel::Error, PiiXeL::LogCategory::category, __VA_ARGS__);           \
+        }                                                                                                              \
     } while (0)
 #endif

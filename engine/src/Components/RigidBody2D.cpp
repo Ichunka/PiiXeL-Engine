@@ -51,8 +51,9 @@ EDITOR_DISPLAY_ORDER(20)
 EDITOR_UI() {
     const char* bodyTypeNames[] = {"Static", "Dynamic", "Kinematic"};
     int currentType = static_cast<int>(component.type);
-    if (ImGui::Combo("Body Type", &currentType, bodyTypeNames, 3))
-    { component.type = static_cast<BodyType>(currentType); }
+    if (ImGui::Combo("Body Type", &currentType, bodyTypeNames, 3)) {
+        component.type = static_cast<BodyType>(currentType);
+    }
 
     ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
 }

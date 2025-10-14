@@ -43,17 +43,16 @@ void SceneViewportPanel::OnImGuiRender() {
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     *m_ViewportSize = viewportPanelSize;
 
-    if (m_EditorCamera)
-    { m_EditorCamera->HandleInput(*m_ViewportHovered, *m_ViewportFocused); }
+    if (m_EditorCamera) {
+        m_EditorCamera->HandleInput(*m_ViewportHovered, *m_ViewportFocused);
+    }
 
-    if (*m_ViewportHovered && *m_ViewportFocused)
-    {
+    if (*m_ViewportHovered && *m_ViewportFocused) {
         m_HandleGizmoInteractionCallback();
         m_HandleEntitySelectionCallback();
     }
 
-    if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0)
-    {
+    if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
         if (static_cast<int>(viewportPanelSize.x) != m_ViewportTexture->texture.width ||
             static_cast<int>(viewportPanelSize.y) != m_ViewportTexture->texture.height)
         {
@@ -74,16 +73,16 @@ void SceneViewportPanel::OnImGuiRender() {
         DrawLine(-10000, 0, 10000, 0, Color{80, 80, 80, 255});
         DrawLine(0, -10000, 0, 10000, Color{80, 80, 80, 255});
 
-        for (int i = -100; i <= 100; i++)
-        {
+        for (int i = -100; i <= 100; i++) {
             if (i == 0)
                 continue;
             DrawLine(i * 100, -10000, i * 100, 10000, Color{50, 50, 50, 255});
             DrawLine(-10000, i * 100, 10000, i * 100, Color{50, 50, 50, 255});
         }
 
-        if (m_Engine)
-        { m_Engine->Render(); }
+        if (m_Engine) {
+            m_Engine->Render();
+        }
 
         m_RenderGizmosCallback();
 

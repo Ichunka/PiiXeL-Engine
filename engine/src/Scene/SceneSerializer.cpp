@@ -27,18 +27,16 @@ namespace PiiXeL {
 SceneSerializer::SceneSerializer(Scene* scene) : m_Scene{scene} {}
 
 bool SceneSerializer::Serialize(const std::string& filepath) {
-    if (!m_Scene)
-    { return false; }
+    if (!m_Scene) {
+        return false;
+    }
 
     size_t lastSlash = filepath.find_last_of("/\\");
-    if (lastSlash != std::string::npos)
-    {
+    if (lastSlash != std::string::npos) {
         std::string directory = filepath.substr(0, lastSlash);
 
-        if (!DirectoryExists(directory.c_str()))
-        {
-            if (!std::filesystem::create_directories(directory))
-            {
+        if (!DirectoryExists(directory.c_str())) {
+            if (!std::filesystem::create_directories(directory)) {
                 PX_LOG_ERROR(SCENE, "Failed to create directory: %s", directory.c_str());
                 return false;
             }
@@ -50,15 +48,13 @@ bool SceneSerializer::Serialize(const std::string& filepath) {
     sceneJson["entities"] = nlohmann::json::array();
 
     const std::vector<entt::entity>& entityOrder = m_Scene->GetEntityOrder();
-    for (entt::entity entity : entityOrder)
-    {
+    for (entt::entity entity : entityOrder) {
         nlohmann::json entityJson = SerializeEntity(entity);
         sceneJson["entities"].push_back(entityJson);
     }
 
     std::ofstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(SCENE, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
@@ -71,21 +67,21 @@ bool SceneSerializer::Serialize(const std::string& filepath) {
 }
 
 bool SceneSerializer::Deserialize(const std::string& filepath) {
-    if (!m_Scene)
-    { return false; }
+    if (!m_Scene) {
+        return false;
+    }
 
     std::ifstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(SCENE, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
     nlohmann::json sceneJson{};
-    try
-    { file >> sceneJson; }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        file >> sceneJson;
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(SCENE, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -96,16 +92,16 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
     EntityRegistry::Instance().Clear();
     m_Scene->GetEntityOrder().clear();
 
-    if (sceneJson.contains("scene"))
-    { m_Scene->SetName(sceneJson["scene"].get<std::string>()); }
+    if (sceneJson.contains("scene")) {
+        m_Scene->SetName(sceneJson["scene"].get<std::string>());
+    }
 
-    if (sceneJson.contains("entities") && sceneJson["entities"].is_array())
-    {
-        for (const nlohmann::json& entityJson : sceneJson["entities"])
-        {
+    if (sceneJson.contains("entities") && sceneJson["entities"].is_array()) {
+        for (const nlohmann::json& entityJson : sceneJson["entities"]) {
             entt::entity entity = DeserializeEntity(entityJson);
-            if (entity != entt::null)
-            { m_Scene->GetEntityOrder().push_back(entity); }
+            if (entity != entt::null) {
+                m_Scene->GetEntityOrder().push_back(entity);
+            }
         }
     }
 
@@ -117,14 +113,12 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     entt::registry& registry = m_Scene->GetRegistry();
     nlohmann::json entityJson{};
 
-    if (registry.all_of<UUID>(entity))
-    {
+    if (registry.all_of<UUID>(entity)) {
         UUID uuid = registry.get<UUID>(entity);
         entityJson["uuid"] = uuid.Get();
     }
 
-    if (registry.all_of<Sprite>(entity))
-    {
+    if (registry.all_of<Sprite>(entity)) {
         const Sprite& sprite = registry.get<Sprite>(entity);
         entityJson["Sprite"] = {
             {"textureAssetUUID", sprite.textureAssetUUID.Get()},
@@ -135,8 +129,7 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
             {"origin", {sprite.origin.x, sprite.origin.y}}};
     }
 
-    if (registry.all_of<RigidBody2D>(entity))
-    {
+    if (registry.all_of<RigidBody2D>(entity)) {
         const RigidBody2D& rb = registry.get<RigidBody2D>(entity);
         entityJson["RigidBody2D"] = {{"type", static_cast<int>(rb.type)},
                                      {"mass", rb.mass},
@@ -146,31 +139,26 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
     }
 
     nlohmann::json moduleJson = ComponentModuleRegistry::Instance().SerializeEntity(registry, entity);
-    for (auto it = moduleJson.begin(); it != moduleJson.end(); ++it)
-    { entityJson[it.key()] = it.value(); }
+    for (auto it = moduleJson.begin(); it != moduleJson.end(); ++it) {
+        entityJson[it.key()] = it.value();
+    }
 
-    if (registry.all_of<Script>(entity))
-    {
+    if (registry.all_of<Script>(entity)) {
         const Script& scriptComponent = registry.get<Script>(entity);
         nlohmann::json scriptsArray = nlohmann::json::array();
 
-        for (const ScriptInstance& script : scriptComponent.scripts)
-        {
+        for (const ScriptInstance& script : scriptComponent.scripts) {
             nlohmann::json scriptJson{};
             scriptJson["scriptName"] = script.scriptName;
             scriptJson["enabled"] = script.instance ? script.instance->m_Enabled : true;
 
-            if (script.instance)
-            {
+            if (script.instance) {
                 const Reflection::TypeInfo* typeInfo =
                     Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-                if (typeInfo)
-                {
+                if (typeInfo) {
                     nlohmann::json propertiesJson{};
-                    for (const Reflection::FieldInfo& field : typeInfo->GetFields())
-                    {
-                        if (field.flags & Reflection::FieldFlags::Serializable)
-                        {
+                    for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
+                        if (field.flags & Reflection::FieldFlags::Serializable) {
                             void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
                             propertiesJson[field.name] = Reflection::JsonSerializer::SerializeField(field, fieldPtr);
                         }
@@ -193,30 +181,29 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
     entt::entity entity = registry.create();
 
     UUID uuid;
-    if (entityJson.contains("uuid"))
-    { uuid = UUID(entityJson["uuid"].get<uint64_t>()); }
+    if (entityJson.contains("uuid")) {
+        uuid = UUID(entityJson["uuid"].get<uint64_t>());
+    }
     registry.emplace<UUID>(entity, uuid);
     EntityRegistry::Instance().RegisterEntity(uuid, entity);
 
-    if (entityJson.contains("Sprite"))
-    {
+    if (entityJson.contains("Sprite")) {
         const nlohmann::json& spriteJson = entityJson["Sprite"];
         Sprite sprite{};
 
-        if (spriteJson.contains("textureAssetUUID"))
-        { sprite.textureAssetUUID = UUID{spriteJson["textureAssetUUID"].get<uint64_t>()}; }
+        if (spriteJson.contains("textureAssetUUID")) {
+            sprite.textureAssetUUID = UUID{spriteJson["textureAssetUUID"].get<uint64_t>()};
+        }
 
         if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() &&
-            spriteJson["sourceRect"].size() == 4)
-        {
+            spriteJson["sourceRect"].size() == 4) {
             sprite.sourceRect.x = spriteJson["sourceRect"][0].get<float>();
             sprite.sourceRect.y = spriteJson["sourceRect"][1].get<float>();
             sprite.sourceRect.width = spriteJson["sourceRect"][2].get<float>();
             sprite.sourceRect.height = spriteJson["sourceRect"][3].get<float>();
         }
 
-        if (spriteJson.contains("tint") && spriteJson["tint"].is_array() && spriteJson["tint"].size() == 4)
-        {
+        if (spriteJson.contains("tint") && spriteJson["tint"].is_array() && spriteJson["tint"].size() == 4) {
             sprite.tint.r = spriteJson["tint"][0].get<unsigned char>();
             sprite.tint.g = spriteJson["tint"][1].get<unsigned char>();
             sprite.tint.b = spriteJson["tint"][2].get<unsigned char>();
@@ -225,8 +212,7 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
 
         sprite.layer = spriteJson.value("layer", 0);
 
-        if (spriteJson.contains("origin") && spriteJson["origin"].is_array() && spriteJson["origin"].size() == 2)
-        {
+        if (spriteJson.contains("origin") && spriteJson["origin"].is_array() && spriteJson["origin"].size() == 2) {
             sprite.origin.x = spriteJson["origin"][0].get<float>();
             sprite.origin.y = spriteJson["origin"][1].get<float>();
         }
@@ -234,8 +220,7 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<Sprite>(entity, sprite);
     }
 
-    if (entityJson.contains("RigidBody2D"))
-    {
+    if (entityJson.contains("RigidBody2D")) {
         const nlohmann::json& rbJson = entityJson["RigidBody2D"];
         RigidBody2D rb{};
 
@@ -248,35 +233,34 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         registry.emplace<RigidBody2D>(entity, rb);
     }
 
-    for (auto it = entityJson.begin(); it != entityJson.end(); ++it)
-    {
+    for (auto it = entityJson.begin(); it != entityJson.end(); ++it) {
         const std::string& componentName = it.key();
         if (componentName == "uuid" || componentName == "Sprite" || componentName == "RigidBody2D" ||
             componentName == "Scripts" || componentName == "Script")
-        { continue; }
+        {
+            continue;
+        }
 
         ComponentModuleRegistry::Instance().DeserializeComponent(componentName, registry, entity, it.value());
     }
 
-    if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array())
-    {
+    if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
         Script scriptComponent{};
-        for (const nlohmann::json& scriptJson : entityJson["Scripts"])
-        {
+        for (const nlohmann::json& scriptJson : entityJson["Scripts"]) {
             std::string scriptName = scriptJson.value("scriptName", "");
-            if (!scriptName.empty())
-            { scriptComponent.AddScript(scriptName); }
+            if (!scriptName.empty()) {
+                scriptComponent.AddScript(scriptName);
+            }
         }
-        if (scriptComponent.GetScriptCount() > 0)
-        { registry.emplace<Script>(entity, scriptComponent); }
+        if (scriptComponent.GetScriptCount() > 0) {
+            registry.emplace<Script>(entity, scriptComponent);
+        }
     }
-    else if (entityJson.contains("Script"))
-    {
+    else if (entityJson.contains("Script")) {
         Script scriptComponent{};
         const nlohmann::json& scriptJson = entityJson["Script"];
         std::string scriptName = scriptJson.value("scriptName", "");
-        if (!scriptName.empty())
-        {
+        if (!scriptName.empty()) {
             scriptComponent.AddScript(scriptName);
             registry.emplace<Script>(entity, scriptComponent);
         }
@@ -286,16 +270,16 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
 }
 
 std::string SceneSerializer::SerializeToString() {
-    if (!m_Scene)
-    { return ""; }
+    if (!m_Scene) {
+        return "";
+    }
 
     nlohmann::json sceneJson{};
     sceneJson["scene"] = m_Scene->GetName();
     sceneJson["entities"] = nlohmann::json::array();
 
     const std::vector<entt::entity>& entityOrder = m_Scene->GetEntityOrder();
-    for (entt::entity entity : entityOrder)
-    {
+    for (entt::entity entity : entityOrder) {
         nlohmann::json entityJson = SerializeEntity(entity);
         sceneJson["entities"].push_back(entityJson);
     }
@@ -304,14 +288,15 @@ std::string SceneSerializer::SerializeToString() {
 }
 
 bool SceneSerializer::DeserializeFromString(const std::string& data) {
-    if (!m_Scene || data.empty())
-    { return false; }
+    if (!m_Scene || data.empty()) {
+        return false;
+    }
 
     nlohmann::json sceneJson{};
-    try
-    { sceneJson = nlohmann::json::parse(data); }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        sceneJson = nlohmann::json::parse(data);
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(SCENE, "Failed to parse JSON from string: %s", e.what());
         return false;
     }
@@ -321,16 +306,16 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
     EntityRegistry::Instance().Clear();
     m_Scene->GetEntityOrder().clear();
 
-    if (sceneJson.contains("scene"))
-    { m_Scene->SetName(sceneJson["scene"].get<std::string>()); }
+    if (sceneJson.contains("scene")) {
+        m_Scene->SetName(sceneJson["scene"].get<std::string>());
+    }
 
-    if (sceneJson.contains("entities") && sceneJson["entities"].is_array())
-    {
-        for (const nlohmann::json& entityJson : sceneJson["entities"])
-        {
+    if (sceneJson.contains("entities") && sceneJson["entities"].is_array()) {
+        for (const nlohmann::json& entityJson : sceneJson["entities"]) {
             entt::entity entity = DeserializeEntity(entityJson);
-            if (entity != entt::null)
-            { m_Scene->GetEntityOrder().push_back(entity); }
+            if (entity != entt::null) {
+                m_Scene->GetEntityOrder().push_back(entity);
+            }
         }
     }
 

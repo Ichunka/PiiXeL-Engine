@@ -167,13 +167,11 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
     Transform& transform = registry.get<Transform>(entity);
 
     float colliderHalfHeight = 0.0f;
-    if (registry.all_of<BoxCollider2D>(entity))
-    {
+    if (registry.all_of<BoxCollider2D>(entity)) {
         BoxCollider2D& collider = registry.get<BoxCollider2D>(entity);
         colliderHalfHeight = (collider.size.y * transform.scale.y * 0.5f) / PIXELS_TO_METERS;
     }
-    if (registry.all_of<CircleCollider2D>(entity))
-    {
+    if (registry.all_of<CircleCollider2D>(entity)) {
         CircleCollider2D& collider = registry.get<CircleCollider2D>(entity);
         colliderHalfHeight = (collider.radius * (transform.scale.x + transform.scale.y) * 0.5f) / PIXELS_TO_METERS;
     }
@@ -198,11 +196,9 @@ bool Physics2D::IsGrounded(Scene* scene, entt::entity entity, float checkDistanc
     bool hitValid = false;
     Vector2 hitPixels{0.0f, 0.0f};
 
-    if (result.hit)
-    {
+    if (result.hit) {
         b2BodyId hitBodyId = b2Shape_GetBody(result.shapeId);
-        if (!B2_ID_EQUALS(hitBodyId, rb.box2dBodyId))
-        {
+        if (!B2_ID_EQUALS(hitBodyId, rb.box2dBodyId)) {
             hitValid = true;
             hitPixels = Vector2{result.point.x * PIXELS_TO_METERS, result.point.y * PIXELS_TO_METERS};
         }

@@ -5,8 +5,7 @@
 namespace PiiXeL::Reflection {
 
 nlohmann::json JsonSerializer::SerializeField(const FieldInfo& field, const void* fieldPtr) {
-    switch (field.type)
-    {
+    switch (field.type) {
         case FieldType::Float:
             return *static_cast<const float*>(fieldPtr);
 
@@ -46,8 +45,7 @@ nlohmann::json JsonSerializer::SerializeField(const FieldInfo& field, const void
 }
 
 void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::json& j, void* fieldPtr) {
-    switch (field.type)
-    {
+    switch (field.type) {
         case FieldType::Float:
             *static_cast<float*>(fieldPtr) = j.get<float>();
             break;
@@ -66,13 +64,11 @@ void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::js
 
         case FieldType::Vector2: {
             Vector2& v = *static_cast<Vector2*>(fieldPtr);
-            if (j.is_array() && j.size() == 2)
-            {
+            if (j.is_array() && j.size() == 2) {
                 v.x = j[0].get<float>();
                 v.y = j[1].get<float>();
             }
-            else if (j.is_object())
-            {
+            else if (j.is_object()) {
                 v.x = j.value("x", 0.0f);
                 v.y = j.value("y", 0.0f);
             }

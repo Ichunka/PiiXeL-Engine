@@ -22,8 +22,7 @@ void Logger::SetCategoryEnabled(LogCategory category, bool enabled) {
 }
 
 const char* Logger::GetCategoryName(LogCategory category) {
-    switch (category)
-    {
+    switch (category) {
         case LogCategory::ENGINE:
             return "ENGINE";
         case LogCategory::ASSET:
@@ -55,8 +54,7 @@ void Logger::LogMessage(LogLevel level, LogCategory category, const char* format
     const char* levelStr{};
     FILE* output{stdout};
 
-    switch (level)
-    {
+    switch (level) {
         case LogLevel::Trace:
             levelStr = "TRACE";
             break;

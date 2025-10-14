@@ -11,8 +11,7 @@ bool AnimationSerializer::SerializeSpriteSheet(const SpriteSheet& spriteSheet, c
     nlohmann::json json = SpriteSheetToJson(spriteSheet);
 
     std::ofstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
@@ -26,17 +25,16 @@ bool AnimationSerializer::SerializeSpriteSheet(const SpriteSheet& spriteSheet, c
 
 bool AnimationSerializer::DeserializeSpriteSheet(SpriteSheet& spriteSheet, const std::string& filepath) {
     std::ifstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
     nlohmann::json json{};
-    try
-    { file >> json; }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        file >> json;
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -50,8 +48,7 @@ bool AnimationSerializer::SerializeAnimationClip(const AnimationClip& clip, cons
     nlohmann::json json = AnimationClipToJson(clip);
 
     std::ofstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
@@ -65,17 +62,16 @@ bool AnimationSerializer::SerializeAnimationClip(const AnimationClip& clip, cons
 
 bool AnimationSerializer::DeserializeAnimationClip(AnimationClip& clip, const std::string& filepath) {
     std::ifstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
     nlohmann::json json{};
-    try
-    { file >> json; }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        file >> json;
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -90,8 +86,7 @@ bool AnimationSerializer::SerializeAnimatorController(const AnimatorController& 
     nlohmann::json json = AnimatorControllerToJson(controller);
 
     std::ofstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for writing: %s", filepath.c_str());
         return false;
     }
@@ -105,17 +100,16 @@ bool AnimationSerializer::SerializeAnimatorController(const AnimatorController& 
 
 bool AnimationSerializer::DeserializeAnimatorController(AnimatorController& controller, const std::string& filepath) {
     std::ifstream file{filepath};
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         PX_LOG_ERROR(ANIMATION, "Failed to open file for reading: %s", filepath.c_str());
         return false;
     }
 
     nlohmann::json json{};
-    try
-    { file >> json; }
-    catch (const nlohmann::json::exception& e)
-    {
+    try {
+        file >> json;
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -137,8 +131,7 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
     json["gridSpacingY"] = spriteSheet.GetGridSpacingY();
 
     json["frames"] = nlohmann::json::array();
-    for (const SpriteFrame& frame : spriteSheet.GetFrames())
-    {
+    for (const SpriteFrame& frame : spriteSheet.GetFrames()) {
         nlohmann::json frameJson{};
         frameJson["name"] = frame.name;
         frameJson["sourceRect"] = {frame.sourceRect.x, frame.sourceRect.y, frame.sourceRect.width,
@@ -148,8 +141,7 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
     }
 
     json["frameGroups"] = nlohmann::json::array();
-    for (const FrameGroup& group : spriteSheet.GetFrameGroups())
-    {
+    for (const FrameGroup& group : spriteSheet.GetFrameGroups()) {
         nlohmann::json groupJson{};
         groupJson["name"] = group.name;
         groupJson["frameIndices"] = group.frameIndices;
@@ -160,33 +152,32 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
 }
 
 void AnimationSerializer::JsonToSpriteSheet(const nlohmann::json& json, SpriteSheet& spriteSheet) {
-    if (json.contains("textureUUID"))
-    { spriteSheet.SetTexture(UUID{json["textureUUID"].get<uint64_t>()}); }
+    if (json.contains("textureUUID")) {
+        spriteSheet.SetTexture(UUID{json["textureUUID"].get<uint64_t>()});
+    }
 
-    if (json.contains("gridColumns") && json.contains("gridRows"))
-    { spriteSheet.SetGridSize(json["gridColumns"].get<int>(), json["gridRows"].get<int>()); }
+    if (json.contains("gridColumns") && json.contains("gridRows")) {
+        spriteSheet.SetGridSize(json["gridColumns"].get<int>(), json["gridRows"].get<int>());
+    }
 
-    if (json.contains("gridSpacingX") && json.contains("gridSpacingY"))
-    { spriteSheet.SetGridSpacing(json["gridSpacingX"].get<int>(), json["gridSpacingY"].get<int>()); }
+    if (json.contains("gridSpacingX") && json.contains("gridSpacingY")) {
+        spriteSheet.SetGridSpacing(json["gridSpacingX"].get<int>(), json["gridSpacingY"].get<int>());
+    }
 
-    if (json.contains("frames") && json["frames"].is_array())
-    {
+    if (json.contains("frames") && json["frames"].is_array()) {
         std::vector<SpriteFrame> frames;
-        for (const auto& frameJson : json["frames"])
-        {
+        for (const auto& frameJson : json["frames"]) {
             SpriteFrame frame{};
             frame.name = frameJson.value("name", "");
 
-            if (frameJson.contains("sourceRect") && frameJson["sourceRect"].size() == 4)
-            {
+            if (frameJson.contains("sourceRect") && frameJson["sourceRect"].size() == 4) {
                 frame.sourceRect.x = frameJson["sourceRect"][0].get<float>();
                 frame.sourceRect.y = frameJson["sourceRect"][1].get<float>();
                 frame.sourceRect.width = frameJson["sourceRect"][2].get<float>();
                 frame.sourceRect.height = frameJson["sourceRect"][3].get<float>();
             }
 
-            if (frameJson.contains("pivot") && frameJson["pivot"].size() == 2)
-            {
+            if (frameJson.contains("pivot") && frameJson["pivot"].size() == 2) {
                 frame.pivot.x = frameJson["pivot"][0].get<float>();
                 frame.pivot.y = frameJson["pivot"][1].get<float>();
             }
@@ -196,18 +187,16 @@ void AnimationSerializer::JsonToSpriteSheet(const nlohmann::json& json, SpriteSh
         spriteSheet.SetFrames(frames);
     }
 
-    if (json.contains("frameGroups") && json["frameGroups"].is_array())
-    {
+    if (json.contains("frameGroups") && json["frameGroups"].is_array()) {
         std::vector<FrameGroup> groups;
-        for (const auto& groupJson : json["frameGroups"])
-        {
+        for (const auto& groupJson : json["frameGroups"]) {
             FrameGroup group{};
             group.name = groupJson.value("name", "");
 
-            if (groupJson.contains("frameIndices") && groupJson["frameIndices"].is_array())
-            {
-                for (const auto& indexJson : groupJson["frameIndices"])
-                { group.frameIndices.push_back(indexJson.get<size_t>()); }
+            if (groupJson.contains("frameIndices") && groupJson["frameIndices"].is_array()) {
+                for (const auto& indexJson : groupJson["frameIndices"]) {
+                    group.frameIndices.push_back(indexJson.get<size_t>());
+                }
             }
 
             groups.push_back(group);
@@ -226,8 +215,7 @@ nlohmann::json AnimationSerializer::AnimationClipToJson(const AnimationClip& cli
     json["wrapMode"] = static_cast<int>(clip.GetWrapMode());
 
     json["frames"] = nlohmann::json::array();
-    for (const AnimationFrame& frame : clip.GetFrames())
-    {
+    for (const AnimationFrame& frame : clip.GetFrames()) {
         nlohmann::json frameJson{};
         frameJson["frameIndex"] = frame.frameIndex;
         frameJson["duration"] = frame.duration;
@@ -238,20 +226,21 @@ nlohmann::json AnimationSerializer::AnimationClipToJson(const AnimationClip& cli
 }
 
 void AnimationSerializer::JsonToAnimationClip(const nlohmann::json& json, AnimationClip& clip) {
-    if (json.contains("spriteSheetUUID"))
-    { clip.SetSpriteSheet(UUID{json["spriteSheetUUID"].get<uint64_t>()}); }
+    if (json.contains("spriteSheetUUID")) {
+        clip.SetSpriteSheet(UUID{json["spriteSheetUUID"].get<uint64_t>()});
+    }
 
-    if (json.contains("frameRate"))
-    { clip.SetFrameRate(json["frameRate"].get<float>()); }
+    if (json.contains("frameRate")) {
+        clip.SetFrameRate(json["frameRate"].get<float>());
+    }
 
-    if (json.contains("wrapMode"))
-    { clip.SetWrapMode(static_cast<AnimationWrapMode>(json["wrapMode"].get<int>())); }
+    if (json.contains("wrapMode")) {
+        clip.SetWrapMode(static_cast<AnimationWrapMode>(json["wrapMode"].get<int>()));
+    }
 
-    if (json.contains("frames") && json["frames"].is_array())
-    {
+    if (json.contains("frames") && json["frames"].is_array()) {
         std::vector<AnimationFrame> frames;
-        for (const auto& frameJson : json["frames"])
-        {
+        for (const auto& frameJson : json["frames"]) {
             AnimationFrame frame{};
             frame.frameIndex = frameJson.value("frameIndex", 0);
             frame.duration = frameJson.value("duration", 0.1f);
@@ -269,25 +258,26 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
     json["defaultState"] = controller.GetDefaultState();
 
     json["parameters"] = nlohmann::json::array();
-    for (const AnimatorParameter& param : controller.GetParameters())
-    {
+    for (const AnimatorParameter& param : controller.GetParameters()) {
         nlohmann::json paramJson{};
         paramJson["name"] = param.name;
         paramJson["type"] = static_cast<int>(param.type);
 
-        if (std::holds_alternative<float>(param.defaultValue))
-        { paramJson["defaultValue"] = std::get<float>(param.defaultValue); }
-        else if (std::holds_alternative<int>(param.defaultValue))
-        { paramJson["defaultValue"] = std::get<int>(param.defaultValue); }
-        else if (std::holds_alternative<bool>(param.defaultValue))
-        { paramJson["defaultValue"] = std::get<bool>(param.defaultValue); }
+        if (std::holds_alternative<float>(param.defaultValue)) {
+            paramJson["defaultValue"] = std::get<float>(param.defaultValue);
+        }
+        else if (std::holds_alternative<int>(param.defaultValue)) {
+            paramJson["defaultValue"] = std::get<int>(param.defaultValue);
+        }
+        else if (std::holds_alternative<bool>(param.defaultValue)) {
+            paramJson["defaultValue"] = std::get<bool>(param.defaultValue);
+        }
 
         json["parameters"].push_back(paramJson);
     }
 
     json["states"] = nlohmann::json::array();
-    for (const AnimatorState& state : controller.GetStates())
-    {
+    for (const AnimatorState& state : controller.GetStates()) {
         nlohmann::json stateJson{};
         stateJson["name"] = state.name;
         stateJson["animationClipUUID"] = state.animationClipUUID.Get();
@@ -297,8 +287,7 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
     }
 
     json["transitions"] = nlohmann::json::array();
-    for (const AnimatorTransition& transition : controller.GetTransitions())
-    {
+    for (const AnimatorTransition& transition : controller.GetTransitions()) {
         nlohmann::json transJson{};
         transJson["fromState"] = transition.fromState;
         transJson["toState"] = transition.toState;
@@ -307,18 +296,20 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
         transJson["hasExitTime"] = transition.hasExitTime;
 
         transJson["conditions"] = nlohmann::json::array();
-        for (const TransitionCondition& condition : transition.conditions)
-        {
+        for (const TransitionCondition& condition : transition.conditions) {
             nlohmann::json condJson{};
             condJson["parameterName"] = condition.parameterName;
             condJson["type"] = static_cast<int>(condition.type);
 
-            if (std::holds_alternative<float>(condition.value))
-            { condJson["value"] = std::get<float>(condition.value); }
-            else if (std::holds_alternative<int>(condition.value))
-            { condJson["value"] = std::get<int>(condition.value); }
-            else if (std::holds_alternative<bool>(condition.value))
-            { condJson["value"] = std::get<bool>(condition.value); }
+            if (std::holds_alternative<float>(condition.value)) {
+                condJson["value"] = std::get<float>(condition.value);
+            }
+            else if (std::holds_alternative<int>(condition.value)) {
+                condJson["value"] = std::get<int>(condition.value);
+            }
+            else if (std::holds_alternative<bool>(condition.value)) {
+                condJson["value"] = std::get<bool>(condition.value);
+            }
 
             transJson["conditions"].push_back(condJson);
         }
@@ -330,21 +321,18 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
 }
 
 void AnimationSerializer::JsonToAnimatorController(const nlohmann::json& json, AnimatorController& controller) {
-    if (json.contains("defaultState"))
-    { controller.SetDefaultState(json["defaultState"].get<std::string>()); }
+    if (json.contains("defaultState")) {
+        controller.SetDefaultState(json["defaultState"].get<std::string>());
+    }
 
-    if (json.contains("parameters") && json["parameters"].is_array())
-    {
-        for (const auto& paramJson : json["parameters"])
-        {
+    if (json.contains("parameters") && json["parameters"].is_array()) {
+        for (const auto& paramJson : json["parameters"]) {
             AnimatorParameter param{};
             param.name = paramJson.value("name", "");
             param.type = static_cast<AnimatorParameterType>(paramJson.value("type", 0));
 
-            if (paramJson.contains("defaultValue"))
-            {
-                switch (param.type)
-                {
+            if (paramJson.contains("defaultValue")) {
+                switch (param.type) {
                     case AnimatorParameterType::Float:
                         param.defaultValue = paramJson["defaultValue"].get<float>();
                         break;
@@ -362,17 +350,14 @@ void AnimationSerializer::JsonToAnimatorController(const nlohmann::json& json, A
         }
     }
 
-    if (json.contains("states") && json["states"].is_array())
-    {
-        for (const auto& stateJson : json["states"])
-        {
+    if (json.contains("states") && json["states"].is_array()) {
+        for (const auto& stateJson : json["states"]) {
             AnimatorState state{};
             state.name = stateJson.value("name", "");
             state.animationClipUUID = UUID{stateJson.value("animationClipUUID", 0ULL)};
             state.speed = stateJson.value("speed", 1.0f);
 
-            if (stateJson.contains("editorPosition") && stateJson["editorPosition"].size() == 2)
-            {
+            if (stateJson.contains("editorPosition") && stateJson["editorPosition"].size() == 2) {
                 state.editorPosition.x = stateJson["editorPosition"][0].get<float>();
                 state.editorPosition.y = stateJson["editorPosition"][1].get<float>();
             }
@@ -381,10 +366,8 @@ void AnimationSerializer::JsonToAnimatorController(const nlohmann::json& json, A
         }
     }
 
-    if (json.contains("transitions") && json["transitions"].is_array())
-    {
-        for (const auto& transJson : json["transitions"])
-        {
+    if (json.contains("transitions") && json["transitions"].is_array()) {
+        for (const auto& transJson : json["transitions"]) {
             AnimatorTransition transition{};
             transition.fromState = transJson.value("fromState", "");
             transition.toState = transJson.value("toState", "");
@@ -392,22 +375,22 @@ void AnimationSerializer::JsonToAnimatorController(const nlohmann::json& json, A
             transition.transitionDuration = transJson.value("transitionDuration", 0.0f);
             transition.hasExitTime = transJson.value("hasExitTime", false);
 
-            if (transJson.contains("conditions") && transJson["conditions"].is_array())
-            {
-                for (const auto& condJson : transJson["conditions"])
-                {
+            if (transJson.contains("conditions") && transJson["conditions"].is_array()) {
+                for (const auto& condJson : transJson["conditions"]) {
                     TransitionCondition condition{};
                     condition.parameterName = condJson.value("parameterName", "");
                     condition.type = static_cast<TransitionConditionType>(condJson.value("type", 0));
 
-                    if (condJson.contains("value"))
-                    {
-                        if (condJson["value"].is_number_float())
-                        { condition.value = condJson["value"].get<float>(); }
-                        else if (condJson["value"].is_number_integer())
-                        { condition.value = condJson["value"].get<int>(); }
-                        else if (condJson["value"].is_boolean())
-                        { condition.value = condJson["value"].get<bool>(); }
+                    if (condJson.contains("value")) {
+                        if (condJson["value"].is_number_float()) {
+                            condition.value = condJson["value"].get<float>();
+                        }
+                        else if (condJson["value"].is_number_integer()) {
+                            condition.value = condJson["value"].get<int>();
+                        }
+                        else if (condJson["value"].is_boolean()) {
+                            condition.value = condJson["value"].get<bool>();
+                        }
                     }
 
                     transition.conditions.push_back(condition);

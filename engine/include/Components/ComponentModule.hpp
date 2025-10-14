@@ -112,19 +112,22 @@ public:
 #endif
 
     nlohmann::json Serialize(entt::registry& registry, entt::entity entity) const override {
-        if (!registry.all_of<T>(entity))
-        { return nlohmann::json{}; }
+        if (!registry.all_of<T>(entity)) {
+            return nlohmann::json{};
+        }
 
         const T& component = registry.get<T>(entity);
-        if (m_Serializer)
-        { return m_Serializer(component); }
+        if (m_Serializer) {
+            return m_Serializer(component);
+        }
         return nlohmann::json{};
     }
 
     void Deserialize(entt::registry& registry, entt::entity entity, const nlohmann::json& data) override {
         T component{};
-        if (m_Deserializer)
-        { m_Deserializer(component, data); }
+        if (m_Deserializer) {
+            m_Deserializer(component, data);
+        }
         registry.emplace<T>(entity, component);
     }
 
@@ -133,44 +136,52 @@ public:
     }
 
     void RemoveComponent(entt::registry& registry, entt::entity entity) override {
-        if (registry.all_of<T>(entity))
-        { registry.remove<T>(entity); }
+        if (registry.all_of<T>(entity)) {
+            registry.remove<T>(entity);
+        }
     }
 
 #ifdef BUILD_WITH_EDITOR
     void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
                            EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) override {
-        if (!registry.all_of<T>(entity))
-        { return; }
+        if (!registry.all_of<T>(entity)) {
+            return;
+        }
 
         T& component = registry.get<T>(entity);
-        if (m_EditorUI)
-        { m_EditorUI(component, registry, entity, history, entityPicker, assetPicker); }
+        if (m_EditorUI) {
+            m_EditorUI(component, registry, entity, history, entityPicker, assetPicker);
+        }
     }
 
     void AddComponentToEntity(entt::registry& registry, entt::entity entity,
                               [[maybe_unused]] CommandHistory& history) override {
-        if (registry.all_of<T>(entity))
-        { return; }
+        if (registry.all_of<T>(entity)) {
+            return;
+        }
 
         T component{};
-        if (m_CreateDefault)
-        { component = m_CreateDefault(registry, entity); }
+        if (m_CreateDefault) {
+            component = m_CreateDefault(registry, entity);
+        }
 
         registry.emplace<T>(entity, component);
     }
 
     void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) override {
-        if (!registry.all_of<T>(srcEntity))
-        { return; }
+        if (!registry.all_of<T>(srcEntity)) {
+            return;
+        }
 
         const T& original = registry.get<T>(srcEntity);
         T copy;
 
-        if (m_DuplicateFunc)
-        { copy = m_DuplicateFunc(original); }
-        else
-        { copy = original; }
+        if (m_DuplicateFunc) {
+            copy = m_DuplicateFunc(original);
+        }
+        else {
+            copy = original;
+        }
 
         registry.emplace<T>(dstEntity, copy);
     }

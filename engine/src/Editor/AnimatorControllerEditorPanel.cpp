@@ -22,18 +22,17 @@ constexpr float NODE_ROUNDING = 4.0f;
 constexpr float CONNECTOR_RADIUS = 8.0f;
 
 void AnimatorControllerEditorPanel::Render() {
-    if (!m_IsOpen)
-    { return; }
+    if (!m_IsOpen) {
+        return;
+    }
 
     ImGui::SetNextWindowSize(ImVec2{1200, 800}, ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Animator Controller Editor", &m_IsOpen))
-    {
+    if (!ImGui::Begin("Animator Controller Editor", &m_IsOpen)) {
         ImGui::End();
         return;
     }
 
-    if (!m_Controller)
-    {
+    if (!m_Controller) {
         ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "No controller loaded");
         ImGui::End();
         return;
@@ -59,10 +58,12 @@ void AnimatorControllerEditorPanel::Render() {
         ImGui::SameLine();
 
         ImGui::Button("##splitter1", ImVec2{splitterWidth, -1});
-        if (ImGui::IsItemActive())
-        { leftPanelWidth += ImGui::GetIO().MouseDelta.x; }
-        if (ImGui::IsItemHovered())
-        { ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW); }
+        if (ImGui::IsItemActive()) {
+            leftPanelWidth += ImGui::GetIO().MouseDelta.x;
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+        }
 
         ImGui::SameLine();
 
@@ -76,35 +77,33 @@ void AnimatorControllerEditorPanel::Render() {
 }
 
 void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
-    if (m_IsOpen && m_CurrentPath == controllerPath)
-    { return; }
+    if (m_IsOpen && m_CurrentPath == controllerPath) {
+        return;
+    }
 
     m_CurrentPath = controllerPath;
 
     PX_LOG_INFO(EDITOR, "Opening AnimatorController: %s", controllerPath.c_str());
 
     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(controllerPath);
-    if (existingUUID.Get() != 0)
-    {
+    if (existingUUID.Get() != 0) {
         PX_LOG_INFO(EDITOR, "Loading from AssetRegistry with UUID: %llu", existingUUID.Get());
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     }
-    else
-    {
+    else {
         PX_LOG_INFO(EDITOR, "Loading from path (no UUID in registry)");
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(controllerPath);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
     }
 
-    if (!m_Controller)
-    { PX_LOG_ERROR(EDITOR, "Failed to load AnimatorController: %s", controllerPath.c_str()); }
-    else
-    {
+    if (!m_Controller) {
+        PX_LOG_ERROR(EDITOR, "Failed to load AnimatorController: %s", controllerPath.c_str());
+    }
+    else {
         PX_LOG_INFO(EDITOR, "AnimatorController loaded successfully");
         const std::vector<AnimatorState>& states = m_Controller->GetStates();
-        for (size_t i = 0; i < states.size(); ++i)
-        {
+        for (size_t i = 0; i < states.size(); ++i) {
             PX_LOG_INFO(EDITOR, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(),
                         states[i].animationClipUUID.Get());
         }
@@ -129,8 +128,9 @@ void AnimatorControllerEditorPanel::RenderToolbar() {
     ImGui::Text("Controller: %s", m_Controller->GetName().c_str());
     ImGui::SameLine();
 
-    if (ImGui::Button("Save"))
-    { Save(); }
+    if (ImGui::Button("Save")) {
+        Save();
+    }
 
     ImGui::SameLine();
     ImGui::Text("| States: %zu | Transitions: %zu | Parameters: %zu", m_Controller->GetStates().size(),
@@ -146,14 +146,12 @@ void AnimatorControllerEditorPanel::RenderParametersPanel() {
     const char* paramTypes[] = {"Float", "Int", "Bool", "Trigger"};
     ImGui::Combo("Type", &m_NewParameterType, paramTypes, 4);
 
-    if (ImGui::Button("Add Parameter", ImVec2{-1, 0}))
-    {
+    if (ImGui::Button("Add Parameter", ImVec2{-1, 0})) {
         AnimatorParameter param{};
         param.name = m_NewParameterName;
         param.type = static_cast<AnimatorParameterType>(m_NewParameterType);
 
-        switch (param.type)
-        {
+        switch (param.type) {
             case AnimatorParameterType::Float:
                 param.defaultValue = 0.0f;
                 break;
@@ -178,13 +176,11 @@ void AnimatorControllerEditorPanel::RenderParametersPanel() {
     const std::vector<AnimatorParameter>& params = m_Controller->GetParameters();
     int paramToDelete = -1;
 
-    for (size_t i = 0; i < params.size(); ++i)
-    {
+    for (size_t i = 0; i < params.size(); ++i) {
         ImGui::PushID(static_cast<int>(i));
 
         const char* typeStr = "Unknown";
-        switch (params[i].type)
-        {
+        switch (params[i].type) {
             case AnimatorParameterType::Float:
                 typeStr = "Float";
                 break;
@@ -201,14 +197,16 @@ void AnimatorControllerEditorPanel::RenderParametersPanel() {
 
         ImGui::Text("%s [%s]", params[i].name.c_str(), typeStr);
         ImGui::SameLine();
-        if (ImGui::SmallButton("X"))
-        { paramToDelete = static_cast<int>(i); }
+        if (ImGui::SmallButton("X")) {
+            paramToDelete = static_cast<int>(i);
+        }
 
         ImGui::PopID();
     }
 
-    if (paramToDelete >= 0 && paramToDelete < static_cast<int>(params.size()))
-    { m_Controller->RemoveParameter(params[paramToDelete].name); }
+    if (paramToDelete >= 0 && paramToDelete < static_cast<int>(params.size())) {
+        m_Controller->RemoveParameter(params[paramToDelete].name);
+    }
 
     ImGui::EndChild();
 }
@@ -233,8 +231,7 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     const ImVec2 mousePosInCanvas =
         ImVec2{mousePos.x - canvasPos.x - m_GraphScrollingX, mousePos.y - canvasPos.y - m_GraphScrollingY};
 
-    if (isHovered && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f))
-    {
+    if (isHovered && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
         ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
         m_GraphScrollingX += delta.x;
         m_GraphScrollingY += delta.y;
@@ -244,19 +241,17 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     ImVec2 scrolling = ImVec2{m_GraphScrollingX, m_GraphScrollingY};
 
     int rightClickedStateIndex = -1;
-    if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-    {
+    if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
         rightClickedStateIndex = GetStateIndexAtPosition(mousePosInCanvas, canvasPos, scrolling);
-        if (rightClickedStateIndex >= 0)
-        {
+        if (rightClickedStateIndex >= 0) {
             m_SelectedStateIndex = rightClickedStateIndex;
             m_SelectedTransitionIndex = -1;
-            if (m_OnSelectionChanged)
-            { m_OnSelectionChanged(); }
+            if (m_OnSelectionChanged) {
+                m_OnSelectionChanged();
+            }
             ImGui::OpenPopup("NodeContextMenu");
         }
-        else
-        {
+        else {
             m_OpenContextMenu = true;
             m_ContextMenuPosX = mousePosInCanvas.x;
             m_ContextMenuPosY = mousePosInCanvas.y;
@@ -267,11 +262,11 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     RenderTransitions(canvasPos, scrolling);
 
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
-    for (size_t i = 0; i < states.size(); ++i)
-    { RenderStateNode(i, canvasPos, scrolling); }
+    for (size_t i = 0; i < states.size(); ++i) {
+        RenderStateNode(i, canvasPos, scrolling);
+    }
 
-    if (m_CreatingTransitionFromIndex >= 0)
-    {
+    if (m_CreatingTransitionFromIndex >= 0) {
         const AnimatorState& fromState = states[m_CreatingTransitionFromIndex];
         ImVec2 fromPos =
             ImVec2{fromState.editorPosition.x + NODE_WIDTH / 2.0f, fromState.editorPosition.y + NODE_HEIGHT / 2.0f};
@@ -282,44 +277,40 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
 
     drawList->PopClipRect();
 
-    if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-    {
+    if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         int clickedState = GetStateIndexAtPosition(mousePosInCanvas, canvasPos, scrolling);
 
-        if (m_CreatingTransitionFromIndex >= 0)
-        {
-            if (clickedState >= 0 && clickedState != m_CreatingTransitionFromIndex)
-            { CreateTransition(m_CreatingTransitionFromIndex, clickedState); }
+        if (m_CreatingTransitionFromIndex >= 0) {
+            if (clickedState >= 0 && clickedState != m_CreatingTransitionFromIndex) {
+                CreateTransition(m_CreatingTransitionFromIndex, clickedState);
+            }
             m_CreatingTransitionFromIndex = -1;
         }
-        else if (clickedState >= 0)
-        {
+        else if (clickedState >= 0) {
             m_SelectedStateIndex = clickedState;
             m_SelectedTransitionIndex = -1;
             m_DraggingStateIndex = clickedState;
-            if (m_OnSelectionChanged)
-            { m_OnSelectionChanged(); }
+            if (m_OnSelectionChanged) {
+                m_OnSelectionChanged();
+            }
         }
-        else
-        {
+        else {
             int clickedTransition = GetTransitionIndexAtPosition(mousePos, canvasPos, scrolling);
-            if (clickedTransition >= 0)
-            {
+            if (clickedTransition >= 0) {
                 m_SelectedTransitionIndex = clickedTransition;
                 m_SelectedStateIndex = -1;
-                if (m_OnSelectionChanged)
-                { m_OnSelectionChanged(); }
+                if (m_OnSelectionChanged) {
+                    m_OnSelectionChanged();
+                }
             }
-            else
-            {
+            else {
                 m_SelectedStateIndex = -1;
                 m_SelectedTransitionIndex = -1;
             }
         }
     }
 
-    if (m_DraggingStateIndex >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.0f))
-    {
+    if (m_DraggingStateIndex >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.0f)) {
         ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 1.0f);
         AnimatorState& state = const_cast<AnimatorState&>(states[m_DraggingStateIndex]);
         state.editorPosition.x += delta.x;
@@ -327,46 +318,43 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
     }
 
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-    { m_DraggingStateIndex = -1; }
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        m_DraggingStateIndex = -1;
+    }
 
-    if (m_OpenContextMenu)
-    {
+    if (m_OpenContextMenu) {
         ImGui::OpenPopup("GraphContextMenu");
         m_OpenContextMenu = false;
     }
 
-    if (ImGui::BeginPopup("GraphContextMenu"))
-    {
+    if (ImGui::BeginPopup("GraphContextMenu")) {
         ImGui::InputText("State Name", m_NewStateName, sizeof(m_NewStateName));
-        if (ImGui::MenuItem("Create State"))
-        { CreateNewState(ImVec2{m_ContextMenuPosX, m_ContextMenuPosY}); }
+        if (ImGui::MenuItem("Create State")) {
+            CreateNewState(ImVec2{m_ContextMenuPosX, m_ContextMenuPosY});
+        }
         ImGui::EndPopup();
     }
 
-    if (ImGui::BeginPopup("NodeContextMenu"))
-    {
-        if (m_SelectedStateIndex >= 0 && m_SelectedStateIndex < static_cast<int>(states.size()))
-        {
+    if (ImGui::BeginPopup("NodeContextMenu")) {
+        if (m_SelectedStateIndex >= 0 && m_SelectedStateIndex < static_cast<int>(states.size())) {
             const AnimatorState& state = states[m_SelectedStateIndex];
             const bool isDefault = (state.name == m_Controller->GetDefaultState());
 
             ImGui::Text("State: %s", state.name.c_str());
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Create Transition"))
-            {
+            if (ImGui::MenuItem("Create Transition")) {
                 m_CreatingTransitionFromIndex = m_SelectedStateIndex;
                 ImGui::CloseCurrentPopup();
             }
 
-            if (ImGui::MenuItem("Set as Default", nullptr, false, !isDefault))
-            { m_Controller->SetDefaultState(state.name); }
+            if (ImGui::MenuItem("Set as Default", nullptr, false, !isDefault)) {
+                m_Controller->SetDefaultState(state.name);
+            }
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Delete State"))
-            {
+            if (ImGui::MenuItem("Delete State")) {
                 DeleteState(m_SelectedStateIndex);
                 m_SelectedStateIndex = -1;
                 ImGui::CloseCurrentPopup();
@@ -401,8 +389,7 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
     ImVec2 textPos = ImVec2{nodePos.x + 10, nodePos.y + 10};
     drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), state.name.c_str());
 
-    if (isDefault)
-    {
+    if (isDefault) {
         ImVec2 defaultTagPos = ImVec2{nodePos.x + NODE_WIDTH - 65, nodePos.y + 8};
         drawList->AddRectFilled(defaultTagPos, ImVec2{defaultTagPos.x + 55, defaultTagPos.y + 14},
                                 IM_COL32(100, 200, 100, 200), 2.0f);
@@ -410,11 +397,9 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
         drawList->AddText(defaultTextPos, IM_COL32(255, 255, 255, 255), "DEFAULT");
     }
 
-    if (state.animationClipUUID.Get() != 0)
-    {
+    if (state.animationClipUUID.Get() != 0) {
         std::string clipPath = AssetRegistry::Instance().GetPathFromUUID(state.animationClipUUID);
-        if (!clipPath.empty())
-        {
+        if (!clipPath.empty()) {
             std::filesystem::path fsPath{clipPath};
             std::string displayName = fsPath.stem().string();
             ImVec2 clipTextPos = ImVec2{nodePos.x + 10, nodePos.y + 30};
@@ -433,15 +418,13 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
     const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
 
-    for (size_t i = 0; i < transitions.size(); ++i)
-    {
+    for (size_t i = 0; i < transitions.size(); ++i) {
         const AnimatorTransition& trans = transitions[i];
 
         int fromIndex = -1;
         int toIndex = -1;
 
-        for (size_t j = 0; j < states.size(); ++j)
-        {
+        for (size_t j = 0; j < states.size(); ++j) {
             if (states[j].name == trans.fromState)
                 fromIndex = static_cast<int>(j);
             if (states[j].name == trans.toState)
@@ -468,8 +451,7 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
 
         ImVec2 direction = ImVec2{toPos.x - fromPos.x, toPos.y - fromPos.y};
         float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-        if (length > 0)
-        {
+        if (length > 0) {
             direction.x /= length;
             direction.y /= length;
 
@@ -490,11 +472,9 @@ void AnimatorControllerEditorPanel::RenderInspector() {
     ImGui::TextColored(ImVec4{0.8f, 0.6f, 0.8f, 1.0f}, "Inspector");
     ImGui::Separator();
 
-    if (m_SelectedStateIndex >= 0)
-    {
+    if (m_SelectedStateIndex >= 0) {
         const std::vector<AnimatorState>& states = m_Controller->GetStates();
-        if (m_SelectedStateIndex < static_cast<int>(states.size()))
-        {
+        if (m_SelectedStateIndex < static_cast<int>(states.size())) {
             AnimatorState& state = const_cast<AnimatorState&>(states[m_SelectedStateIndex]);
 
             ImGui::Text("State: %s", state.name.c_str());
@@ -510,19 +490,19 @@ void AnimatorControllerEditorPanel::RenderInspector() {
 #pragma warning(pop)
 #endif
             nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-            if (ImGui::InputText("Name", nameBuffer, sizeof(nameBuffer)))
-            { state.name = nameBuffer; }
+            if (ImGui::InputText("Name", nameBuffer, sizeof(nameBuffer))) {
+                state.name = nameBuffer;
+            }
 
             ImGui::DragFloat("Speed", &state.speed, 0.1f, 0.0f, 10.0f);
 
             const bool isDefault = (state.name == m_Controller->GetDefaultState());
-            if (!isDefault)
-            {
-                if (ImGui::Button("Set as Default State", ImVec2{-1, 0}))
-                { m_Controller->SetDefaultState(state.name); }
+            if (!isDefault) {
+                if (ImGui::Button("Set as Default State", ImVec2{-1, 0})) {
+                    m_Controller->SetDefaultState(state.name);
+                }
             }
-            else
-            {
+            else {
                 ImGui::BeginDisabled();
                 ImGui::Button("Already Default State", ImVec2{-1, 0});
                 ImGui::EndDisabled();
@@ -542,69 +522,56 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             textPos.y += 15;
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
-            if (state.animationClipUUID.Get() != 0)
-            {
+            if (state.animationClipUUID.Get() != 0) {
                 std::string clipPath = AssetRegistry::Instance().GetPathFromUUID(state.animationClipUUID);
-                if (!clipPath.empty())
-                {
+                if (!clipPath.empty()) {
                     std::filesystem::path fsPath{clipPath};
                     std::string displayName = fsPath.stem().string();
                     textPos.x += 10;
                     drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), displayName.c_str());
                 }
-                else
-                {
+                else {
                     textPos.x += 10;
                     drawList->AddText(textPos, IM_COL32(255, 128, 128, 255), "[Missing Clip]");
                 }
             }
-            else
-            {
+            else {
                 textPos.x += 10;
                 drawList->AddText(textPos, IM_COL32(128, 128, 128, 255), "Drop AnimationClip here");
             }
 
-            if (ImGui::BeginDragDropTarget())
-            {
+            if (ImGui::BeginDragDropTarget()) {
                 const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID");
-                if (payload)
-                {
+                if (payload) {
                     UUID droppedUUID = *static_cast<const UUID*>(payload->Data);
                     std::string assetPath = AssetRegistry::Instance().GetPathFromUUID(droppedUUID);
-                    if (!assetPath.empty() && assetPath.find(".animclip") != std::string::npos)
-                    {
+                    if (!assetPath.empty() && assetPath.find(".animclip") != std::string::npos) {
                         state.animationClipUUID = droppedUUID;
                         PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
                         Save();
                     }
                 }
 
-                if (!payload)
-                {
+                if (!payload) {
                     payload = ImGui::AcceptDragDropPayload("ASSET_ANIM");
-                    if (payload)
-                    {
+                    if (payload) {
                         AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
-                        if (assetInfo && assetInfo->type == "animclip")
-                        {
+                        if (assetInfo && assetInfo->type == "animclip") {
                             PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(),
                                         assetInfo->filename.c_str());
 
-                            if (assetInfo->uuid.Get() != 0)
-                            {
+                            if (assetInfo->uuid.Get() != 0) {
                                 state.animationClipUUID = assetInfo->uuid;
                                 PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu",
                                             state.animationClipUUID.Get());
                                 Save();
                             }
-                            else
-                            {
+                            else {
                                 PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s",
                                                assetInfo->path.c_str());
                                 std::shared_ptr<Asset> asset =
                                     AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
-                                if (asset)
-                                {
+                                if (asset) {
                                     state.animationClipUUID = asset->GetUUID();
                                     PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu",
                                                 state.animationClipUUID.Get());
@@ -620,40 +587,37 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             ImGui::EndChild();
             ImGui::PopStyleColor(2);
 
-            if (state.animationClipUUID.Get() != 0)
-            {
-                if (ImGui::Button("Clear##ClipClear", ImVec2{-1, 0}))
-                {
+            if (state.animationClipUUID.Get() != 0) {
+                if (ImGui::Button("Clear##ClipClear", ImVec2{-1, 0})) {
                     state.animationClipUUID = UUID{0};
                     Save();
                 }
             }
 
             ImGui::Separator();
-            if (ImGui::Button("Create Transition", ImVec2{-1, 0}))
-            { m_CreatingTransitionFromIndex = m_SelectedStateIndex; }
+            if (ImGui::Button("Create Transition", ImVec2{-1, 0})) {
+                m_CreatingTransitionFromIndex = m_SelectedStateIndex;
+            }
 
             ImGui::Separator();
-            if (ImGui::Button("Delete State", ImVec2{-1, 0}))
-            {
+            if (ImGui::Button("Delete State", ImVec2{-1, 0})) {
                 DeleteState(m_SelectedStateIndex);
                 m_SelectedStateIndex = -1;
             }
         }
     }
-    else if (m_SelectedTransitionIndex >= 0)
-    {
+    else if (m_SelectedTransitionIndex >= 0) {
         const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
-        if (m_SelectedTransitionIndex < static_cast<int>(transitions.size()))
-        {
+        if (m_SelectedTransitionIndex < static_cast<int>(transitions.size())) {
             AnimatorTransition& trans = const_cast<AnimatorTransition&>(transitions[m_SelectedTransitionIndex]);
 
             ImGui::Text("Transition: %s -> %s", trans.fromState.c_str(), trans.toState.c_str());
             ImGui::Separator();
 
             ImGui::Checkbox("Has Exit Time", &trans.hasExitTime);
-            if (trans.hasExitTime)
-            { ImGui::DragFloat("Exit Time", &trans.exitTime, 0.01f, 0.0f, 1.0f); }
+            if (trans.hasExitTime) {
+                ImGui::DragFloat("Exit Time", &trans.exitTime, 0.01f, 0.0f, 1.0f);
+            }
             ImGui::DragFloat("Duration", &trans.transitionDuration, 0.01f, 0.0f, 1.0f);
 
             ImGui::Separator();
@@ -663,87 +627,86 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             const std::vector<AnimatorParameter>& params = m_Controller->GetParameters();
             int conditionToDelete = -1;
 
-            for (size_t i = 0; i < conditions.size(); ++i)
-            {
+            for (size_t i = 0; i < conditions.size(); ++i) {
                 ImGui::PushID(static_cast<int>(i));
                 TransitionCondition& cond = conditions[i];
 
                 int currentParamIndex = 0;
                 std::vector<const char*> paramNames;
-                for (size_t j = 0; j < params.size(); ++j)
-                {
+                for (size_t j = 0; j < params.size(); ++j) {
                     paramNames.push_back(params[j].name.c_str());
-                    if (params[j].name == cond.parameterName)
-                    { currentParamIndex = static_cast<int>(j); }
+                    if (params[j].name == cond.parameterName) {
+                        currentParamIndex = static_cast<int>(j);
+                    }
                 }
 
-                if (!params.empty())
-                {
+                if (!params.empty()) {
                     if (ImGui::Combo("Parameter", &currentParamIndex, paramNames.data(),
-                                     static_cast<int>(paramNames.size())))
-                    { cond.parameterName = params[currentParamIndex].name; }
+                                     static_cast<int>(paramNames.size()))) {
+                        cond.parameterName = params[currentParamIndex].name;
+                    }
 
                     const AnimatorParameter& selectedParam = params[currentParamIndex];
 
-                    if (selectedParam.type == AnimatorParameterType::Trigger)
-                    { ImGui::TextDisabled("Trigger (fires when set)"); }
-                    else if (selectedParam.type == AnimatorParameterType::Bool)
-                    {
+                    if (selectedParam.type == AnimatorParameterType::Trigger) {
+                        ImGui::TextDisabled("Trigger (fires when set)");
+                    }
+                    else if (selectedParam.type == AnimatorParameterType::Bool) {
                         const char* boolCondTypes[] = {"True", "False"};
                         int boolCondType = std::get<bool>(cond.value) ? 0 : 1;
-                        if (ImGui::Combo("Condition", &boolCondType, boolCondTypes, 2))
-                        {
+                        if (ImGui::Combo("Condition", &boolCondType, boolCondTypes, 2)) {
                             cond.value = (boolCondType == 0);
                             cond.type = (boolCondType == 0) ? TransitionConditionType::Equals
                                                             : TransitionConditionType::NotEquals;
                         }
                     }
-                    else if (selectedParam.type == AnimatorParameterType::Float)
-                    {
+                    else if (selectedParam.type == AnimatorParameterType::Float) {
                         const char* floatCondTypes[] = {"Greater", "Less", "Equals"};
                         int floatCondType = (cond.type == TransitionConditionType::Greater) ? 0
                                             : (cond.type == TransitionConditionType::Less)  ? 1
                                                                                             : 2;
-                        if (ImGui::Combo("Condition", &floatCondType, floatCondTypes, 3))
-                        {
+                        if (ImGui::Combo("Condition", &floatCondType, floatCondTypes, 3)) {
                             cond.type = (floatCondType == 0)   ? TransitionConditionType::Greater
                                         : (floatCondType == 1) ? TransitionConditionType::Less
                                                                : TransitionConditionType::Equals;
                         }
                         float floatValue =
                             std::holds_alternative<float>(cond.value) ? std::get<float>(cond.value) : 0.0f;
-                        if (ImGui::DragFloat("Value", &floatValue, 0.1f))
-                        { cond.value = floatValue; }
+                        if (ImGui::DragFloat("Value", &floatValue, 0.1f)) {
+                            cond.value = floatValue;
+                        }
                     }
-                    else if (selectedParam.type == AnimatorParameterType::Int)
-                    {
+                    else if (selectedParam.type == AnimatorParameterType::Int) {
                         const char* intCondTypes[] = {"Greater", "Less", "Equals", "NotEquals"};
                         int intCondType = static_cast<int>(cond.type);
-                        if (ImGui::Combo("Condition", &intCondType, intCondTypes, 4))
-                        { cond.type = static_cast<TransitionConditionType>(intCondType); }
+                        if (ImGui::Combo("Condition", &intCondType, intCondTypes, 4)) {
+                            cond.type = static_cast<TransitionConditionType>(intCondType);
+                        }
                         int intValue = std::holds_alternative<int>(cond.value) ? std::get<int>(cond.value) : 0;
-                        if (ImGui::DragInt("Value", &intValue))
-                        { cond.value = intValue; }
+                        if (ImGui::DragInt("Value", &intValue)) {
+                            cond.value = intValue;
+                        }
                     }
                 }
-                else
-                { ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "No parameters available"); }
+                else {
+                    ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "No parameters available");
+                }
 
-                if (ImGui::SmallButton("Delete"))
-                { conditionToDelete = static_cast<int>(i); }
+                if (ImGui::SmallButton("Delete")) {
+                    conditionToDelete = static_cast<int>(i);
+                }
 
                 ImGui::Separator();
                 ImGui::PopID();
             }
 
-            if (conditionToDelete >= 0)
-            { conditions.erase(conditions.begin() + conditionToDelete); }
+            if (conditionToDelete >= 0) {
+                conditions.erase(conditions.begin() + conditionToDelete);
+            }
 
             ImGui::Separator();
-            if (ImGui::Button("Add Condition", ImVec2{-1, 0}))
-            {
-                if (!m_Controller->GetParameters().empty())
-                {
+            if (ImGui::Button("Add Condition", ImVec2{-1, 0})) {
+                if (!m_Controller->GetParameters().empty()) {
                     TransitionCondition newCond{};
                     newCond.parameterName = m_Controller->GetParameters()[0].name;
                     newCond.type = TransitionConditionType::Equals;
@@ -753,15 +716,15 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             }
 
             ImGui::Separator();
-            if (ImGui::Button("Delete Transition", ImVec2{-1, 0}))
-            {
+            if (ImGui::Button("Delete Transition", ImVec2{-1, 0})) {
                 DeleteTransition(m_SelectedTransitionIndex);
                 m_SelectedTransitionIndex = -1;
             }
         }
     }
-    else
-    { ImGui::TextDisabled("Select a state or transition to edit"); }
+    else {
+        ImGui::TextDisabled("Select a state or transition to edit");
+    }
 }
 
 void AnimatorControllerEditorPanel::CreateNewState(const ImVec2& position) {
@@ -774,8 +737,9 @@ void AnimatorControllerEditorPanel::CreateNewState(const ImVec2& position) {
     m_Controller->AddState(newState);
     snprintf(m_NewStateName, sizeof(m_NewStateName), "NewState%zu", m_Controller->GetStates().size() + 1);
 
-    if (m_Controller->GetStates().size() == 1)
-    { m_Controller->SetDefaultState(newState.name); }
+    if (m_Controller->GetStates().size() == 1) {
+        m_Controller->SetDefaultState(newState.name);
+    }
 }
 
 void AnimatorControllerEditorPanel::DeleteState(size_t stateIndex) {
@@ -786,10 +750,10 @@ void AnimatorControllerEditorPanel::DeleteState(size_t stateIndex) {
     const std::string stateName = states[stateIndex].name;
 
     const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
-    for (int i = static_cast<int>(transitions.size()) - 1; i >= 0; --i)
-    {
-        if (transitions[i].fromState == stateName || transitions[i].toState == stateName)
-        { m_Controller->RemoveTransition(transitions[i].fromState, transitions[i].toState); }
+    for (int i = static_cast<int>(transitions.size()) - 1; i >= 0; --i) {
+        if (transitions[i].fromState == stateName || transitions[i].toState == stateName) {
+            m_Controller->RemoveTransition(transitions[i].fromState, transitions[i].toState);
+        }
     }
 
     m_Controller->RemoveState(stateName);
@@ -820,8 +784,7 @@ void AnimatorControllerEditorPanel::DeleteTransition(size_t transitionIndex) {
 }
 
 void AnimatorControllerEditorPanel::Save() {
-    if (m_CurrentPath.empty() || !m_Controller)
-    {
+    if (m_CurrentPath.empty() || !m_Controller) {
         PX_LOG_ERROR(EDITOR, "Cannot save: no path or controller");
         return;
     }
@@ -829,31 +792,31 @@ void AnimatorControllerEditorPanel::Save() {
     PX_LOG_INFO(EDITOR, "Saving AnimatorController to: %s", m_CurrentPath.c_str());
 
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
-    for (size_t i = 0; i < states.size(); ++i)
-    {
+    for (size_t i = 0; i < states.size(); ++i) {
         PX_LOG_INFO(EDITOR, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(),
                     states[i].animationClipUUID.Get());
     }
 
-    if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath))
-    {
+    if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
         PX_LOG_INFO(EDITOR, "AnimatorController saved successfully to: %s", m_CurrentPath.c_str());
         AssetRegistry::Instance().ReimportAsset(m_CurrentPath);
 
         UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(m_CurrentPath);
-        if (existingUUID.Get() != 0)
-        {
+        if (existingUUID.Get() != 0) {
             std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
             m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
 
-            if (m_Controller)
-            { PX_LOG_INFO(EDITOR, "AnimatorController reloaded after save"); }
-            else
-            { PX_LOG_ERROR(EDITOR, "Failed to reload AnimatorController after save"); }
+            if (m_Controller) {
+                PX_LOG_INFO(EDITOR, "AnimatorController reloaded after save");
+            }
+            else {
+                PX_LOG_ERROR(EDITOR, "Failed to reload AnimatorController after save");
+            }
         }
     }
-    else
-    { PX_LOG_ERROR(EDITOR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str()); }
+    else {
+        PX_LOG_ERROR(EDITOR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
+    }
 }
 
 ImVec2 AnimatorControllerEditorPanel::GetStateNodePosition(size_t stateIndex) const {
@@ -869,14 +832,14 @@ int AnimatorControllerEditorPanel::GetStateIndexAtPosition(const ImVec2& pos, co
     (void)scrolling;
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
 
-    for (int i = static_cast<int>(states.size()) - 1; i >= 0; --i)
-    {
+    for (int i = static_cast<int>(states.size()) - 1; i >= 0; --i) {
         const AnimatorState& state = states[i];
         ImVec2 nodePos = ImVec2{state.editorPosition.x, state.editorPosition.y};
         ImVec2 nodeEnd = ImVec2{nodePos.x + NODE_WIDTH, nodePos.y + NODE_HEIGHT};
 
-        if (pos.x >= nodePos.x && pos.x <= nodeEnd.x && pos.y >= nodePos.y && pos.y <= nodeEnd.y)
-        { return i; }
+        if (pos.x >= nodePos.x && pos.x <= nodeEnd.x && pos.y >= nodePos.y && pos.y <= nodeEnd.y) {
+            return i;
+        }
     }
 
     return -1;
@@ -887,15 +850,13 @@ int AnimatorControllerEditorPanel::GetTransitionIndexAtPosition(const ImVec2& mo
     const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
 
-    for (int i = static_cast<int>(transitions.size()) - 1; i >= 0; --i)
-    {
+    for (int i = static_cast<int>(transitions.size()) - 1; i >= 0; --i) {
         const AnimatorTransition& trans = transitions[i];
 
         int fromIndex = -1;
         int toIndex = -1;
 
-        for (size_t j = 0; j < states.size(); ++j)
-        {
+        for (size_t j = 0; j < states.size(); ++j) {
             if (states[j].name == trans.fromState)
                 fromIndex = static_cast<int>(j);
             if (states[j].name == trans.toState)
@@ -926,8 +887,9 @@ int AnimatorControllerEditorPanel::GetTransitionIndexAtPosition(const ImVec2& mo
         float alongLine = toMouse.x * dir.x + toMouse.y * dir.y;
         float perpDist = std::abs(toMouse.x * perpendicular.x + toMouse.y * perpendicular.y);
 
-        if (alongLine >= 0 && alongLine <= len && perpDist < 10.0f)
-        { return i; }
+        if (alongLine >= 0 && alongLine <= len && perpDist < 10.0f) {
+            return i;
+        }
     }
 
     return -1;

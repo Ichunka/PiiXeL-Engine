@@ -41,18 +41,19 @@ void BuildPanel::AddLogMessage(const std::string& message) {
     const std::string timestamp = "[" + GetCurrentTimeString() + "] ";
     m_BuildLog.push_back(timestamp + message);
 
-    if (m_BuildLog.size() > 100)
-    { m_BuildLog.erase(m_BuildLog.begin()); }
+    if (m_BuildLog.size() > 100) {
+        m_BuildLog.erase(m_BuildLog.begin());
+    }
 }
 
 void BuildPanel::OnBuildProgress(const BuildProgress& progress) {
-    if (!progress.statusMessage.empty())
-    { AddLogMessage(progress.statusMessage); }
+    if (!progress.statusMessage.empty()) {
+        AddLogMessage(progress.statusMessage);
+    }
 }
 
 void BuildPanel::Render() {
-    if (!ImGui::Begin("Build & Export", nullptr, ImGuiWindowFlags_None))
-    {
+    if (!ImGui::Begin("Build & Export", nullptr, ImGuiWindowFlags_None)) {
         ImGui::End();
         return;
     }
@@ -63,21 +64,18 @@ void BuildPanel::Render() {
     ImGui::Separator();
     RenderBuildLog();
 
-    if (m_ShowExportDialog)
-    {
+    if (m_ShowExportDialog) {
         ImGui::OpenPopup("Export Game");
         m_ShowExportDialog = false;
     }
 
-    if (ImGui::BeginPopupModal("Export Game", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+    if (ImGui::BeginPopupModal("Export Game", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Export Path:");
         ImGui::InputText("##exportpath", m_ExportPathBuffer, sizeof(m_ExportPathBuffer));
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Export", ImVec2(120, 0)))
-        {
+        if (ImGui::Button("Export", ImVec2(120, 0))) {
             m_ExportPath = std::string(m_ExportPathBuffer);
             AddLogMessage("Starting export to: " + m_ExportPath);
 
@@ -89,8 +87,9 @@ void BuildPanel::Render() {
 
         ImGui::SameLine();
 
-        if (ImGui::Button("Cancel", ImVec2(120, 0)))
-        { ImGui::CloseCurrentPopup(); }
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
 
         ImGui::EndPopup();
     }
@@ -106,43 +105,43 @@ void BuildPanel::RenderBuildButtons() {
 
     ImGui::BeginDisabled(isBuilding);
 
-    if (ImGui::Button("Build Game Package", ImVec2(200, 0)))
-    {
+    if (ImGui::Button("Build Game Package", ImVec2(200, 0))) {
         AddLogMessage("Building game package...");
         m_BuildSystem->BuildGamePackage([this](const BuildProgress& progress) { OnBuildProgress(progress); });
     }
 
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    { ImGui::SetTooltip("Creates game.package with all assets and scenes"); }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Creates game.package with all assets and scenes");
+    }
 
-    if (ImGui::Button("Build Game Executable", ImVec2(200, 0)))
-    {
+    if (ImGui::Button("Build Game Executable", ImVec2(200, 0))) {
         AddLogMessage("Building game executable...");
         m_BuildSystem->BuildGameExecutable([this](const BuildProgress& progress) { OnBuildProgress(progress); });
     }
 
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    { ImGui::SetTooltip("Compiles the standalone game (no editor)"); }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Compiles the standalone game (no editor)");
+    }
 
-    if (ImGui::Button("Export Game (Full)", ImVec2(200, 0)))
-    { m_ShowExportDialog = true; }
+    if (ImGui::Button("Export Game (Full)", ImVec2(200, 0))) {
+        m_ShowExportDialog = true;
+    }
 
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    { ImGui::SetTooltip("Builds and exports game with all dependencies to a folder"); }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Builds and exports game with all dependencies to a folder");
+    }
 
     ImGui::EndDisabled();
 
-    if (isBuilding)
-    {
+    if (isBuilding) {
         ImGui::SameLine();
-        if (ImGui::Button("Cancel Build", ImVec2(120, 0)))
-        {
+        if (ImGui::Button("Cancel Build", ImVec2(120, 0))) {
             m_BuildSystem->Cancel();
             AddLogMessage("Build cancelled by user");
         }
@@ -150,8 +149,7 @@ void BuildPanel::RenderBuildButtons() {
 }
 
 const char* GetBuildStepName(BuildStep step) {
-    switch (step)
-    {
+    switch (step) {
         case BuildStep::Idle:
             return "Idle";
         case BuildStep::ConfiguringCMake:
@@ -181,10 +179,12 @@ void BuildPanel::RenderProgressBar() {
 
     ImVec4 progressColor{0.2f, 0.6f, 1.0f, 1.0f};
 
-    if (progress.currentStep == BuildStep::Completed)
-    { progressColor = ImVec4{0.2f, 0.8f, 0.2f, 1.0f}; }
-    else if (progress.currentStep == BuildStep::Failed)
-    { progressColor = ImVec4{0.8f, 0.2f, 0.2f, 1.0f}; }
+    if (progress.currentStep == BuildStep::Completed) {
+        progressColor = ImVec4{0.2f, 0.8f, 0.2f, 1.0f};
+    }
+    else if (progress.currentStep == BuildStep::Failed) {
+        progressColor = ImVec4{0.8f, 0.2f, 0.2f, 1.0f};
+    }
 
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, progressColor);
 
@@ -196,12 +196,12 @@ void BuildPanel::RenderProgressBar() {
 
     ImGui::PopStyleColor();
 
-    if (progress.isRunning)
-    {
+    if (progress.isRunning) {
         ImGui::Text("Current Step: %s", GetBuildStepName(progress.currentStep));
 
-        if (!progress.statusMessage.empty())
-        { ImGui::TextWrapped("%s", progress.statusMessage.c_str()); }
+        if (!progress.statusMessage.empty()) {
+            ImGui::TextWrapped("%s", progress.statusMessage.c_str());
+        }
 
         ImGui::Spacing();
 
@@ -210,42 +210,46 @@ void BuildPanel::RenderProgressBar() {
         spinnerIndex = (spinnerIndex + 1) % 4;
         ImGui::Text("Working %s", spinner[spinnerIndex]);
     }
-    else if (progress.currentStep == BuildStep::Completed)
-    { ImGui::TextColored(ImVec4{0.2f, 1.0f, 0.2f, 1.0f}, "Build completed successfully!"); }
-    else if (progress.currentStep == BuildStep::Failed)
-    {
-        ImGui::TextColored(ImVec4{1.0f, 0.2f, 0.2f, 1.0f}, "Build failed!");
-        if (!progress.statusMessage.empty())
-        { ImGui::TextWrapped("%s", progress.statusMessage.c_str()); }
+    else if (progress.currentStep == BuildStep::Completed) {
+        ImGui::TextColored(ImVec4{0.2f, 1.0f, 0.2f, 1.0f}, "Build completed successfully!");
     }
-    else if (progress.currentStep == BuildStep::Idle)
-    { ImGui::TextDisabled("No build running. Use the buttons above to start a build."); }
+    else if (progress.currentStep == BuildStep::Failed) {
+        ImGui::TextColored(ImVec4{1.0f, 0.2f, 0.2f, 1.0f}, "Build failed!");
+        if (!progress.statusMessage.empty()) {
+            ImGui::TextWrapped("%s", progress.statusMessage.c_str());
+        }
+    }
+    else if (progress.currentStep == BuildStep::Idle) {
+        ImGui::TextDisabled("No build running. Use the buttons above to start a build.");
+    }
 }
 
 void BuildPanel::RenderBuildLog() {
     ImGui::Text("Build Log:");
     ImGui::Spacing();
 
-    if (ImGui::BeginChild("BuildLogScroll", ImVec2(0, 200), true, ImGuiWindowFlags_HorizontalScrollbar))
-    {
-        for (const std::string& logMessage : m_BuildLog)
-        { ImGui::TextUnformatted(logMessage.c_str()); }
+    if (ImGui::BeginChild("BuildLogScroll", ImVec2(0, 200), true, ImGuiWindowFlags_HorizontalScrollbar)) {
+        for (const std::string& logMessage : m_BuildLog) {
+            ImGui::TextUnformatted(logMessage.c_str());
+        }
 
-        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-        { ImGui::SetScrollHereY(1.0f); }
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+            ImGui::SetScrollHereY(1.0f);
+        }
     }
     ImGui::EndChild();
 
-    if (ImGui::Button("Clear Log"))
-    { m_BuildLog.clear(); }
+    if (ImGui::Button("Clear Log")) {
+        m_BuildLog.clear();
+    }
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Copy Logs"))
-    {
+    if (ImGui::Button("Copy Logs")) {
         std::string fullLog;
-        for (const std::string& logMessage : m_BuildLog)
-        { fullLog += logMessage + "\n"; }
+        for (const std::string& logMessage : m_BuildLog) {
+            fullLog += logMessage + "\n";
+        }
         ImGui::SetClipboardText(fullLog.c_str());
     }
 }

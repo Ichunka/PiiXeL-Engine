@@ -26,8 +26,9 @@ public:
     void Unsubscribe(CallbackId id) { m_Callbacks.erase(id); }
 
     void Invoke(Args... args) {
-        for (auto& [id, callback] : m_Callbacks)
-        { callback(args...); }
+        for (auto& [id, callback] : m_Callbacks) {
+            callback(args...);
+        }
     }
 
     void Clear() { m_Callbacks.clear(); }
@@ -86,8 +87,7 @@ private:
         std::type_index typeIndex = std::type_index(typeid(EventType));
 
         auto it = m_Events.find(typeIndex);
-        if (it == m_Events.end())
-        {
+        if (it == m_Events.end()) {
             auto event = std::make_unique<Event<const EventType&>>();
             Event<const EventType&>* eventPtr = event.get();
             m_Events[typeIndex] = std::move(event);

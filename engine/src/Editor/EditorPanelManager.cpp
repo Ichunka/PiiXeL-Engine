@@ -36,13 +36,11 @@ void EditorPanelManager::BeginDockspace() {
     ImGui::PopStyleVar(2);
 
     ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-    {
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
         ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 
-        if (!m_DockingLayoutInitialized)
-        {
+        if (!m_DockingLayoutInitialized) {
             SetupDockingLayout();
             m_DockingLayoutInitialized = true;
         }

@@ -29,15 +29,17 @@ public:
     ComponentModule<T>* GetModule() {
         std::type_index typeIdx = std::type_index(typeid(T));
         auto it = m_ModulesByType.find(typeIdx);
-        if (it != m_ModulesByType.end())
-        { return static_cast<ComponentModule<T>*>(it->second.get()); }
+        if (it != m_ModulesByType.end()) {
+            return static_cast<ComponentModule<T>*>(it->second.get());
+        }
         return nullptr;
     }
 
     IComponentModule* GetModuleByName(const std::string& name) {
         auto it = m_ModulesByName.find(name);
-        if (it != m_ModulesByName.end())
-        { return it->second.get(); }
+        if (it != m_ModulesByName.end()) {
+            return it->second.get();
+        }
         return nullptr;
     }
 
