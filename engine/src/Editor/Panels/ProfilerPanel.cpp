@@ -12,9 +12,9 @@ namespace PiiXeL {
 
 ProfilerPanel::ProfilerPanel(bool* paused, FrameSnapshot* pausedSnapshot, int* selectedFrame,
                              FrameSnapshot* selectedFrameSnapshot, float* flameGraphZoom, float* flameGraphScroll) :
-    m_Paused{paused},
-    m_PausedSnapshot{pausedSnapshot}, m_SelectedFrame{selectedFrame}, m_SelectedFrameSnapshot{selectedFrameSnapshot},
-    m_FlameGraphZoom{flameGraphZoom}, m_FlameGraphScroll{flameGraphScroll} {}
+    m_Paused{paused}, m_PausedSnapshot{pausedSnapshot}, m_SelectedFrame{selectedFrame},
+    m_SelectedFrameSnapshot{selectedFrameSnapshot}, m_FlameGraphZoom{flameGraphZoom},
+    m_FlameGraphScroll{flameGraphScroll} {}
 
 void ProfilerPanel::OnImGuiRender() {
     PROFILE_FUNCTION();
@@ -129,7 +129,8 @@ void ProfilerPanel::OnImGuiRender() {
     if (ImGui::BeginTabBar("ProfilerTabs")) {
         if (ImGui::BeginTabItem("Current Frame")) {
             if (ImGui::BeginTable("ProfilerTable", 3,
-                                  ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+                                  ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+            {
                 ImGui::TableSetupColumn("Scope", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_WidthFixed, 100.0f);
                 ImGui::TableSetupColumn("Calls", ImGuiTableColumnFlags_WidthFixed, 60.0f);

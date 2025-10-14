@@ -483,7 +483,8 @@ void EditorLayer::HandleGizmoInteraction() {
                 Vector2 yHandle{transform.position.x, transform.position.y + arrowLength};
 
                 if (std::abs(mouseWorldPos.x - xHandle.x) < scaleHandleSize &&
-                    std::abs(mouseWorldPos.y - xHandle.y) < scaleHandleSize) {
+                    std::abs(mouseWorldPos.y - xHandle.y) < scaleHandleSize)
+                {
                     m_SelectedAxis = GizmoAxis::X;
                     m_IsDragging = true;
                     m_DragStartPos = mouseWorldPos;
@@ -750,7 +751,8 @@ void EditorLayer::OnStopButtonPressed() {
                                     if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
                                         const nlohmann::json& scriptsArray = entityJson["Scripts"];
                                         for (size_t i = 0;
-                                             i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i) {
+                                             i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i)
+                                        {
                                             const nlohmann::json& scriptJson = scriptsArray[i];
                                             ScriptInstance& script = scriptComponent.scripts[i];
 
@@ -767,10 +769,12 @@ void EditorLayer::OnStopButtonPressed() {
 
                                                         if (typeInfo) {
                                                             for (const Reflection::FieldInfo& field :
-                                                                 typeInfo->GetFields()) {
+                                                                 typeInfo->GetFields())
+                                                            {
                                                                 if ((field.flags &
                                                                      Reflection::FieldFlags::Serializable) &&
-                                                                    propertiesJson.contains(field.name)) {
+                                                                    propertiesJson.contains(field.name))
+                                                                {
                                                                     void* fieldPtr = field.getPtr(
                                                                         static_cast<void*>(script.instance.get()));
                                                                     Reflection::JsonSerializer::DeserializeField(
@@ -801,10 +805,12 @@ void EditorLayer::OnStopButtonPressed() {
 
                                                         if (typeInfo) {
                                                             for (const Reflection::FieldInfo& field :
-                                                                 typeInfo->GetFields()) {
+                                                                 typeInfo->GetFields())
+                                                            {
                                                                 if ((field.flags &
                                                                      Reflection::FieldFlags::Serializable) &&
-                                                                    propertiesJson.contains(field.name)) {
+                                                                    propertiesJson.contains(field.name))
+                                                                {
                                                                     void* fieldPtr = field.getPtr(
                                                                         static_cast<void*>(script.instance.get()));
                                                                     Reflection::JsonSerializer::DeserializeField(
@@ -1311,7 +1317,8 @@ void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
                             if (typeInfo) {
                                 for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                     if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
+                                        propertiesJson.contains(field.name))
+                                    {
                                         void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
                                         Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
                                                                                      fieldPtr);
@@ -1341,7 +1348,8 @@ void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
                             if (typeInfo) {
                                 for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                     if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
+                                        propertiesJson.contains(field.name))
+                                    {
                                         void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
                                         Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
                                                                                      fieldPtr);

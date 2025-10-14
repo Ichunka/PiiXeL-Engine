@@ -190,22 +190,26 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
                     }
                     if (!line.empty()) {
                         if (line.find("Configuring done") != std::string::npos ||
-                            line.find("Generating done") != std::string::npos) {
+                            line.find("Generating done") != std::string::npos)
+                        {
                             lastStep = BuildStep::ConfiguringCMake;
                             lastProgress = 20.0f;
                         }
                         else if (line.find("Building CXX") != std::string::npos ||
-                                 line.find("Linking CXX") != std::string::npos) {
+                                 line.find("Linking CXX") != std::string::npos)
+                        {
                             lastStep = BuildStep::CompilingGame;
                             lastProgress = 50.0f;
                         }
                         else if (line.find("build_package") != std::string::npos &&
-                                 line.find("Linking") != std::string::npos) {
+                                 line.find("Linking") != std::string::npos)
+                        {
                             lastStep = BuildStep::BuildingPackage;
                             lastProgress = 70.0f;
                         }
                         else if (line.find("Packaging") != std::string::npos ||
-                                 line.find("Adding") != std::string::npos) {
+                                 line.find("Adding") != std::string::npos)
+                        {
                             lastStep = BuildStep::BuildingPackage;
                             lastProgress = 85.0f;
                         }
@@ -275,22 +279,26 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
                         }
                         if (!line.empty()) {
                             if (line.find("Configuring done") != std::string::npos ||
-                                line.find("Generating done") != std::string::npos) {
+                                line.find("Generating done") != std::string::npos)
+                            {
                                 lastStep = BuildStep::ConfiguringCMake;
                                 lastProgress = 20.0f;
                             }
                             else if (line.find("Building CXX") != std::string::npos ||
-                                     line.find("Linking CXX") != std::string::npos) {
+                                     line.find("Linking CXX") != std::string::npos)
+                            {
                                 lastStep = BuildStep::CompilingGame;
                                 lastProgress = 50.0f;
                             }
                             else if (line.find("build_package") != std::string::npos &&
-                                     line.find("Linking") != std::string::npos) {
+                                     line.find("Linking") != std::string::npos)
+                            {
                                 lastStep = BuildStep::BuildingPackage;
                                 lastProgress = 70.0f;
                             }
                             else if (line.find("Packaging") != std::string::npos ||
-                                     line.find("Adding") != std::string::npos) {
+                                     line.find("Adding") != std::string::npos)
+                            {
                                 lastStep = BuildStep::BuildingPackage;
                                 lastProgress = 85.0f;
                             }

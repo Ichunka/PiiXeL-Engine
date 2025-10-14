@@ -21,8 +21,7 @@ class ModifyTransformCommand : public Command {
 public:
     ModifyTransformCommand(entt::registry* registry, entt::entity entity, const Transform& oldValue,
                            const Transform& newValue) :
-        m_Registry{registry},
-        m_Entity{entity}, m_OldValue{oldValue}, m_NewValue{newValue} {}
+        m_Registry{registry}, m_Entity{entity}, m_OldValue{oldValue}, m_NewValue{newValue} {}
 
     void Execute() override {
         if (m_Registry && m_Registry->valid(m_Entity) && m_Registry->all_of<Transform>(m_Entity)) {

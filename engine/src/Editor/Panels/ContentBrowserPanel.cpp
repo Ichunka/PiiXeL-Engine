@@ -32,9 +32,9 @@ ContentBrowserPanel::ContentBrowserPanel(UUID* selectedAssetUUID, std::string* s
                                          entt::entity* selectedEntity, SpriteSheetEditorPanel* spriteSheetEditor,
                                          AnimationClipEditorPanel* animationClipEditor,
                                          AnimatorControllerEditorPanel* animatorControllerEditor) :
-    m_SelectedAssetUUID{selectedAssetUUID},
-    m_SelectedAssetPath{selectedAssetPath}, m_SelectedEntity{selectedEntity}, m_SpriteSheetEditor{spriteSheetEditor},
-    m_AnimationClipEditor{animationClipEditor}, m_AnimatorControllerEditor{animatorControllerEditor} {}
+    m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath}, m_SelectedEntity{selectedEntity},
+    m_SpriteSheetEditor{spriteSheetEditor}, m_AnimationClipEditor{animationClipEditor},
+    m_AnimatorControllerEditor{animatorControllerEditor} {}
 
 void ContentBrowserPanel::SetDeleteAssetCallback(std::function<void(const std::string&)> callback) {
     m_DeleteAssetCallback = callback;
@@ -188,7 +188,8 @@ void ContentBrowserPanel::OnImGuiRender() {
             ImGui::PushStyleColor(ImGuiCol_Text, folderColor);
 
             if (ImGui::Button(dirName.c_str(),
-                              ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+                              ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+            {
                 if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
                     m_CurrentPath = dirPath;
                     m_NeedsRefresh = true;
@@ -361,7 +362,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                 ImGui::PushStyleColor(ImGuiCol_Text, sceneColor);
 
                 if (ImGui::Button("SCENE",
-                                  ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+                                  ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+                {
                     *m_SelectedAssetPath = asset.path;
                     *m_SelectedAssetUUID = UUID{0};
                     *m_SelectedEntity = entt::null;
