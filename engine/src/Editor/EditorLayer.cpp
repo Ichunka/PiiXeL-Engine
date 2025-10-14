@@ -312,9 +312,6 @@ void EditorLayer::OnImGuiRender() {
         m_CommandHistory.Redo();
     }
 
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N, false)) {
-        NewScene();
-    }
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
         SaveScene();
     }
@@ -462,9 +459,6 @@ void EditorLayer::RenderMenuBar() {
     PROFILE_FUNCTION();
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
-                NewScene();
-            }
             if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
                 LoadScene();
             }
