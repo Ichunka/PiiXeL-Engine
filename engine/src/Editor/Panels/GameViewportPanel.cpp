@@ -5,7 +5,7 @@
 #include "Components/Camera.hpp"
 #include "Components/Transform.hpp"
 #include "Core/Engine.hpp"
-#include "Editor/EditorLayer.hpp"
+#include "Editor/EditorStateManager.hpp"
 #include "Scene/Scene.hpp"
 #include "Systems/RenderSystem.hpp"
 
@@ -14,8 +14,8 @@
 
 namespace PiiXeL {
 
-GameViewportPanel::GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture, EditorState* editorState) :
-    m_Engine{engine}, m_GameViewportTexture{gameViewportTexture}, m_EditorState{editorState} {}
+GameViewportPanel::GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture, EditorStateManager* stateManager) :
+    m_Engine{engine}, m_GameViewportTexture{gameViewportTexture}, m_StateManager{stateManager} {}
 
 void GameViewportPanel::SetGetPrimaryCameraCallback(std::function<entt::entity()> callback) {
     m_GetPrimaryCameraCallback = callback;
@@ -100,7 +100,7 @@ void GameViewportPanel::OnImGuiRender() {
                          static_cast<int>(viewportPanelSize.y), sourceRec);
     }
 
-    if (*m_EditorState == EditorState::Play) {
+    if (m_StateManager && m_StateManager->IsPlayMode()) {
         if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
             ImGuiIO& io = ImGui::GetIO();
             io.WantCaptureMouse = false;

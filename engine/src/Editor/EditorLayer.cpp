@@ -25,6 +25,8 @@
 #include "Editor/EditorPanelManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorSelectionManager.hpp"
+#include "Editor/EditorGizmoSystem.hpp"
+#include "Editor/EditorStateManager.hpp"
 #include "Editor/EditorThemeManager.hpp"
 #include "Editor/Panels/ConsolePanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
@@ -109,9 +111,13 @@ EditorLayer::EditorLayer(Engine* engine) :
                                                       &m_ProfilerSelectedFrame, &m_ProfilerSelectedFrameSnapshot,
                                                       &m_ProfilerFlameGraphZoom, &m_ProfilerFlameGraphScroll);
 
-    m_GameViewportPanel = std::make_unique<GameViewportPanel>(m_Engine, &m_GameViewportTexture, &m_EditorState);
-
     m_EditorCamera = std::make_unique<EditorCamera>();
+    m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
+    m_PanelManager = std::make_unique<EditorPanelManager>();
+    m_GizmoSystem = std::make_unique<EditorGizmoSystem>();
+    m_StateManager = std::make_unique<EditorStateManager>();
+
+    m_GameViewportPanel = std::make_unique<GameViewportPanel>(m_Engine, &m_GameViewportTexture, m_StateManager.get());
 
     m_SceneViewportPanel =
         std::make_unique<SceneViewportPanel>(m_Engine, &m_ViewportTexture, &m_ViewportBounds, &m_ViewportHovered,
@@ -134,9 +140,6 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_SceneViewportPanel->SetHandleGizmoInteractionCallback([this]() { HandleGizmoInteraction(); });
     m_SceneViewportPanel->SetHandleEntitySelectionCallback([this]() { HandleEntitySelection(); });
     m_SceneViewportPanel->SetRenderGizmosCallback([this]() { RenderGizmos(); });
-
-    m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
-    m_PanelManager = std::make_unique<EditorPanelManager>();
 
     EditorThemeManager::SetupDarkTheme();
 
@@ -184,7 +187,7 @@ EditorLayer::~EditorLayer() {
 void EditorLayer::OnUpdate(float deltaTime) {
     (void)deltaTime;
 
-    if (m_EditorState == EditorState::Edit) {
+    if (m_StateManager->IsEditMode()) {
         UpdateAnimatorPreviewInEditMode();
     }
 }
@@ -210,7 +213,7 @@ void EditorLayer::OnImGuiRender() {
         LoadScene();
     }
 
-    if (m_EditorState == EditorState::Edit && m_SelectionManager->GetSelectedEntity() != entt::null) {
+    if (m_StateManager->IsEditMode() && m_SelectionManager->GetSelectedEntity() != entt::null) {
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
             CopyEntity(m_SelectionManager->GetSelectedEntity());
         }
@@ -349,7 +352,7 @@ void EditorLayer::RenderToolbar() {
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoScrollbar);
 
-    if (m_EditorState == EditorState::Edit) {
+    if (m_StateManager->IsEditMode()) {
         if (ImGui::Button("Play")) {
             OnPlayButtonPressed();
         }
@@ -361,25 +364,25 @@ void EditorLayer::RenderToolbar() {
     }
 
     ImGui::SameLine();
-    ImGui::Text("| State: %s", m_EditorState == EditorState::Edit ? "Edit" : "Play");
+    ImGui::Text("| State: %s", m_StateManager->IsEditMode() ? "Edit" : "Play");
 
     ImGui::SameLine();
     ImGui::Separator();
 
-    if (m_EditorState == EditorState::Edit) {
+    if (m_StateManager->IsEditMode()) {
         ImGui::SameLine();
         ImGui::Text("Gizmo:");
         ImGui::SameLine();
-        if (ImGui::RadioButton("Translate", m_GizmoMode == GizmoMode::Translate)) {
-            m_GizmoMode = GizmoMode::Translate;
+        if (ImGui::RadioButton("Translate", m_GizmoSystem->GetGizmoMode() == GizmoMode::Translate)) {
+            m_GizmoSystem->SetGizmoMode(GizmoMode::Translate);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", m_GizmoMode == GizmoMode::Rotate)) {
-            m_GizmoMode = GizmoMode::Rotate;
+        if (ImGui::RadioButton("Rotate", m_GizmoSystem->GetGizmoMode() == GizmoMode::Rotate)) {
+            m_GizmoSystem->SetGizmoMode(GizmoMode::Rotate);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", m_GizmoMode == GizmoMode::Scale)) {
-            m_GizmoMode = GizmoMode::Scale;
+        if (ImGui::RadioButton("Scale", m_GizmoSystem->GetGizmoMode() == GizmoMode::Scale)) {
+            m_GizmoSystem->SetGizmoMode(GizmoMode::Scale);
         }
     }
 
@@ -413,257 +416,48 @@ void EditorLayer::RenderToolbar() {
 }
 
 void EditorLayer::HandleGizmoInteraction() {
-    if (m_EditorState == EditorState::Play) {
+    if (m_StateManager->IsPlayMode()) {
         return;
     }
 
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    ImVec2 mouseImGui = ImGui::GetMousePos();
-    Vector2 mouseViewportPos{mouseImGui.x - m_ViewportPos.x, mouseImGui.y - m_ViewportPos.y};
-
-    if (mouseViewportPos.x < 0 || mouseViewportPos.y < 0 || mouseViewportPos.x > m_ViewportSize.x ||
-        mouseViewportPos.y > m_ViewportSize.y)
-    {
-        return;
-    }
-
-    Vector2 mouseWorldPos = m_EditorCamera->ScreenToWorld(mouseViewportPos, m_ViewportSize.x, m_ViewportSize.y);
-    float cameraZoom = m_EditorCamera->GetZoom();
-
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_EditorCamera->IsPanning()) {
-        if (m_SelectionManager->GetSelectedEntity() != entt::null &&
-            registry.valid(m_SelectionManager->GetSelectedEntity()) &&
-            registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity()))
-        {
-            Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
-
-            m_SelectedAxis = GizmoAxis::None;
-
-            float threshold = 10.0f / cameraZoom;
-            float arrowLength = 50.0f;
-
-            float deltaX = mouseWorldPos.x - transform.position.x;
-            float deltaY = mouseWorldPos.y - transform.position.y;
-
-            if (m_GizmoMode == GizmoMode::Translate) {
-                float centerRadius = 30.0f;
-                float distanceSquared = deltaX * deltaX + deltaY * deltaY;
-
-                if (std::abs(deltaY) < threshold && deltaX > 0 && deltaX < arrowLength) {
-                    m_SelectedAxis = GizmoAxis::X;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = transform.position;
-                }
-                else if (std::abs(deltaX) < threshold && deltaY > 0 && deltaY < arrowLength) {
-                    m_SelectedAxis = GizmoAxis::Y;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = transform.position;
-                }
-                else if (distanceSquared <= centerRadius * centerRadius) {
-                    m_SelectedAxis = GizmoAxis::None;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = transform.position;
-                }
-            }
-            else if (m_GizmoMode == GizmoMode::Scale) {
-                float scaleHandleSize = 8.0f / cameraZoom;
-                float centerRadius = 30.0f;
-                float distanceSquared = deltaX * deltaX + deltaY * deltaY;
-
-                Vector2 xHandle{transform.position.x + arrowLength, transform.position.y};
-                Vector2 yHandle{transform.position.x, transform.position.y + arrowLength};
-
-                if (std::abs(mouseWorldPos.x - xHandle.x) < scaleHandleSize &&
-                    std::abs(mouseWorldPos.y - xHandle.y) < scaleHandleSize) {
-                    m_SelectedAxis = GizmoAxis::X;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = Vector2{transform.scale.x, transform.scale.y};
-                }
-                else if (std::abs(mouseWorldPos.x - yHandle.x) < scaleHandleSize &&
-                         std::abs(mouseWorldPos.y - yHandle.y) < scaleHandleSize)
-                {
-                    m_SelectedAxis = GizmoAxis::Y;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = Vector2{transform.scale.x, transform.scale.y};
-                }
-                else if (distanceSquared <= centerRadius * centerRadius) {
-                    m_SelectedAxis = GizmoAxis::None;
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos = Vector2{transform.scale.x, transform.scale.y};
-                }
-            }
-            else if (m_GizmoMode == GizmoMode::Rotate) {
-                float distance = std::sqrt(deltaX * deltaX + deltaY * deltaY);
-                float rotateRadius = 60.0f;
-                float rotateThickness = 10.0f / cameraZoom;
-
-                if (std::abs(distance - rotateRadius) < rotateThickness) {
-                    m_IsDragging = true;
-                    m_DragStartPos = mouseWorldPos;
-                    m_EntityStartPos.x = transform.rotation;
-                }
-            }
-        }
-    }
-
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-        if (m_IsDragging && m_SelectionManager->GetSelectedEntity() != entt::null &&
-            registry.valid(m_SelectionManager->GetSelectedEntity()) &&
-            registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity()))
-        {
-            Transform& currentTransform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
-            Transform oldTransform = currentTransform;
-
-            if (m_GizmoMode == GizmoMode::Translate) {
-                oldTransform.position = m_EntityStartPos;
-            }
-            else if (m_GizmoMode == GizmoMode::Scale) {
-                oldTransform.scale.x = m_EntityStartPos.x;
-                oldTransform.scale.y = m_EntityStartPos.y;
-            }
-            else if (m_GizmoMode == GizmoMode::Rotate) {
-                oldTransform.rotation = m_EntityStartPos.x;
-            }
-
-            m_CommandHistory.AddCommand(std::make_unique<ModifyTransformCommand>(
-                &registry, m_SelectionManager->GetSelectedEntity(), oldTransform, currentTransform));
-        }
-
-        m_IsDragging = false;
-        m_SelectedAxis = GizmoAxis::None;
-    }
-
-    if (m_IsDragging && m_SelectionManager->GetSelectedEntity() != entt::null &&
-        registry.valid(m_SelectionManager->GetSelectedEntity()) &&
-        registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity()))
-    {
-        Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
-
-        if (m_GizmoMode == GizmoMode::Translate) {
-            Vector2 dragDelta{mouseWorldPos.x - m_DragStartPos.x, mouseWorldPos.y - m_DragStartPos.y};
-
-            if (m_SelectedAxis == GizmoAxis::X) {
-                transform.position.x = m_EntityStartPos.x + dragDelta.x;
-            }
-            else if (m_SelectedAxis == GizmoAxis::Y) {
-                transform.position.y = m_EntityStartPos.y + dragDelta.y;
-            }
-            else {
-                transform.position.x = m_EntityStartPos.x + dragDelta.x;
-                transform.position.y = m_EntityStartPos.y + dragDelta.y;
-            }
-        }
-        else if (m_GizmoMode == GizmoMode::Scale) {
-            Vector2 dragDelta{mouseWorldPos.x - m_DragStartPos.x, mouseWorldPos.y - m_DragStartPos.y};
-
-            float scaleDelta = (dragDelta.x + dragDelta.y) * 0.01f;
-
-            if (m_SelectedAxis == GizmoAxis::X) {
-                transform.scale.x = m_EntityStartPos.x + scaleDelta;
-                if (transform.scale.x < 0.1f)
-                    transform.scale.x = 0.1f;
-            }
-            else if (m_SelectedAxis == GizmoAxis::Y) {
-                transform.scale.y = m_EntityStartPos.y + scaleDelta;
-                if (transform.scale.y < 0.1f)
-                    transform.scale.y = 0.1f;
-            }
-            else {
-                transform.scale.x = m_EntityStartPos.x + scaleDelta;
-                transform.scale.y = m_EntityStartPos.y + scaleDelta;
-                if (transform.scale.x < 0.1f)
-                    transform.scale.x = 0.1f;
-                if (transform.scale.y < 0.1f)
-                    transform.scale.y = 0.1f;
-            }
-        }
-        else if (m_GizmoMode == GizmoMode::Rotate) {
-            float deltaX = mouseWorldPos.x - transform.position.x;
-            float deltaY = mouseWorldPos.y - transform.position.y;
-            float currentAngle = std::atan2(deltaY, deltaX) * RAD2DEG;
-
-            float startDeltaX = m_DragStartPos.x - transform.position.x;
-            float startDeltaY = m_DragStartPos.y - transform.position.y;
-            float startAngle = std::atan2(startDeltaY, startDeltaX) * RAD2DEG;
-
-            float angleDelta = currentAngle - startAngle;
-            transform.rotation = m_EntityStartPos.x + angleDelta;
-        }
-    }
+    m_GizmoSystem->HandleGizmoInteraction(
+        m_Engine,
+        m_EditorCamera.get(),
+        m_SelectionManager->GetSelectedEntity(),
+        m_ViewportPos.x,
+        m_ViewportPos.y,
+        m_ViewportSize.x,
+        m_ViewportSize.y,
+        &m_CommandHistory
+    );
 }
 
 void EditorLayer::HandleEntitySelection() {
-    if (m_EditorState == EditorState::Play) {
+    if (m_StateManager->IsPlayMode()) {
         return;
     }
 
-    m_SelectionManager->HandleEntitySelection(m_Engine, m_EditorCamera.get(), m_ViewportPos.x, m_ViewportPos.y,
-                                              m_ViewportSize.x, m_ViewportSize.y, m_IsDragging);
+    m_SelectionManager->HandleEntitySelection(
+        m_Engine,
+        m_EditorCamera.get(),
+        m_ViewportPos.x,
+        m_ViewportPos.y,
+        m_ViewportSize.x,
+        m_ViewportSize.y,
+        m_GizmoSystem->IsDragging()
+    );
 }
 
 void EditorLayer::RenderGizmos() {
-    if (m_EditorState == EditorState::Play) {
+    if (m_StateManager->IsPlayMode()) {
         return;
     }
 
-    if (m_SelectionManager->GetSelectedEntity() == entt::null || !m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    if (!registry.valid(m_SelectionManager->GetSelectedEntity()) ||
-        !registry.all_of<Transform>(m_SelectionManager->GetSelectedEntity()))
-    {
-        return;
-    }
-
-    const Transform& transform = registry.get<Transform>(m_SelectionManager->GetSelectedEntity());
-    float cameraZoom = m_EditorCamera->GetZoom();
-
-    if (m_GizmoMode == GizmoMode::Translate) {
-        DrawCircleV(transform.position, 5.0f / cameraZoom, Color{255, 200, 0, 255});
-
-        Vector2 endX{transform.position.x + 50.0f, transform.position.y};
-        DrawLineEx(transform.position, endX, 2.0f / cameraZoom, Color{255, 0, 0, 255});
-        DrawCircleV(endX, 4.0f / cameraZoom, Color{255, 0, 0, 255});
-
-        Vector2 endY{transform.position.x, transform.position.y + 50.0f};
-        DrawLineEx(transform.position, endY, 2.0f / cameraZoom, Color{0, 255, 0, 255});
-        DrawCircleV(endY, 4.0f / cameraZoom, Color{0, 255, 0, 255});
-    }
-    else if (m_GizmoMode == GizmoMode::Scale) {
-        DrawCircleV(transform.position, 5.0f / cameraZoom, Color{255, 200, 0, 255});
-
-        Vector2 endX{transform.position.x + 50.0f, transform.position.y};
-        DrawLineEx(transform.position, endX, 2.0f / cameraZoom, Color{255, 0, 0, 255});
-        float boxSize = 8.0f / cameraZoom;
-        DrawRectangleV(Vector2{endX.x - boxSize, endX.y - boxSize}, Vector2{boxSize * 2.0f, boxSize * 2.0f},
-                       Color{255, 0, 0, 255});
-
-        Vector2 endY{transform.position.x, transform.position.y + 50.0f};
-        DrawLineEx(transform.position, endY, 2.0f / cameraZoom, Color{0, 255, 0, 255});
-        DrawRectangleV(Vector2{endY.x - boxSize, endY.y - boxSize}, Vector2{boxSize * 2.0f, boxSize * 2.0f},
-                       Color{0, 255, 0, 255});
-    }
-    else if (m_GizmoMode == GizmoMode::Rotate) {
-        float rotateRadius = 60.0f;
-        DrawCircleLinesV(transform.position, rotateRadius, Color{100, 150, 255, 255});
-        DrawCircleV(transform.position, 3.0f / cameraZoom, Color{255, 200, 0, 255});
-    }
+    m_GizmoSystem->RenderGizmos(
+        m_Engine,
+        m_EditorCamera.get(),
+        m_SelectionManager->GetSelectedEntity()
+    );
 }
 
 entt::entity EditorLayer::GetPrimaryCamera() {
@@ -685,157 +479,11 @@ entt::entity EditorLayer::GetPrimaryCamera() {
 }
 
 void EditorLayer::OnPlayButtonPressed() {
-    if (m_Engine && m_Engine->GetActiveScene()) {
-        if (m_SceneManager->GetCurrentScenePath().empty()) {
-            SaveSceneAs();
-        }
-        else {
-            SaveScene();
-        }
-
-        Scene* scene = m_Engine->GetActiveScene();
-        SceneSerializer serializer{scene};
-        m_PlayModeSnapshot = serializer.SerializeToString();
-
-        m_EditorState = EditorState::Play;
-        m_CommandHistory.Clear();
-        m_SelectionManager->SetSelectedEntity(entt::null);
-
-        m_Engine->CreatePhysicsBodies();
-        m_Engine->SetPhysicsEnabled(true);
-        m_Engine->SetScriptsEnabled(true);
-        m_Engine->SetAnimationEnabled(true);
-
-        AnimationSystem::ResetAnimators(scene->GetRegistry());
-
-        PX_LOG_INFO(EDITOR, "Play mode started with memory snapshot");
-    }
+    m_StateManager->OnPlayButtonPressed(m_Engine, m_SceneManager.get(), m_SelectionManager.get(), &m_CommandHistory);
 }
 
 void EditorLayer::OnStopButtonPressed() {
-    if (m_Engine && m_Engine->GetActiveScene()) {
-        m_Engine->SetPhysicsEnabled(false);
-        m_Engine->SetScriptsEnabled(false);
-        m_Engine->SetAnimationEnabled(false);
-        m_Engine->DestroyAllPhysicsBodies();
-
-        if (!m_PlayModeSnapshot.empty()) {
-            Scene* scene = m_Engine->GetActiveScene();
-            SceneSerializer serializer{scene};
-            if (serializer.DeserializeFromString(m_PlayModeSnapshot)) {
-                m_EditorState = EditorState::Edit;
-                m_CommandHistory.Clear();
-                m_SelectionManager->SetSelectedEntity(entt::null);
-
-                if (m_Engine->GetScriptSystem()) {
-                    entt::registry& registry = scene->GetRegistry();
-                    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-
-                    try {
-                        nlohmann::json snapshotJson = nlohmann::json::parse(m_PlayModeSnapshot);
-
-                        if (snapshotJson.contains("entities") && snapshotJson["entities"].is_array()) {
-                            size_t entityIndex = 0;
-                            const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
-
-                            for (entt::entity entity : entityOrder) {
-                                if (entityIndex >= snapshotJson["entities"].size())
-                                    break;
-
-                                const nlohmann::json& entityJson = snapshotJson["entities"][entityIndex];
-
-                                if (registry.all_of<Script>(entity)) {
-                                    Script& scriptComponent = registry.get<Script>(entity);
-
-                                    if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
-                                        const nlohmann::json& scriptsArray = entityJson["Scripts"];
-                                        for (size_t i = 0;
-                                             i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i) {
-                                            const nlohmann::json& scriptJson = scriptsArray[i];
-                                            ScriptInstance& script = scriptComponent.scripts[i];
-
-                                            if (!script.scriptName.empty() && !script.instance) {
-                                                script.instance = scriptSystem->CreateScript(script.scriptName);
-                                                if (script.instance) {
-                                                    script.instance->Initialize(entity, scene);
-
-                                                    if (scriptJson.contains("properties")) {
-                                                        const nlohmann::json& propertiesJson = scriptJson["properties"];
-                                                        const Reflection::TypeInfo* typeInfo =
-                                                            Reflection::TypeRegistry::Instance().GetTypeInfo(
-                                                                typeid(*script.instance));
-
-                                                        if (typeInfo) {
-                                                            for (const Reflection::FieldInfo& field :
-                                                                 typeInfo->GetFields()) {
-                                                                if ((field.flags &
-                                                                     Reflection::FieldFlags::Serializable) &&
-                                                                    propertiesJson.contains(field.name)) {
-                                                                    void* fieldPtr = field.getPtr(
-                                                                        static_cast<void*>(script.instance.get()));
-                                                                    Reflection::JsonSerializer::DeserializeField(
-                                                                        field, propertiesJson[field.name], fieldPtr);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else if (entityJson.contains("Script")) {
-                                        const nlohmann::json& scriptJson = entityJson["Script"];
-                                        if (scriptComponent.scripts.size() > 0) {
-                                            ScriptInstance& script = scriptComponent.scripts[0];
-
-                                            if (!script.scriptName.empty() && !script.instance) {
-                                                script.instance = scriptSystem->CreateScript(script.scriptName);
-                                                if (script.instance) {
-                                                    script.instance->Initialize(entity, scene);
-
-                                                    if (scriptJson.contains("properties")) {
-                                                        const nlohmann::json& propertiesJson = scriptJson["properties"];
-                                                        const Reflection::TypeInfo* typeInfo =
-                                                            Reflection::TypeRegistry::Instance().GetTypeInfo(
-                                                                typeid(*script.instance));
-
-                                                        if (typeInfo) {
-                                                            for (const Reflection::FieldInfo& field :
-                                                                 typeInfo->GetFields()) {
-                                                                if ((field.flags &
-                                                                     Reflection::FieldFlags::Serializable) &&
-                                                                    propertiesJson.contains(field.name)) {
-                                                                    void* fieldPtr = field.getPtr(
-                                                                        static_cast<void*>(script.instance.get()));
-                                                                    Reflection::JsonSerializer::DeserializeField(
-                                                                        field, propertiesJson[field.name], fieldPtr);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                entityIndex++;
-                            }
-                        }
-                    }
-                    catch (const nlohmann::json::exception& e) {
-                        PX_LOG_ERROR(EDITOR, "Failed to restore script properties: %s", e.what());
-                    }
-                }
-
-                PX_LOG_INFO(EDITOR, "Scene restored from memory snapshot - edit mode");
-            }
-        }
-        else {
-            m_EditorState = EditorState::Edit;
-            m_CommandHistory.Clear();
-        }
-    }
+    m_StateManager->OnStopButtonPressed(m_Engine, m_SelectionManager.get(), &m_CommandHistory);
 }
 
 void EditorLayer::NewScene() {

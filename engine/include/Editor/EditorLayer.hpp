@@ -35,17 +35,8 @@ class EditorSceneManager;
 class EditorPanelManager;
 class EditorCamera;
 class EditorSelectionManager;
-
-enum class EditorState { Edit, Play };
-
-enum class GizmoMode { Translate, Rotate, Scale };
-
-enum class GizmoAxis { None, X, Y };
-
-struct EntityState {
-    Transform transform;
-    Vector2 velocity{0.0f, 0.0f};
-};
+class EditorGizmoSystem;
+class EditorStateManager;
 
 class EditorLayer {
 public:
@@ -100,24 +91,14 @@ private:
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
 
-    bool m_IsDragging{false};
-    Vector2 m_DragStartPos{0.0f, 0.0f};
-    Vector2 m_EntityStartPos{0.0f, 0.0f};
     ImVec2 m_ViewportPos{0.0f, 0.0f};
     ImVec2 m_ViewportSize{0.0f, 0.0f};
-
-    EditorState m_EditorState{EditorState::Edit};
-    GizmoMode m_GizmoMode{GizmoMode::Translate};
-    GizmoAxis m_SelectedAxis{GizmoAxis::None};
-    std::unordered_map<entt::entity, EntityState> m_SavedStates;
 
     CommandHistory m_CommandHistory;
     Transform m_CachedTransform;
     bool m_IsModifyingTransform{false};
 
     bool m_IsDraggingEntity{false};
-
-    std::string m_PlayModeSnapshot{};
 
     bool m_ShowProjectSettings{false};
 
@@ -153,6 +134,8 @@ private:
     std::unique_ptr<EditorPanelManager> m_PanelManager;
     std::unique_ptr<EditorCamera> m_EditorCamera;
     std::unique_ptr<EditorSelectionManager> m_SelectionManager;
+    std::unique_ptr<EditorGizmoSystem> m_GizmoSystem;
+    std::unique_ptr<EditorStateManager> m_StateManager;
 };
 
 } // namespace PiiXeL

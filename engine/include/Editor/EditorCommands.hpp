@@ -6,6 +6,7 @@
 #include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
+#include "Scene/Scene.hpp"
 
 #include <entt/entt.hpp>
 
@@ -14,8 +15,6 @@
 #include "Command.hpp"
 
 namespace PiiXeL {
-
-class Scene;
 
 class ModifyTransformCommand : public Command {
 public:
