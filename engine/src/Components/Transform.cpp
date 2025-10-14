@@ -1,15 +1,49 @@
 #include "Components/Transform.hpp"
-#include "Reflection/Reflection.hpp"
+#include "Components/ComponentModuleMacros.hpp"
 #include <raymath.h>
 #include <cmath>
 
+#ifdef BUILD_WITH_EDITOR
+#include <imgui.h>
+#endif
+
 namespace PiiXeL {
 
-BEGIN_REFLECT(Transform)
-    FIELD(position)
-    FIELD_RANGE(rotation, -360.0f, 360.0f, 1.0f)
-    FIELD(scale)
-END_REFLECT(Transform)
+BEGIN_COMPONENT_MODULE(Transform)
+    REFLECT_FIELDS()
+        reflectionBuilder.Field("position", &ReflectedType::position);
+        reflectionBuilder.Field("rotation", &ReflectedType::rotation,
+            ::PiiXeL::Reflection::FieldFlags::Public | ::PiiXeL::Reflection::FieldFlags::Serializable,
+            ::PiiXeL::Reflection::FieldMetadata{.rangeMin = -360.0f, .rangeMax = 360.0f, .dragSpeed = 1.0f});
+        reflectionBuilder.Field("scale", &ReflectedType::scale);
+    END_REFLECT_MODULE()
+
+    AUTO_SERIALIZATION()
+
+    #ifdef BUILD_WITH_EDITOR
+    EDITOR_DISPLAY_ORDER(0)
+    SKIP_REGISTRY_RENDER()
+
+    EDITOR_UI() {
+        ::PiiXeL::Reflection::ImGuiRenderer::RenderProperties(component, entityPicker, assetPicker);
+    }
+    EDITOR_UI_END()
+
+    EDITOR_CREATE_DEFAULT() {
+        ReflectedType transform{};
+        transform.position = Vector2{0.0f, 0.0f};
+        transform.rotation = 0.0f;
+        transform.scale = Vector2{1.0f, 1.0f};
+        return transform;
+    }
+    EDITOR_CREATE_DEFAULT_END()
+
+    EDITOR_DUPLICATE() {
+        return original;
+    }
+    EDITOR_DUPLICATE_END()
+    #endif
+END_COMPONENT_MODULE(Transform)
 
 Vector2 Transform::GetRight() const {
     float radians{rotation * DEG2RAD};
@@ -31,8 +65,4 @@ Matrix Transform::GetMatrix() const {
     return mat;
 }
 
-namespace Reflection {
-void __force_link_Transform() {}
 }
-
-} // namespace PiiXeL
