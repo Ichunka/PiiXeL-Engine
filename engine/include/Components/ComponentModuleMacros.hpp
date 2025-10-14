@@ -35,13 +35,13 @@ struct TypeName##_ModuleRegistrar { \
 #ifdef BUILD_WITH_EDITOR
 
 #define EDITOR_UI() \
-        module->SetEditorUI([](ReflectedType& component, entt::registry& registry, entt::entity entity, ::PiiXeL::CommandHistory& history, ::PiiXeL::ComponentModule<ReflectedType>::EntityPickerFunc entityPicker, ::PiiXeL::ComponentModule<ReflectedType>::AssetPickerFunc assetPicker)
+        module->SetEditorUI([](ReflectedType& component, [[maybe_unused]] entt::registry& registry, [[maybe_unused]] entt::entity entity, [[maybe_unused]] ::PiiXeL::CommandHistory& history, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::EntityPickerFunc entityPicker, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::AssetPickerFunc assetPicker)
 
 #define EDITOR_UI_END() \
         );
 
 #define EDITOR_CREATE_DEFAULT() \
-        module->SetCreateDefault([](entt::registry& registry, entt::entity entity) -> ReflectedType
+        module->SetCreateDefault([]([[maybe_unused]] entt::registry& registry, [[maybe_unused]] entt::entity entity) -> ReflectedType
 
 #define EDITOR_CREATE_DEFAULT_END() \
         );

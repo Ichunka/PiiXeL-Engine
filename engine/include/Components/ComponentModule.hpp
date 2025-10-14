@@ -150,7 +150,7 @@ public:
         }
     }
 
-    void AddComponentToEntity(entt::registry& registry, entt::entity entity, CommandHistory& history) override {
+    void AddComponentToEntity(entt::registry& registry, entt::entity entity, [[maybe_unused]] CommandHistory& history) override {
         if (registry.all_of<T>(entity)) {
             return;
         }
