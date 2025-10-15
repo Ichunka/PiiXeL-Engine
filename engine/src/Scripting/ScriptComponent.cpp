@@ -1,6 +1,7 @@
 #include "Scripting/ScriptComponent.hpp"
-#include "Scene/Scene.hpp"
+
 #include "Components/Transform.hpp"
+#include "Scene/Scene.hpp"
 
 namespace PiiXeL {
 

@@ -1,5 +1,7 @@
 #include "Resources/PathManager.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <filesystem>
 #include <raylib.h>
 

@@ -1,10 +1,11 @@
 #ifndef PIIXELENGINE_GAMEPACKAGELOADER_HPP
 #define PIIXELENGINE_GAMEPACKAGELOADER_HPP
 
-#include "GamePackage.hpp"
+#include <memory>
 #include <raylib.h>
 #include <unordered_map>
-#include <memory>
+
+#include "GamePackage.hpp"
 
 namespace PiiXeL {
 

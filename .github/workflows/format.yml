@@ -1,0 +1,49 @@
+name: Auto Format
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**.hpp'
+      - '**.cpp'
+  workflow_dispatch:
+
+jobs:
+  format:
+    name: Auto Format Code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Format code
+        run: |
+          find engine/include engine/src games -type f \( -name "*.hpp" -o -name "*.cpp" \) \
+            -exec clang-format -i {} +
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "Auto format code with clang-format"
+          git push

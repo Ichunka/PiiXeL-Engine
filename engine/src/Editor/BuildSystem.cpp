@@ -1,4 +1,5 @@
 #include "Editor/BuildSystem.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -7,22 +8,23 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <unistd.h>
-#include <sys/wait.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 namespace fs = std::filesystem;
 
 namespace PiiXeL {
 
-BuildSystem::BuildSystem()
-    : m_IsBuilding(false)
-    , m_CancelRequested(false)
+BuildSystem::BuildSystem() :
+    m_IsBuilding(false), m_CancelRequested(false)
 #ifdef _WIN32
-    , m_ProcessHandle(nullptr)
+    ,
+    m_ProcessHandle(nullptr)
 #else
-    , m_ProcessPid(-1)
+    ,
+    m_ProcessPid(-1)
 #endif
 {
     m_Progress.currentStep = BuildStep::Idle;
@@ -71,7 +73,8 @@ bool BuildSystem::CopyFileTo(const std::string& src, const std::string& dst) {
         fs::create_directories(fs::path(dst).parent_path());
         fs::copy_file(src, dst, fs::copy_options::overwrite_existing);
         return true;
-    } catch (...) {
+    }
+    catch (...) {
         return false;
     }
 }
@@ -85,12 +88,14 @@ bool BuildSystem::CopyDirectoryTo(const std::string& src, const std::string& dst
 
             if (entry.is_directory()) {
                 fs::create_directories(destPath);
-            } else {
+            }
+            else {
                 fs::copy_file(entry.path(), destPath, fs::copy_options::overwrite_existing);
             }
         }
         return true;
-    } catch (...) {
+    }
+    catch (...) {
         return false;
     }
 }
@@ -114,10 +119,12 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
             if (cmd.find("cmake") != std::string::npos && cmd.find("-B") != std::string::npos) {
                 step = BuildStep::ConfiguringCMake;
                 stepMessage = "Configuring CMake...";
-            } else if (cmd.find("cmake --build") != std::string::npos) {
+            }
+            else if (cmd.find("cmake --build") != std::string::npos) {
                 step = BuildStep::CompilingGame;
                 stepMessage = "Compiling game executable...";
-            } else if (cmd.find("build_package") != std::string::npos) {
+            }
+            else if (cmd.find("build_package") != std::string::npos) {
                 step = BuildStep::BuildingPackage;
                 stepMessage = "Building game package...";
             }
@@ -151,9 +158,9 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
 
             std::string cmdLine = "cmd.exe /C " + cmd + " 2>&1";
 
-            if (!CreateProcessA(nullptr, const_cast<char*>(cmdLine.c_str()),
-                               nullptr, nullptr, TRUE, CREATE_NO_WINDOW,
-                               nullptr, projectRoot.c_str(), &si, &pi)) {
+            if (!CreateProcessA(nullptr, const_cast<char*>(cmdLine.c_str()), nullptr, nullptr, TRUE, CREATE_NO_WINDOW,
+                                nullptr, projectRoot.c_str(), &si, &pi))
+            {
                 UpdateProgress(BuildStep::Failed, 0.0f, "Failed to start process");
                 CloseHandle(hStdOutRead);
                 CloseHandle(hStdOutWrite);
@@ -183,19 +190,26 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
                     }
                     if (!line.empty()) {
                         if (line.find("Configuring done") != std::string::npos ||
-                            line.find("Generating done") != std::string::npos) {
+                            line.find("Generating done") != std::string::npos)
+                        {
                             lastStep = BuildStep::ConfiguringCMake;
                             lastProgress = 20.0f;
-                        } else if (line.find("Building CXX") != std::string::npos ||
-                                   line.find("Linking CXX") != std::string::npos) {
+                        }
+                        else if (line.find("Building CXX") != std::string::npos ||
+                                 line.find("Linking CXX") != std::string::npos)
+                        {
                             lastStep = BuildStep::CompilingGame;
                             lastProgress = 50.0f;
-                        } else if (line.find("build_package") != std::string::npos &&
-                                   line.find("Linking") != std::string::npos) {
+                        }
+                        else if (line.find("build_package") != std::string::npos &&
+                                 line.find("Linking") != std::string::npos)
+                        {
                             lastStep = BuildStep::BuildingPackage;
                             lastProgress = 70.0f;
-                        } else if (line.find("Packaging") != std::string::npos ||
-                                   line.find("Adding") != std::string::npos) {
+                        }
+                        else if (line.find("Packaging") != std::string::npos ||
+                                 line.find("Adding") != std::string::npos)
+                        {
                             lastStep = BuildStep::BuildingPackage;
                             lastProgress = 85.0f;
                         }
@@ -242,7 +256,8 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
 
                 execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
                 exit(1);
-            } else if (pid > 0) {
+            }
+            else if (pid > 0) {
                 close(pipefd[1]);
                 m_ProcessPid = pid;
 
@@ -264,19 +279,26 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
                         }
                         if (!line.empty()) {
                             if (line.find("Configuring done") != std::string::npos ||
-                                line.find("Generating done") != std::string::npos) {
+                                line.find("Generating done") != std::string::npos)
+                            {
                                 lastStep = BuildStep::ConfiguringCMake;
                                 lastProgress = 20.0f;
-                            } else if (line.find("Building CXX") != std::string::npos ||
-                                       line.find("Linking CXX") != std::string::npos) {
+                            }
+                            else if (line.find("Building CXX") != std::string::npos ||
+                                     line.find("Linking CXX") != std::string::npos)
+                            {
                                 lastStep = BuildStep::CompilingGame;
                                 lastProgress = 50.0f;
-                            } else if (line.find("build_package") != std::string::npos &&
-                                       line.find("Linking") != std::string::npos) {
+                            }
+                            else if (line.find("build_package") != std::string::npos &&
+                                     line.find("Linking") != std::string::npos)
+                            {
                                 lastStep = BuildStep::BuildingPackage;
                                 lastProgress = 70.0f;
-                            } else if (line.find("Packaging") != std::string::npos ||
-                                       line.find("Adding") != std::string::npos) {
+                            }
+                            else if (line.find("Packaging") != std::string::npos ||
+                                     line.find("Adding") != std::string::npos)
+                            {
                                 lastStep = BuildStep::BuildingPackage;
                                 lastProgress = 85.0f;
                             }
@@ -298,11 +320,13 @@ void BuildSystem::RunBuildProcess(const std::vector<std::string>& commands, Prog
                 m_ProcessPid = -1;
 
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0 && !m_CancelRequested) {
-                    UpdateProgress(BuildStep::Failed, 0.0f, "Build failed with exit code " + std::to_string(WEXITSTATUS(status)));
+                    UpdateProgress(BuildStep::Failed, 0.0f,
+                                   "Build failed with exit code " + std::to_string(WEXITSTATUS(status)));
                     m_IsBuilding = false;
                     return;
                 }
-            } else {
+            }
+            else {
                 close(pipefd[0]);
                 close(pipefd[1]);
                 UpdateProgress(BuildStep::Failed, 0.0f, "Failed to fork process");
@@ -334,7 +358,8 @@ void BuildSystem::BuildGamePackage(ProgressCallback callback) {
     std::vector<std::string> commands;
 
 #ifdef _WIN32
-    const std::string vcvars = "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
+    const std::string vcvars =
+        "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
     const std::string cmakeCache = buildDir + "\\CMakeCache.txt";
     const std::string tempBatch = buildDir + "\\build_script.bat";
 
@@ -354,7 +379,8 @@ void BuildSystem::BuildGamePackage(ProgressCallback callback) {
 #else
     const std::string cmakeCache = buildDir + "/CMakeCache.txt";
     commands.push_back("rm -f \"" + cmakeCache + "\"");
-    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir +
+                       "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
     commands.push_back("cmake --build \"" + buildDir + "\" --target build_package --config Release");
     commands.push_back("cd \"" + gameDir + "\" && \"" + buildDir + "/build_package\"");
 #endif
@@ -373,7 +399,8 @@ void BuildSystem::BuildGameExecutable(ProgressCallback callback) {
     std::vector<std::string> commands;
 
 #ifdef _WIN32
-    const std::string vcvars = "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
+    const std::string vcvars =
+        "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
     const std::string cmakeCache = buildDir + "\\CMakeCache.txt";
     const std::string tempBatch = buildDir + "\\build_script.bat";
 
@@ -390,7 +417,8 @@ void BuildSystem::BuildGameExecutable(ProgressCallback callback) {
 #else
     const std::string cmakeCache = buildDir + "/CMakeCache.txt";
     commands.push_back("rm -f \"" + cmakeCache + "\"");
-    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+    commands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir +
+                       "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
     commands.push_back("cmake --build \"" + buildDir + "\" --target game --config Release");
 #endif
 
@@ -415,7 +443,8 @@ void BuildSystem::ExportGame(const std::string& exportPath, ProgressCallback cal
         const std::string projectRoot = GetProjectRoot();
         std::vector<std::string> buildCommands;
 #ifdef _WIN32
-        const std::string vcvars = "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
+        const std::string vcvars =
+            "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"";
         const std::string cmakeCache = buildDir + "\\CMakeCache.txt";
         const std::string tempBatch = buildDir + "\\build_script.bat";
 
@@ -437,7 +466,8 @@ void BuildSystem::ExportGame(const std::string& exportPath, ProgressCallback cal
 #else
         const std::string cmakeCache = buildDir + "/CMakeCache.txt";
         buildCommands.push_back("rm -f \"" + cmakeCache + "\"");
-        buildCommands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir + "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
+        buildCommands.push_back("cmake -S \"" + projectRoot + "\" -B \"" + buildDir +
+                                "\" -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=OFF");
         buildCommands.push_back("cmake --build \"" + buildDir + "\" --target game --config Release");
         buildCommands.push_back("cmake --build \"" + buildDir + "\" --target build_package --config Release");
         buildCommands.push_back("cd \"" + gameDir + "\" && \"" + buildDir + "/build_package\"");
@@ -488,10 +518,7 @@ void BuildSystem::ExportGame(const std::string& exportPath, ProgressCallback cal
         UpdateProgress(BuildStep::CopyingDependencies, 90.0f, "Copying dependencies...");
 
 #ifdef _WIN32
-        std::vector<std::string> windowsDlls = {
-            "raylib.dll",
-            "box2d.dll"
-        };
+        std::vector<std::string> windowsDlls = {"raylib.dll", "box2d.dll"};
 
         for (const std::string& dll : windowsDlls) {
             const std::string dllPath = buildDir + "/" + dll;
@@ -532,4 +559,4 @@ void BuildSystem::Cancel() {
     m_IsBuilding = false;
 }
 
-}
+} // namespace PiiXeL

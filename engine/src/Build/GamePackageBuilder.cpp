@@ -1,10 +1,12 @@
 #include "Build/GamePackageBuilder.hpp"
+
 #include "Core/Logger.hpp"
+
+#include <cinttypes>
 #include <filesystem>
 #include <fstream>
-#include <unordered_set>
-#include <cinttypes>
 #include <raylib.h>
+#include <unordered_set>
 
 namespace PiiXeL {
 
@@ -42,7 +44,8 @@ static AssetData ConvertIcoToPngInMemory(const std::string& icoPath) {
         asset.data.assign(pngData, pngData + fileSize);
         RL_FREE(pngData);
         PX_LOG_INFO(BUILD, "Successfully converted %s to PNG in memory (%d bytes)", icoPath.c_str(), fileSize);
-    } else {
+    }
+    else {
         PX_LOG_ERROR(BUILD, "Failed to export PNG to memory: %s", icoPath.c_str());
     }
 
@@ -74,11 +77,13 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
         try {
             configFile >> projectConfig;
             PX_LOG_INFO(BUILD, "Loaded project config: %s", configPath.c_str());
-        } catch (const nlohmann::json::exception& e) {
+        }
+        catch (const nlohmann::json::exception& e) {
             PX_LOG_ERROR(BUILD, "Failed to parse config: %s", e.what());
         }
         configFile.close();
-    } else {
+    }
+    else {
         PX_LOG_WARNING(BUILD, "Config file not found: %s", configPath.c_str());
     }
 
@@ -103,17 +108,21 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                     iconAsset.path = pngRelativePath;
                     config["icon"] = pngRelativePath;
                     package.AddAsset(iconAsset);
-                    PX_LOG_INFO(BUILD, "Converted icon from .ico to .png and added to package: %s", pngRelativePath.c_str());
-                } else {
+                    PX_LOG_INFO(BUILD, "Converted icon from .ico to .png and added to package: %s",
+                                pngRelativePath.c_str());
+                }
+                else {
                     PX_LOG_WARNING(BUILD, "Failed to convert .ico to .png, icon will not be included");
                 }
 #else
                 PX_LOG_WARNING(BUILD, "ICO to PNG conversion only supported on Windows, icon will not be included");
 #endif
-            } else {
+            }
+            else {
                 config["icon"] = iconPath;
             }
-        } else {
+        }
+        else {
             PX_LOG_WARNING(BUILD, "Icon file not found: %s", fullIconPath.string().c_str());
         }
     }
@@ -142,16 +151,19 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                         std::string sceneName = std::filesystem::path(fullPath).stem().string();
                         package.AddScene(sceneName, sceneData);
                         PX_LOG_INFO(BUILD, "Added scene: %s", sceneName.c_str());
-                    } catch (const nlohmann::json::exception& e) {
+                    }
+                    catch (const nlohmann::json::exception& e) {
                         PX_LOG_ERROR(BUILD, "Failed to parse scene: %s - %s", fullPath.c_str(), e.what());
                     }
                     file.close();
                 }
-            } else {
+            }
+            else {
                 PX_LOG_WARNING(BUILD, "Scene file not found: %s", fullPath.c_str());
             }
         }
-    } else {
+    }
+    else {
         std::string scenesPath = (basePath / "content/scenes").string();
         ScanScenes(scenesPath, package);
     }
@@ -161,22 +173,26 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
 
         if (assetsMode == "auto") {
             CollectAssetsFromScenes(package, basePath);
-        } else if (assetsMode == "all") {
+        }
+        else if (assetsMode == "all") {
             std::string assetsPath = (basePath / "content/assets").string();
             ScanAssets(assetsPath, package);
-        } else if (assetsMode == "manual") {
+        }
+        else if (assetsMode == "manual") {
             for (const auto& assetPathStr : projectConfig["build"]["assets"]) {
                 std::string assetPath = (basePath / assetPathStr.get<std::string>()).string();
                 if (std::filesystem::exists(assetPath)) {
                     if (std::filesystem::is_directory(assetPath)) {
                         ScanAssets(assetPath, package);
-                    } else {
+                    }
+                    else {
                         std::string extension = std::filesystem::path(assetPath).extension().string();
                         std::string type{};
 
                         if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
                             type = "texture";
-                        } else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
+                        }
+                        else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
                             type = "audio";
                         }
 
@@ -185,7 +201,8 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                             if (!asset.data.empty()) {
                                 std::string pathInPackage = assetPathStr.get<std::string>();
                                 for (char& c : pathInPackage) {
-                                    if (c == '\\') c = '/';
+                                    if (c == '\\')
+                                        c = '/';
                                 }
                                 asset.path = pathInPackage;
                                 package.AddAsset(asset);
@@ -193,12 +210,14 @@ bool GamePackageBuilder::BuildFromProject(const std::string& projectPath, const 
                             }
                         }
                     }
-                } else {
+                }
+                else {
                     PX_LOG_WARNING(BUILD, "Asset path not found: %s", assetPath.c_str());
                 }
             }
         }
-    } else {
+    }
+    else {
         CollectAssetsFromScenes(package, basePath);
     }
 
@@ -227,7 +246,8 @@ void GamePackageBuilder::ScanScenes(const std::string& scenesPath, GamePackage& 
                     std::string sceneName = entry.path().stem().string();
                     package.AddScene(sceneName, sceneData);
                     PX_LOG_INFO(BUILD, "Added scene: %s", sceneName.c_str());
-                } catch (const nlohmann::json::exception& e) {
+                }
+                catch (const nlohmann::json::exception& e) {
                     PX_LOG_ERROR(BUILD, "Failed to parse scene: %s - %s", entry.path().string().c_str(), e.what());
                 }
                 file.close();
@@ -249,15 +269,18 @@ void GamePackageBuilder::ScanAssets(const std::string& assetsPath, GamePackage& 
 
             if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
                 type = "texture";
-            } else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
+            }
+            else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
                 type = "audio";
-            } else {
+            }
+            else {
                 continue;
             }
 
             std::string relativePath = std::filesystem::relative(entry.path(), assetsPath).string();
             for (char& c : relativePath) {
-                if (c == '\\') c = '/';
+                if (c == '\\')
+                    c = '/';
             }
 
             AssetData asset = LoadAssetFile(entry.path().string(), type);
@@ -346,7 +369,8 @@ std::vector<uint64_t> GamePackageBuilder::ExtractDependenciesFromPxa(const std::
                 dependencies.push_back(uuid);
             }
         }
-    } catch (const nlohmann::json::exception&) {
+    }
+    catch (const nlohmann::json::exception&) {
     }
 
     return dependencies;
@@ -380,7 +404,8 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
             cacheFile.close();
             PX_LOG_INFO(BUILD, "Loaded UUID cache with %u entries", count);
         }
-    } else {
+    }
+    else {
         PX_LOG_WARNING(BUILD, "UUID cache not found: %s", cachePath.c_str());
     }
 
@@ -415,7 +440,9 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
     std::string contentPath = (basePath / "content").string();
     if (std::filesystem::exists(contentPath)) {
         try {
-            for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator(contentPath, std::filesystem::directory_options::skip_permission_denied)) {
+            for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator(
+                     contentPath, std::filesystem::directory_options::skip_permission_denied))
+            {
                 if (!entry.is_regular_file() || entry.path().extension() != ".pxa") {
                     continue;
                 }
@@ -455,7 +482,8 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
                     std::filesystem::path pxaPath = entry.path();
                     std::string sourcePath = pxaPath.parent_path().string();
-                    if (!sourcePath.empty()) sourcePath += "/";
+                    if (!sourcePath.empty())
+                        sourcePath += "/";
                     sourcePath += pxaPath.stem().string() + extension;
                     std::replace(sourcePath.begin(), sourcePath.end(), '\\', '/');
 
@@ -465,7 +493,8 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
                 pxaFile.close();
             }
-        } catch (const std::filesystem::filesystem_error& e) {
+        }
+        catch (const std::filesystem::filesystem_error& e) {
             PX_LOG_ERROR(BUILD, "Filesystem error: %s", e.what());
         }
     }
@@ -504,7 +533,8 @@ void GamePackageBuilder::CollectAssetsFromScenes(GamePackage& package, const std
 
         std::string pathInPackage = pxaPath;
         for (char& c : pathInPackage) {
-            if (c == '\\') c = '/';
+            if (c == '\\')
+                c = '/';
         }
         asset.path = pathInPackage;
         package.AddAsset(asset);

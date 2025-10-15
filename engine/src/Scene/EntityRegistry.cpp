@@ -39,4 +39,4 @@ bool EntityRegistry::HasEntity(UUID uuid) const {
     return m_UUIDToEntity.find(uuid) != m_UUIDToEntity.end();
 }
 
-}
+} // namespace PiiXeL

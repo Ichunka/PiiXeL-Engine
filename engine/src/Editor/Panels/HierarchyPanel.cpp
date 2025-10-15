@@ -1,35 +1,26 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/Panels/HierarchyPanel.hpp"
-#include "Core/Engine.hpp"
-#include "Scene/Scene.hpp"
+
 #include "Components/Tag.hpp"
 #include "Components/UUID.hpp"
-#include "Editor/CommandHistory.hpp"
-#include "Editor/EditorCommands.hpp"
-#include "Editor/AnimatorControllerEditorPanel.hpp"
+#include "Core/Engine.hpp"
 #include "Debug/Profiler.hpp"
+#include "Editor/AnimatorControllerEditorPanel.hpp"
+#include "Editor/EditorCommands.hpp"
+#include "Editor/EditorCommandSystem.hpp"
+#include "Scene/Scene.hpp"
+
 #include <imgui.h>
 
 namespace PiiXeL {
 
-HierarchyPanel::HierarchyPanel(
-    Engine* engine,
-    CommandHistory* commandHistory,
-    entt::entity* selectedEntity,
-    bool* inspectorLocked,
-    UUID* selectedAssetUUID,
-    std::string* selectedAssetPath,
-    AnimatorControllerEditorPanel* animatorControllerEditor
-)
-    : m_Engine{engine}
-    , m_CommandHistory{commandHistory}
-    , m_SelectedEntity{selectedEntity}
-    , m_InspectorLocked{inspectorLocked}
-    , m_SelectedAssetUUID{selectedAssetUUID}
-    , m_SelectedAssetPath{selectedAssetPath}
-    , m_AnimatorControllerEditor{animatorControllerEditor}
-{}
+HierarchyPanel::HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
+                               bool* inspectorLocked, UUID* selectedAssetUUID, std::string* selectedAssetPath,
+                               AnimatorControllerEditorPanel* animatorControllerEditor) :
+    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity},
+    m_InspectorLocked{inspectorLocked}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
+    m_AnimatorControllerEditor{animatorControllerEditor} {}
 
 void HierarchyPanel::SetDuplicateEntityCallback(std::function<entt::entity(entt::entity)> callback) {
     m_DuplicateEntityCallback = callback;
@@ -50,9 +41,7 @@ void HierarchyPanel::OnImGuiRender() {
         entt::registry& registry = scene->GetRegistry();
 
         if (ImGui::Button("+ Create Entity")) {
-            m_CommandHistory->ExecuteCommand(
-                std::make_unique<CreateEntityCommand>(scene, "New Entity")
-            );
+            m_CommandSystem->ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "New Entity"));
         }
 
         ImGui::Separator();
@@ -73,12 +62,8 @@ void HierarchyPanel::OnImGuiRender() {
                 flags |= ImGuiTreeNodeFlags_Selected;
             }
 
-            ImGui::TreeNodeEx(
-                reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<uint32_t>(entity))),
-                flags,
-                "%s",
-                tag.name.c_str()
-            );
+            ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<uint32_t>(entity))), flags,
+                              "%s", tag.name.c_str());
 
             bool itemHovered = ImGui::IsItemHovered();
 
@@ -151,6 +136,6 @@ void HierarchyPanel::OnImGuiRender() {
     ImGui::End();
 }
 
-}
+} // namespace PiiXeL
 
 #endif

@@ -1,5 +1,6 @@
-#include "ExampleScripts.hpp"
 #include "Scripting/ScriptRegistry.hpp"
+
+#include "ExampleScripts.hpp"
 
 REGISTER_SCRIPT(PlayerController)
 REGISTER_SCRIPT(RotatingPlatform)

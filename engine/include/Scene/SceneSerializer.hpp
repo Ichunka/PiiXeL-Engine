@@ -1,9 +1,10 @@
 #ifndef PIIXELENGINE_SCENESERIALIZER_HPP
 #define PIIXELENGINE_SCENESERIALIZER_HPP
 
-#include <string>
 #include <entt/entt.hpp>
 #include <nlohmann/json.hpp>
+
+#include <string>
 
 namespace PiiXeL {
 

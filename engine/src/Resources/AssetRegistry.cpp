@@ -1,15 +1,17 @@
 #include "Resources/AssetRegistry.hpp"
-#include "Resources/TextureAsset.hpp"
-#include "Resources/AudioAsset.hpp"
-#include "Animation/SpriteSheet.hpp"
+
 #include "Animation/AnimationClip.hpp"
 #include "Animation/AnimatorController.hpp"
+#include "Animation/SpriteSheet.hpp"
 #include "Core/Logger.hpp"
-#include <raylib.h>
+#include "Resources/AudioAsset.hpp"
+#include "Resources/TextureAsset.hpp"
+
 #include <cinttypes>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <raylib.h>
 
 namespace PiiXeL {
 
@@ -182,7 +184,8 @@ void AssetRegistry::RegisterExtractedAssets() {
                 }
             }
         }
-    } catch (const std::filesystem::filesystem_error& e) {
+    }
+    catch (const std::filesystem::filesystem_error& e) {
         PX_LOG_ERROR(ASSET, "Failed to scan content directory: %s", e.what());
     }
 
@@ -210,12 +213,15 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
     std::vector<fs::path> pxaFiles{};
 
     try {
-        for (const auto& entry : fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied)) {
+        for (const auto& entry :
+             fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied))
+        {
             if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
                 pxaFiles.push_back(entry.path());
             }
         }
-    } catch (const fs::filesystem_error& e) {
+    }
+    catch (const fs::filesystem_error& e) {
         PX_LOG_ERROR(ASSET, "Filesystem error during scan: %s", e.what());
         return;
     }
@@ -317,7 +323,8 @@ std::shared_ptr<Asset> AssetRegistry::CreateAsset(AssetType type, UUID uuid, con
     }
 }
 
-std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath, const std::string& sourcePath) {
+std::shared_ptr<Asset> AssetRegistry::LoadAssetFromPackage(const std::string& packagePath,
+                                                           const std::string& sourcePath) {
     AssetMetadata metadata{};
     std::vector<uint8_t> data{};
 
@@ -363,18 +370,21 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
 
     size_t registeredCount = 0;
     for (uint32_t i = 0; i < count; ++i) {
-        if (offset + sizeof(uint32_t) > dataSize) break;
+        if (offset + sizeof(uint32_t) > dataSize)
+            break;
 
         uint32_t pathLen = 0;
         std::memcpy(&pathLen, data + offset, sizeof(pathLen));
         offset += sizeof(pathLen);
 
-        if (offset + pathLen > dataSize) break;
+        if (offset + pathLen > dataSize)
+            break;
 
         std::string sourcePath(reinterpret_cast<const char*>(data + offset), pathLen);
         offset += pathLen;
 
-        if (offset + sizeof(uint64_t) > dataSize) break;
+        if (offset + sizeof(uint64_t) > dataSize)
+            break;
 
         uint64_t uuidValue = 0;
         std::memcpy(&uuidValue, data + offset, sizeof(uuidValue));
@@ -392,7 +402,7 @@ void AssetRegistry::LoadUUIDCacheFromMemory(const uint8_t* data, size_t dataSize
 }
 
 void AssetRegistry::RegisterAssetFromMemory(UUID uuid, const std::string& sourcePath,
-                                              const std::vector<uint8_t>& packageData) {
+                                            const std::vector<uint8_t>& packageData) {
     std::string normalizedPath = sourcePath;
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 

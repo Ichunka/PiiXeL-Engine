@@ -1,19 +1,22 @@
 #include "Core/Application.hpp"
+
+#include "Build/GamePackage.hpp"
+#include "Build/GamePackageLoader.hpp"
 #include "Core/Engine.hpp"
 #include "Core/Logger.hpp"
+#include "Debug/Profiler.hpp"
+#include "Project/ProjectSettings.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/PathManager.hpp"
-#include "Project/ProjectSettings.hpp"
-#include "Debug/Profiler.hpp"
-#include "Build/GamePackageLoader.hpp"
-#include "Build/GamePackage.hpp"
+
 #include <raylib.h>
 
 #ifdef BUILD_WITH_EDITOR
 #include "Editor/EditorLayer.hpp"
 #include "Resources/AssetRegistry.hpp"
-#include <rlImGui.h>
+
 #include <imgui.h>
+#include <rlImGui.h>
 #endif
 
 #ifndef BUILD_WITH_EDITOR
@@ -22,15 +25,14 @@
 
 namespace PiiXeL {
 
-Application::Application(const ApplicationConfig& config)
-    : m_Config{config}
-    , m_Engine{nullptr}
+Application::Application(const ApplicationConfig& config) :
+    m_Config{config}, m_Engine{nullptr}
 #ifdef BUILD_WITH_EDITOR
-    , m_EditorLayer{nullptr}
+    ,
+    m_EditorLayer{nullptr}
 #endif
-    , m_Running{false}
-    , m_Initialized{false}
-{
+    ,
+    m_Running{false}, m_Initialized{false} {
 }
 
 Application::~Application() {
@@ -68,24 +70,30 @@ void Application::Initialize() {
             const AssetData* iconAsset = package.GetAsset(m_Config.iconPath);
 
             if (iconAsset && iconAsset->type == "texture") {
-                iconImage = LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
+                iconImage =
+                    LoadImageFromMemory(".png", iconAsset->data.data(), static_cast<int>(iconAsset->data.size()));
                 if (iconImage.data != nullptr) {
                     PX_LOG_INFO(ENGINE, "Window icon loaded from package: %s", m_Config.iconPath.c_str());
-                } else {
+                }
+                else {
                     PX_LOG_WARNING(ENGINE, "Failed to load window icon from package: %s", m_Config.iconPath.c_str());
                 }
-            } else {
+            }
+            else {
                 PX_LOG_WARNING(ENGINE, "Window icon not found in package: %s", m_Config.iconPath.c_str());
             }
-        } else {
+        }
+        else {
             if (FileExists(m_Config.iconPath.c_str())) {
                 iconImage = LoadImage(m_Config.iconPath.c_str());
                 if (iconImage.data != nullptr) {
                     PX_LOG_INFO(ENGINE, "Window icon loaded from disk: %s", m_Config.iconPath.c_str());
-                } else {
+                }
+                else {
                     PX_LOG_WARNING(ENGINE, "Failed to load window icon: %s", m_Config.iconPath.c_str());
                 }
-            } else {
+            }
+            else {
                 PX_LOG_WARNING(ENGINE, "Window icon file not found: %s", m_Config.iconPath.c_str());
             }
         }
@@ -266,7 +274,8 @@ void Application::Update(float deltaTime) {
         ToggleFullscreen();
         if (IsWindowFullscreen()) {
             PX_LOG_INFO(ENGINE, "Switched to FULLSCREEN mode (F11 to exit)");
-        } else {
+        }
+        else {
             PX_LOG_INFO(ENGINE, "Switched to WINDOWED mode (F11 for fullscreen)");
         }
     }

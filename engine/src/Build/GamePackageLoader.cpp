@@ -1,36 +1,33 @@
 #include "Build/GamePackageLoader.hpp"
-#include "Core/Logger.hpp"
-#include "Scene/Scene.hpp"
-#include "Scene/ComponentRegistry.hpp"
+
+#include "Components/Animator.hpp"
+#include "Components/BoxCollider2D.hpp"
+#include "Components/Camera.hpp"
+#include "Components/CircleCollider2D.hpp"
+#include "Components/RigidBody2D.hpp"
+#include "Components/Script.hpp"
+#include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
-#include "Components/Sprite.hpp"
-#include "Components/Camera.hpp"
-#include "Components/RigidBody2D.hpp"
-#include "Components/BoxCollider2D.hpp"
-#include "Components/CircleCollider2D.hpp"
-#include "Components/Script.hpp"
-#include "Components/Animator.hpp"
 #include "Components/UUID.hpp"
-#include "Scene/EntityRegistry.hpp"
-#include "Systems/ScriptSystem.hpp"
-#include "Scripting/ScriptComponent.hpp"
+#include "Core/Logger.hpp"
 #include "Reflection/Reflection.hpp"
-#include "Resources/AssetRegistry.hpp"
 #include "Resources/AssetPackage.hpp"
-#include <raylib.h>
+#include "Resources/AssetRegistry.hpp"
+#include "Scene/ComponentRegistry.hpp"
+#include "Scene/EntityRegistry.hpp"
+#include "Scene/Scene.hpp"
+#include "Scripting/ScriptComponent.hpp"
+#include "Systems/ScriptSystem.hpp"
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <raylib.h>
 
 namespace PiiXeL {
 
-GamePackageLoader::GamePackageLoader()
-    : m_Package{}
-    , m_IsLoaded{false}
-    , m_LoadedTextures{}
-{
-}
+GamePackageLoader::GamePackageLoader() : m_Package{}, m_IsLoaded{false}, m_LoadedTextures{} {}
 
 GamePackageLoader::~GamePackageLoader() {
     UnloadAllTextures();
@@ -126,7 +123,8 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
     if (scriptSystem && sceneData->contains("entities") && (*sceneData)["entities"].is_array()) {
         size_t entityIndex = 0;
         for (entt::entity entity : scene->GetEntityOrder()) {
-            if (entityIndex >= (*sceneData)["entities"].size()) break;
+            if (entityIndex >= (*sceneData)["entities"].size())
+                break;
 
             const nlohmann::json& entityJson = (*sceneData)["entities"][entityIndex];
 
@@ -147,13 +145,18 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
 
                                 if (scriptJson.contains("properties")) {
                                     const nlohmann::json& propertiesJson = scriptJson["properties"];
-                                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                                    const Reflection::TypeInfo* typeInfo =
+                                        Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
 
                                     if (typeInfo) {
                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
-                                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                            if ((field.flags & Reflection::FieldFlags::Serializable) &&
+                                                propertiesJson.contains(field.name))
+                                            {
+                                                void* fieldPtr =
+                                                    field.getPtr(static_cast<void*>(script.instance.get()));
+                                                Reflection::JsonSerializer::DeserializeField(
+                                                    field, propertiesJson[field.name], fieldPtr);
                                             }
                                         }
                                     }
@@ -165,7 +168,8 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                             }
                         }
                     }
-                } else if (entityJson.contains("Script")) {
+                }
+                else if (entityJson.contains("Script")) {
                     const nlohmann::json& scriptJson = entityJson["Script"];
                     if (scriptComponent.scripts.size() > 0) {
                         ScriptInstance& script = scriptComponent.scripts[0];
@@ -178,13 +182,18 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
 
                                 if (scriptJson.contains("properties")) {
                                     const nlohmann::json& propertiesJson = scriptJson["properties"];
-                                    const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                                    const Reflection::TypeInfo* typeInfo =
+                                        Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
 
                                     if (typeInfo) {
                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                            if ((field.flags & Reflection::FieldFlags::Serializable) && propertiesJson.contains(field.name)) {
-                                                void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                                Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name], fieldPtr);
+                                            if ((field.flags & Reflection::FieldFlags::Serializable) &&
+                                                propertiesJson.contains(field.name))
+                                            {
+                                                void* fieldPtr =
+                                                    field.getPtr(static_cast<void*>(script.instance.get()));
+                                                Reflection::JsonSerializer::DeserializeField(
+                                                    field, propertiesJson[field.name], fieldPtr);
                                             }
                                         }
                                     }
@@ -269,7 +278,8 @@ void GamePackageLoader::InitializeAssetRegistry() {
         }
     }
 
-    PX_LOG_INFO(BUILD, "Registered %llu .pxa assets from package (in-memory)", static_cast<unsigned long long>(registeredCount));
+    PX_LOG_INFO(BUILD, "Registered %llu .pxa assets from package (in-memory)",
+                static_cast<unsigned long long>(registeredCount));
 }
 
 } // namespace PiiXeL

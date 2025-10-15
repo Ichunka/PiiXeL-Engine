@@ -1,21 +1,17 @@
 #pragma once
 
-#include "Resources/Asset.hpp"
 #include "Components/UUID.hpp"
+#include "Resources/Asset.hpp"
+
 #include <raylib.h>
 #include <string>
-#include <vector>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace PiiXeL {
 
-enum class AnimatorParameterType {
-    Float,
-    Int,
-    Bool,
-    Trigger
-};
+enum class AnimatorParameterType { Float, Int, Bool, Trigger };
 
 struct AnimatorParameter {
     std::string name;
@@ -23,12 +19,7 @@ struct AnimatorParameter {
     std::variant<float, int, bool> defaultValue{0.0f};
 };
 
-enum class TransitionConditionType {
-    Greater,
-    Less,
-    Equals,
-    NotEquals
-};
+enum class TransitionConditionType { Greater, Less, Equals, NotEquals };
 
 struct TransitionCondition {
     std::string parameterName;

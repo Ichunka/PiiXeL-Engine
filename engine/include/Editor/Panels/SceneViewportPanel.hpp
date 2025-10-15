@@ -3,30 +3,22 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
-#include <raylib.h>
-#include <imgui.h>
 #include <functional>
+#include <imgui.h>
+#include <raylib.h>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
 class Engine;
+class EditorCamera;
 
 class SceneViewportPanel : public EditorPanel {
 public:
-    SceneViewportPanel(
-        Engine* engine,
-        RenderTexture2D* viewportTexture,
-        Rectangle* viewportBounds,
-        bool* viewportHovered,
-        bool* viewportFocused,
-        Vector2* cameraPosition,
-        float* cameraZoom,
-        Vector2* lastMousePos,
-        bool* isPanning,
-        ImVec2* viewportPos,
-        ImVec2* viewportSize
-    );
+    SceneViewportPanel(Engine* engine, RenderTexture2D* viewportTexture, Rectangle* viewportBounds,
+                       bool* viewportHovered, bool* viewportFocused, EditorCamera* editorCamera, ImVec2* viewportPos,
+                       ImVec2* viewportSize);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Scene"; }
@@ -43,10 +35,7 @@ private:
     Rectangle* m_ViewportBounds;
     bool* m_ViewportHovered;
     bool* m_ViewportFocused;
-    Vector2* m_CameraPosition;
-    float* m_CameraZoom;
-    Vector2* m_LastMousePos;
-    bool* m_IsPanning;
+    EditorCamera* m_EditorCamera;
     ImVec2* m_ViewportPos;
     ImVec2* m_ViewportSize;
 
@@ -57,7 +46,7 @@ private:
     std::function<void()> m_RenderGizmosCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

@@ -1,6 +1,8 @@
 #include "Core/SplashScreen.hpp"
+
 #include "Core/Logger.hpp"
 #include "Resources/EmbeddedAssetLoader.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -42,16 +44,14 @@ void SplashScreen::Render() {
             int drawY = (screenHeight - drawHeight) / 2;
 
             unsigned char alpha = static_cast<unsigned char>(m_FadeAlpha * 255.0f);
-            DrawTexturePro(
-                m_EmbeddedTexture,
-                Rectangle{0.0f, 0.0f, static_cast<float>(texWidth), static_cast<float>(texHeight)},
-                Rectangle{static_cast<float>(drawX), static_cast<float>(drawY), static_cast<float>(drawWidth), static_cast<float>(drawHeight)},
-                Vector2{0.0f, 0.0f},
-                0.0f,
-                Color{255, 255, 255, alpha}
-            );
+            DrawTexturePro(m_EmbeddedTexture,
+                           Rectangle{0.0f, 0.0f, static_cast<float>(texWidth), static_cast<float>(texHeight)},
+                           Rectangle{static_cast<float>(drawX), static_cast<float>(drawY),
+                                     static_cast<float>(drawWidth), static_cast<float>(drawHeight)},
+                           Vector2{0.0f, 0.0f}, 0.0f, Color{255, 255, 255, alpha});
         }
-    } else {
+    }
+    else {
         ClearBackground(Color{20, 20, 25, 255});
 
         const char* title = "PiiXeL Engine";
@@ -72,7 +72,8 @@ void SplashScreen::Render() {
         std::string percentText = std::to_string(percentage) + "%";
         int percentFontSize = 20;
         int percentWidth = MeasureText(percentText.c_str(), percentFontSize);
-        DrawText(percentText.c_str(), (screenWidth - percentWidth) / 2, barY + barHeight + 20, percentFontSize, LIGHTGRAY);
+        DrawText(percentText.c_str(), (screenWidth - percentWidth) / 2, barY + barHeight + 20, percentFontSize,
+                 LIGHTGRAY);
 
         if (!m_Message.empty()) {
             int messageFontSize = 16;
@@ -111,12 +112,14 @@ void SplashScreen::Update(float deltaTime) {
         if (m_FadeAlpha < 0.0f) {
             m_FadeAlpha = 0.0f;
         }
-    } else if (m_ElapsedTime < fadeInDuration) {
+    }
+    else if (m_ElapsedTime < fadeInDuration) {
         m_FadeAlpha = m_ElapsedTime / fadeInDuration;
         if (m_FadeAlpha > 1.0f) {
             m_FadeAlpha = 1.0f;
         }
-    } else {
+    }
+    else {
         m_FadeAlpha = 1.0f;
     }
 }

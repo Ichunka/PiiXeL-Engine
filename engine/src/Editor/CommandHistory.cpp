@@ -4,8 +4,7 @@
 
 namespace PiiXeL {
 
-CommandHistory::CommandHistory() {
-}
+CommandHistory::CommandHistory() {}
 
 CommandHistory::~CommandHistory() {
     Clear();

@@ -1,12 +1,14 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AssetInspectorPanel.hpp"
+
 #include "Resources/AssetRegistry.hpp"
-#include "Resources/TextureAsset.hpp"
 #include "Resources/AudioAsset.hpp"
+#include "Resources/TextureAsset.hpp"
+
+#include <cinttypes>
 #include <imgui.h>
 #include <rlImGui.h>
-#include <cinttypes>
 
 namespace PiiXeL {
 
@@ -72,7 +74,8 @@ void AssetInspectorPanel::ClearSelection() {
 
 void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
     TextureAsset* texAsset = dynamic_cast<TextureAsset*>(asset.get());
-    if (!texAsset) return;
+    if (!texAsset)
+        return;
 
     ImGui::Text("Dimensions: %dx%d", texAsset->GetWidth(), texAsset->GetHeight());
     ImGui::Text("Mipmaps: %d", texAsset->GetMipmaps());
@@ -101,7 +104,8 @@ void AssetInspectorPanel::RenderTextureAsset(std::shared_ptr<Asset> asset) {
 
 void AssetInspectorPanel::RenderAudioAsset(std::shared_ptr<Asset> asset) {
     AudioAsset* audioAsset = dynamic_cast<AudioAsset*>(asset.get());
-    if (!audioAsset) return;
+    if (!audioAsset)
+        return;
 
     ImGui::Text("Frames: %u", audioAsset->GetFrameCount());
 

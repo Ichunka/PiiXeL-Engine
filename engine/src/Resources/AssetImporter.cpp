@@ -1,11 +1,13 @@
 #include "Resources/AssetImporter.hpp"
-#include "Resources/TextureAsset.hpp"
-#include "Resources/AudioAsset.hpp"
+
 #include "Core/Logger.hpp"
-#include <raylib.h>
-#include <fstream>
-#include <chrono>
+#include "Resources/AudioAsset.hpp"
+#include "Resources/TextureAsset.hpp"
+
 #include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <raylib.h>
 
 namespace PiiXeL {
 
@@ -64,8 +66,7 @@ AssetImporter::ImportResult AssetImporter::ImportAsset(const std::string& source
     return result;
 }
 
-std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const std::string& directory,
-                                                                         bool recursive) {
+std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const std::string& directory, bool recursive) {
     std::vector<ImportResult> results;
 
     if (!std::filesystem::exists(directory)) {
@@ -77,26 +78,31 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
 
     if (recursive) {
         for (const auto& entry : std::filesystem::recursive_directory_iterator{directory}) {
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+                continue;
 
             std::string path = entry.path().string();
             std::string ext = entry.path().extension().string();
 
-            if (ext == ".pxa") continue;
+            if (ext == ".pxa")
+                continue;
 
             AssetType type = DetectAssetType(path);
             if (type != AssetType::Unknown) {
                 results.push_back(ImportAsset(path));
             }
         }
-    } else {
+    }
+    else {
         for (const auto& entry : std::filesystem::directory_iterator{directory}) {
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+                continue;
 
             std::string path = entry.path().string();
             std::string ext = entry.path().extension().string();
 
-            if (ext == ".pxa") continue;
+            if (ext == ".pxa")
+                continue;
 
             AssetType type = DetectAssetType(path);
             if (type != AssetType::Unknown) {
@@ -107,11 +113,11 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
 
     SaveUUIDCache();
 
-    int successCount = static_cast<int>(std::count_if(results.begin(), results.end(),
-                                                       [](const ImportResult& r) { return r.success; }));
+    int successCount = static_cast<int>(
+        std::count_if(results.begin(), results.end(), [](const ImportResult& r) { return r.success; }));
 
-    PX_LOG_INFO(ASSET, "Imported %d/%d assets from: %s", successCount,
-             static_cast<int>(results.size()), directory.c_str());
+    PX_LOG_INFO(ASSET, "Imported %d/%d assets from: %s", successCount, static_cast<int>(results.size()),
+                directory.c_str());
 
     return results;
 }
@@ -119,10 +125,10 @@ std::vector<AssetImporter::ImportResult> AssetImporter::ImportDirectory(const st
 AssetType AssetImporter::DetectAssetType(const std::string& path) const {
     std::filesystem::path fsPath{path};
     std::string ext = fsPath.extension().string();
-    std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
-    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
-        ext == ".tga" || ext == ".gif") {
+    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".tga" || ext == ".gif") {
         return AssetType::Texture;
     }
 
@@ -262,12 +268,11 @@ AssetImporter::ImportResult AssetImporter::ImportTexture(const std::string& sour
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
     metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
-    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.importTimestamp =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     auto fileTime = GetFileLastWriteTime(sourcePath);
-    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        fileTime.time_since_epoch()).count();
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(fileTime.time_since_epoch()).count();
 
     std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
     AssetPackage package{};
@@ -300,12 +305,11 @@ AssetImporter::ImportResult AssetImporter::ImportAudio(const std::string& source
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
     metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
-    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.importTimestamp =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     auto fileTime = GetFileLastWriteTime(sourcePath);
-    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        fileTime.time_since_epoch()).count();
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(fileTime.time_since_epoch()).count();
 
     std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
     AssetPackage package{};
@@ -341,9 +345,9 @@ std::chrono::system_clock::time_point AssetImporter::GetFileLastWriteTime(const 
     try {
         auto ftime = std::filesystem::last_write_time(path);
         return std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-            ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
-        );
-    } catch (...) {
+            ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    }
+    catch (...) {
         return std::chrono::system_clock::now();
     }
 }
@@ -372,12 +376,11 @@ AssetImporter::ImportResult AssetImporter::ImportSpriteSheet(const std::string& 
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
     metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
-    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.importTimestamp =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     auto fileTime = GetFileLastWriteTime(sourcePath);
-    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        fileTime.time_since_epoch()).count();
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(fileTime.time_since_epoch()).count();
 
     std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
     AssetPackage package{};
@@ -418,12 +421,11 @@ AssetImporter::ImportResult AssetImporter::ImportAnimationClip(const std::string
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
     metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
-    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.importTimestamp =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     auto fileTime = GetFileLastWriteTime(sourcePath);
-    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        fileTime.time_since_epoch()).count();
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(fileTime.time_since_epoch()).count();
 
     std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
     AssetPackage package{};
@@ -464,12 +466,11 @@ AssetImporter::ImportResult AssetImporter::ImportAnimatorController(const std::s
     metadata.name = std::filesystem::path{sourcePath}.stem().string();
     metadata.sourceFile = sourcePath;
     metadata.sourceExtension = std::filesystem::path{sourcePath}.extension().string();
-    metadata.importTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.importTimestamp =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     auto fileTime = GetFileLastWriteTime(sourcePath);
-    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        fileTime.time_since_epoch()).count();
+    metadata.sourceTimestamp = std::chrono::duration_cast<std::chrono::seconds>(fileTime.time_since_epoch()).count();
 
     std::string packagePath = AssetPackage::GetPackagePath(sourcePath);
     AssetPackage package{};

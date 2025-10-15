@@ -1,7 +1,8 @@
+#include "Build/GamePackage.hpp"
+#include "Build/GamePackageLoader.hpp"
 #include "Core/Application.hpp"
 #include "Reflection/ReflectionInit.hpp"
-#include "Build/GamePackageLoader.hpp"
-#include "Build/GamePackage.hpp"
+
 #include <iostream>
 
 int main() {

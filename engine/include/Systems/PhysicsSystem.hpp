@@ -1,10 +1,11 @@
 #ifndef PIIXELENGINE_PHYSICSSYSTEM_HPP
 #define PIIXELENGINE_PHYSICSSYSTEM_HPP
 
-#include <entt/entt.hpp>
 #include <box2d/box2d.h>
-#include <raylib.h>
+#include <entt/entt.hpp>
+
 #include <functional>
+#include <raylib.h>
 #include <set>
 #include <utility>
 

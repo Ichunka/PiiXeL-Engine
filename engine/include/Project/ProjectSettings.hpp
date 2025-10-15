@@ -1,9 +1,10 @@
 #ifndef PIIXELENGINE_PROJECTSETTINGS_HPP
 #define PIIXELENGINE_PROJECTSETTINGS_HPP
 
-#include <string>
-#include <raylib.h>
 #include <nlohmann/json.hpp>
+
+#include <raylib.h>
+#include <string>
 
 namespace PiiXeL {
 

@@ -1,14 +1,16 @@
 #include "Animation/AnimatorController.hpp"
+
 #include "Core/Logger.hpp"
-#include <algorithm>
+
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
 #include <raylib.h>
 
 namespace PiiXeL {
 
-AnimatorController::AnimatorController(UUID uuid, const std::string& name)
-    : Asset(uuid, AssetType::AnimatorController, name) {
-}
+AnimatorController::AnimatorController(UUID uuid, const std::string& name) :
+    Asset(uuid, AssetType::AnimatorController, name) {}
 
 bool AnimatorController::Load(const void* data, size_t size) {
     if (!data || size == 0) {
@@ -86,9 +88,11 @@ bool AnimatorController::Load(const void* data, size_t size) {
                         if (condJson.contains("value")) {
                             if (condJson["value"].is_number_float()) {
                                 condition.value = condJson["value"].get<float>();
-                            } else if (condJson["value"].is_number_integer()) {
+                            }
+                            else if (condJson["value"].is_number_integer()) {
                                 condition.value = condJson["value"].get<int>();
-                            } else if (condJson["value"].is_boolean()) {
+                            }
+                            else if (condJson["value"].is_boolean()) {
                                 condition.value = condJson["value"].get<bool>();
                             }
                         }
@@ -103,7 +107,8 @@ bool AnimatorController::Load(const void* data, size_t size) {
 
         m_IsLoaded = true;
         return true;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse AnimatorController JSON: %s", e.what());
         return false;
     }
@@ -150,11 +155,9 @@ void AnimatorController::AddParameter(const AnimatorParameter& parameter) {
 }
 
 void AnimatorController::RemoveParameter(const std::string& name) {
-    m_Parameters.erase(
-        std::remove_if(m_Parameters.begin(), m_Parameters.end(),
-            [&name](const AnimatorParameter& param) { return param.name == name; }),
-        m_Parameters.end()
-    );
+    m_Parameters.erase(std::remove_if(m_Parameters.begin(), m_Parameters.end(),
+                                      [&name](const AnimatorParameter& param) { return param.name == name; }),
+                       m_Parameters.end());
 }
 
 void AnimatorController::AddState(const AnimatorState& state) {
@@ -165,11 +168,9 @@ void AnimatorController::AddState(const AnimatorState& state) {
 }
 
 void AnimatorController::RemoveState(const std::string& name) {
-    m_States.erase(
-        std::remove_if(m_States.begin(), m_States.end(),
-            [&name](const AnimatorState& state) { return state.name == name; }),
-        m_States.end()
-    );
+    m_States.erase(std::remove_if(m_States.begin(), m_States.end(),
+                                  [&name](const AnimatorState& state) { return state.name == name; }),
+                   m_States.end());
 
     if (m_DefaultState == name && !m_States.empty()) {
         m_DefaultState = m_States[0].name;
@@ -190,13 +191,11 @@ void AnimatorController::AddTransition(const AnimatorTransition& transition) {
 }
 
 void AnimatorController::RemoveTransition(const std::string& fromState, const std::string& toState) {
-    m_Transitions.erase(
-        std::remove_if(m_Transitions.begin(), m_Transitions.end(),
-            [&](const AnimatorTransition& trans) {
-                return trans.fromState == fromState && trans.toState == toState;
-            }),
-        m_Transitions.end()
-    );
+    m_Transitions.erase(std::remove_if(m_Transitions.begin(), m_Transitions.end(),
+                                       [&](const AnimatorTransition& trans) {
+                                           return trans.fromState == fromState && trans.toState == toState;
+                                       }),
+                        m_Transitions.end());
 }
 
 std::vector<AnimatorTransition> AnimatorController::GetTransitionsFromState(const std::string& stateName) const {

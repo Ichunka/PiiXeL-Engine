@@ -1,13 +1,14 @@
 #include "Animation/SpriteSheet.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <nlohmann/json.hpp>
+
 #include <raylib.h>
 
 namespace PiiXeL {
 
-SpriteSheet::SpriteSheet(UUID uuid, const std::string& name)
-    : Asset(uuid, AssetType::SpriteSheet, name) {
-}
+SpriteSheet::SpriteSheet(UUID uuid, const std::string& name) : Asset(uuid, AssetType::SpriteSheet, name) {}
 
 bool SpriteSheet::Load(const void* data, size_t size) {
     if (!data || size == 0) {
@@ -73,7 +74,8 @@ bool SpriteSheet::Load(const void* data, size_t size) {
 
         m_IsLoaded = true;
         return true;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse SpriteSheet JSON: %s", e.what());
         return false;
     }

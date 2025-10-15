@@ -1,9 +1,10 @@
 #include "Components/ComponentModuleRegistry.hpp"
+
 #include "Core/Logger.hpp"
 
 #ifdef BUILD_WITH_EDITOR
-#include <imgui.h>
 #include <algorithm>
+#include <imgui.h>
 #endif
 
 namespace PiiXeL {
@@ -25,18 +26,22 @@ nlohmann::json ComponentModuleRegistry::SerializeEntity(entt::registry& registry
     return entityJson;
 }
 
-void ComponentModuleRegistry::DeserializeComponent(const std::string& componentName, entt::registry& registry, entt::entity entity, const nlohmann::json& data) {
+void ComponentModuleRegistry::DeserializeComponent(const std::string& componentName, entt::registry& registry,
+                                                   entt::entity entity, const nlohmann::json& data) {
     IComponentModule* module = GetModuleByName(componentName);
     if (module) {
         module->Deserialize(registry, entity, data);
-    } else {
+    }
+    else {
         PX_LOG_WARNING(ENGINE, "ComponentModuleRegistry: Unknown component type '%s'", componentName.c_str());
     }
 }
 
 #ifdef BUILD_WITH_EDITOR
 
-void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry, entt::entity entity, CommandHistory& history, EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) {
+void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry, entt::entity entity,
+                                                       EditorCommandSystem& commandSystem,
+                                                       EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) {
     std::vector<IComponentModule*> sortedModules;
     for (const auto& module : m_AllModules) {
         if (!module->IsRenderedByRegistry()) {
@@ -47,9 +52,8 @@ void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry,
         }
     }
 
-    std::sort(sortedModules.begin(), sortedModules.end(), [](IComponentModule* a, IComponentModule* b) {
-        return a->GetDisplayOrder() < b->GetDisplayOrder();
-    });
+    std::sort(sortedModules.begin(), sortedModules.end(),
+              [](IComponentModule* a, IComponentModule* b) { return a->GetDisplayOrder() < b->GetDisplayOrder(); });
 
     for (IComponentModule* module : sortedModules) {
         ImGui::Separator();
@@ -66,7 +70,7 @@ void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry,
         }
 
         if (isOpen) {
-            module->RenderInspectorUI(registry, entity, history, entityPicker, assetPicker);
+            module->RenderInspectorUI(registry, entity, commandSystem, entityPicker, assetPicker);
             ImGui::TreePop();
         }
 
@@ -76,19 +80,21 @@ void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry,
     }
 }
 
-void ComponentModuleRegistry::RenderAddComponentMenu(entt::registry& registry, entt::entity entity, CommandHistory& history) {
+void ComponentModuleRegistry::RenderAddComponentMenu(entt::registry& registry, entt::entity entity,
+                                                     EditorCommandSystem& commandSystem) {
     for (const auto& module : m_AllModules) {
         if (module->HasComponent(registry, entity)) {
             continue;
         }
 
         if (ImGui::MenuItem(module->GetName())) {
-            module->AddComponentToEntity(registry, entity, history);
+            module->AddComponentToEntity(registry, entity, commandSystem);
         }
     }
 }
 
-void ComponentModuleRegistry::DuplicateAllComponents(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) {
+void ComponentModuleRegistry::DuplicateAllComponents(entt::registry& registry, entt::entity srcEntity,
+                                                     entt::entity dstEntity) {
     for (const auto& module : m_AllModules) {
         if (module->HasComponent(registry, srcEntity)) {
             module->DuplicateComponent(registry, srcEntity, dstEntity);
@@ -98,4 +104,4 @@ void ComponentModuleRegistry::DuplicateAllComponents(entt::registry& registry, e
 
 #endif
 
-}
+} // namespace PiiXeL

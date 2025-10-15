@@ -1,17 +1,19 @@
 #include "Components/Sprite.hpp"
+
+#include "Reflection/Reflection.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
-#include "Reflection/Reflection.hpp"
-#include <raylib.h>
+
 #include <cinttypes>
+#include <raylib.h>
 
 namespace PiiXeL {
 
 BEGIN_REFLECT(Sprite)
-    FIELD_ASSET(textureAssetUUID, "texture")
-    FIELD(tint)
-    FIELD(origin)
-    FIELD(layer)
+FIELD_ASSET(textureAssetUUID, "texture")
+FIELD(tint)
+FIELD(origin)
+FIELD(layer)
 END_REFLECT(Sprite)
 
 Texture2D Sprite::GetTexture() const {
@@ -38,10 +40,13 @@ Texture2D Sprite::GetTexture() const {
         if ((m_LastLoadedTextureUUID != textureAssetUUID &&
              (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f)) ||
             (m_LastLoadedTextureUUID == UUID{0} &&
-             (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f))) {
-            mutableThis->sourceRect = {0.0f, 0.0f, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+             (mutableThis->sourceRect.width == 0.0f && mutableThis->sourceRect.height == 0.0f)))
+        {
+            mutableThis->sourceRect = {0.0f, 0.0f, static_cast<float>(texture.width),
+                                       static_cast<float>(texture.height)};
             m_LastLoadedTextureUUID = textureAssetUUID;
-        } else if (m_LastLoadedTextureUUID != textureAssetUUID) {
+        }
+        else if (m_LastLoadedTextureUUID != textureAssetUUID) {
             m_LastLoadedTextureUUID = textureAssetUUID;
         }
     }
@@ -72,15 +77,16 @@ void Sprite::SetTexture(UUID assetUUID) {
 
     Texture2D tex = GetTexture();
     if (tex.id != 0) {
-        TraceLog(LOG_INFO, "Sprite texture set: %" PRIu64 ", size: %dx%d, sourceRect: %.0fx%.0f",
-                 assetUUID.Get(), tex.width, tex.height, sourceRect.width, sourceRect.height);
-    } else {
+        TraceLog(LOG_INFO, "Sprite texture set: %" PRIu64 ", size: %dx%d, sourceRect: %.0fx%.0f", assetUUID.Get(),
+                 tex.width, tex.height, sourceRect.width, sourceRect.height);
+    }
+    else {
         TraceLog(LOG_WARNING, "Sprite SetTexture: texture not loaded for UUID %" PRIu64, assetUUID.Get());
     }
 }
 
 namespace Reflection {
 void __force_link_Sprite() {}
-}
+} // namespace Reflection
 
 } // namespace PiiXeL

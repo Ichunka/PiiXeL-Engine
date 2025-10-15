@@ -1,8 +1,9 @@
 #ifndef PIIXELENGINE_SPRITE_HPP
 #define PIIXELENGINE_SPRITE_HPP
 
-#include <raylib.h>
 #include "Components/UUID.hpp"
+
+#include <raylib.h>
 
 namespace PiiXeL {
 

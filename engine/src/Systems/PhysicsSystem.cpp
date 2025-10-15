@@ -1,20 +1,17 @@
 #include "Systems/PhysicsSystem.hpp"
-#include "Core/Logger.hpp"
-#include "Scene/Scene.hpp"
-#include "Components/Transform.hpp"
-#include "Components/RigidBody2D.hpp"
+
 #include "Components/BoxCollider2D.hpp"
 #include "Components/CircleCollider2D.hpp"
+#include "Components/RigidBody2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Transform.hpp"
+#include "Core/Logger.hpp"
+#include "Scene/Scene.hpp"
 #include "Scripting/ScriptComponent.hpp"
 
 namespace PiiXeL {
 
-PhysicsSystem::PhysicsSystem()
-    : m_WorldId{b2_nullWorldId}
-    , m_TimeAccumulator{0.0f}
-{
-}
+PhysicsSystem::PhysicsSystem() : m_WorldId{b2_nullWorldId}, m_TimeAccumulator{0.0f} {}
 
 PhysicsSystem::~PhysicsSystem() {
     Shutdown();
@@ -120,9 +117,8 @@ void PhysicsSystem::CreateBody(entt::registry& registry, entt::entity entity) {
 
         const float scaledRadius = collider.radius * (transform.scale.x + transform.scale.y) * 0.5f;
 
-        b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters,
-        collider.offset.y / m_PixelsToMeters}
-            , .radius = scaledRadius / m_PixelsToMeters};
+        b2Circle circle{.center = {collider.offset.x / m_PixelsToMeters, collider.offset.y / m_PixelsToMeters},
+                        .radius = scaledRadius / m_PixelsToMeters};
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
@@ -165,9 +161,7 @@ void PhysicsSystem::DestroyAllBodies(entt::registry& registry) {
         return;
     }
 
-    registry.view<RigidBody2D>().each([](RigidBody2D& rb) {
-        rb.box2dBodyId = b2_nullBodyId;
-    });
+    registry.view<RigidBody2D>().each([](RigidBody2D& rb) { rb.box2dBodyId = b2_nullBodyId; });
 
     b2DestroyWorld(m_WorldId);
     m_WorldId = b2_nullWorldId;

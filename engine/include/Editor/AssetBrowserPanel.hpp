@@ -5,9 +5,10 @@
 
 #include "Components/UUID.hpp"
 #include "Resources/Asset.hpp"
-#include <vector>
-#include <string>
+
 #include <functional>
+#include <string>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -21,18 +22,14 @@ public:
     void Render();
     void RefreshAssetList();
 
-    void SetAssetSelectedCallback(AssetSelectedCallback callback) {
-        m_OnAssetSelected = callback;
-    }
+    void SetAssetSelectedCallback(AssetSelectedCallback callback) { m_OnAssetSelected = callback; }
 
     void SetCurrentDirectory(const std::string& directory) {
         m_CurrentDirectory = directory;
         RefreshAssetList();
     }
 
-    [[nodiscard]] const std::string& GetCurrentDirectory() const {
-        return m_CurrentDirectory;
-    }
+    [[nodiscard]] const std::string& GetCurrentDirectory() const { return m_CurrentDirectory; }
 
 private:
     void RenderDirectoryTree();

@@ -1,16 +1,18 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AnimatorControllerEditorPanel.hpp"
-#include "Core/Logger.hpp"
+
+#include "Animation/AnimationClip.hpp"
 #include "Animation/AnimationSerializer.hpp"
-#include "Resources/AssetRegistry.hpp"
+#include "Core/Logger.hpp"
 #include "Resources/Asset.hpp"
 #include "Resources/AssetManager.hpp"
+#include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
-#include "Animation/AnimationClip.hpp"
+
+#include <cmath>
 #include <imgui.h>
 #include <raylib.h>
-#include <cmath>
 
 namespace PiiXeL {
 
@@ -46,7 +48,8 @@ void AnimatorControllerEditorPanel::Render() {
         const float splitterWidth = 4.0f;
 
         ImVec2 contentSize = ImGui::GetContentRegionAvail();
-        leftPanelWidth = std::max(minPanelWidth, std::min(leftPanelWidth, contentSize.x - minPanelWidth - splitterWidth));
+        leftPanelWidth =
+            std::max(minPanelWidth, std::min(leftPanelWidth, contentSize.x - minPanelWidth - splitterWidth));
 
         ImGui::BeginChild("ParametersPanel", ImVec2{leftPanelWidth, 0}, true);
         RenderParametersPanel();
@@ -87,7 +90,8 @@ void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
         PX_LOG_INFO(EDITOR, "Loading from AssetRegistry with UUID: %llu", existingUUID.Get());
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
-    } else {
+    }
+    else {
         PX_LOG_INFO(EDITOR, "Loading from path (no UUID in registry)");
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(controllerPath);
         m_Controller = std::dynamic_pointer_cast<AnimatorController>(asset);
@@ -95,11 +99,13 @@ void AnimatorControllerEditorPanel::Open(const std::string& controllerPath) {
 
     if (!m_Controller) {
         PX_LOG_ERROR(EDITOR, "Failed to load AnimatorController: %s", controllerPath.c_str());
-    } else {
+    }
+    else {
         PX_LOG_INFO(EDITOR, "AnimatorController loaded successfully");
         const std::vector<AnimatorState>& states = m_Controller->GetStates();
         for (size_t i = 0; i < states.size(); ++i) {
-            PX_LOG_INFO(EDITOR, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+            PX_LOG_INFO(EDITOR, "Loaded State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(),
+                        states[i].animationClipUUID.Get());
         }
     }
 
@@ -127,10 +133,8 @@ void AnimatorControllerEditorPanel::RenderToolbar() {
     }
 
     ImGui::SameLine();
-    ImGui::Text("| States: %zu | Transitions: %zu | Parameters: %zu",
-                m_Controller->GetStates().size(),
-                m_Controller->GetTransitions().size(),
-                m_Controller->GetParameters().size());
+    ImGui::Text("| States: %zu | Transitions: %zu | Parameters: %zu", m_Controller->GetStates().size(),
+                m_Controller->GetTransitions().size(), m_Controller->GetParameters().size());
 }
 
 void AnimatorControllerEditorPanel::RenderParametersPanel() {
@@ -161,7 +165,8 @@ void AnimatorControllerEditorPanel::RenderParametersPanel() {
         }
 
         m_Controller->AddParameter(param);
-        snprintf(m_NewParameterName, sizeof(m_NewParameterName), "NewParameter%zu", m_Controller->GetParameters().size() + 1);
+        snprintf(m_NewParameterName, sizeof(m_NewParameterName), "NewParameter%zu",
+                 m_Controller->GetParameters().size() + 1);
     }
 
     ImGui::Separator();
@@ -176,10 +181,18 @@ void AnimatorControllerEditorPanel::RenderParametersPanel() {
 
         const char* typeStr = "Unknown";
         switch (params[i].type) {
-            case AnimatorParameterType::Float: typeStr = "Float"; break;
-            case AnimatorParameterType::Int: typeStr = "Int"; break;
-            case AnimatorParameterType::Bool: typeStr = "Bool"; break;
-            case AnimatorParameterType::Trigger: typeStr = "Trigger"; break;
+            case AnimatorParameterType::Float:
+                typeStr = "Float";
+                break;
+            case AnimatorParameterType::Int:
+                typeStr = "Int";
+                break;
+            case AnimatorParameterType::Bool:
+                typeStr = "Bool";
+                break;
+            case AnimatorParameterType::Trigger:
+                typeStr = "Trigger";
+                break;
         }
 
         ImGui::Text("%s [%s]", params[i].name.c_str(), typeStr);
@@ -215,7 +228,8 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     ImGui::InvisibleButton("Canvas", canvasSize);
     const bool isHovered = ImGui::IsItemHovered();
     const ImVec2 mousePos = ImGui::GetMousePos();
-    const ImVec2 mousePosInCanvas = ImVec2{mousePos.x - canvasPos.x - m_GraphScrollingX, mousePos.y - canvasPos.y - m_GraphScrollingY};
+    const ImVec2 mousePosInCanvas =
+        ImVec2{mousePos.x - canvasPos.x - m_GraphScrollingX, mousePos.y - canvasPos.y - m_GraphScrollingY};
 
     if (isHovered && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
         ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
@@ -236,7 +250,8 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
                 m_OnSelectionChanged();
             }
             ImGui::OpenPopup("NodeContextMenu");
-        } else {
+        }
+        else {
             m_OpenContextMenu = true;
             m_ContextMenuPosX = mousePosInCanvas.x;
             m_ContextMenuPosY = mousePosInCanvas.y;
@@ -253,14 +268,10 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
 
     if (m_CreatingTransitionFromIndex >= 0) {
         const AnimatorState& fromState = states[m_CreatingTransitionFromIndex];
-        ImVec2 fromPos = ImVec2{
-            fromState.editorPosition.x + NODE_WIDTH / 2.0f,
-            fromState.editorPosition.y + NODE_HEIGHT / 2.0f
-        };
-        ImVec2 screenFromPos = ImVec2{
-            canvasPos.x + m_GraphScrollingX + fromPos.x,
-            canvasPos.y + m_GraphScrollingY + fromPos.y
-        };
+        ImVec2 fromPos =
+            ImVec2{fromState.editorPosition.x + NODE_WIDTH / 2.0f, fromState.editorPosition.y + NODE_HEIGHT / 2.0f};
+        ImVec2 screenFromPos =
+            ImVec2{canvasPos.x + m_GraphScrollingX + fromPos.x, canvasPos.y + m_GraphScrollingY + fromPos.y};
         drawList->AddLine(screenFromPos, mousePos, IM_COL32(100, 200, 100, 255), 2.0f);
     }
 
@@ -274,14 +285,16 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
                 CreateTransition(m_CreatingTransitionFromIndex, clickedState);
             }
             m_CreatingTransitionFromIndex = -1;
-        } else if (clickedState >= 0) {
+        }
+        else if (clickedState >= 0) {
             m_SelectedStateIndex = clickedState;
             m_SelectedTransitionIndex = -1;
             m_DraggingStateIndex = clickedState;
             if (m_OnSelectionChanged) {
                 m_OnSelectionChanged();
             }
-        } else {
+        }
+        else {
             int clickedTransition = GetTransitionIndexAtPosition(mousePos, canvasPos, scrolling);
             if (clickedTransition >= 0) {
                 m_SelectedTransitionIndex = clickedTransition;
@@ -289,7 +302,8 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
                 if (m_OnSelectionChanged) {
                     m_OnSelectionChanged();
                 }
-            } else {
+            }
+            else {
                 m_SelectedStateIndex = -1;
                 m_SelectedTransitionIndex = -1;
             }
@@ -350,15 +364,14 @@ void AnimatorControllerEditorPanel::RenderStateGraph() {
     }
 }
 
-void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImVec2& canvasPos, const ImVec2& scrolling) {
+void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImVec2& canvasPos,
+                                                    const ImVec2& scrolling) {
     const AnimatorState& state = m_Controller->GetStates()[stateIndex];
     const bool isSelected = (static_cast<int>(stateIndex) == m_SelectedStateIndex);
     const bool isDefault = (state.name == m_Controller->GetDefaultState());
 
-    ImVec2 nodePos = ImVec2{
-        canvasPos.x + scrolling.x + state.editorPosition.x,
-        canvasPos.y + scrolling.y + state.editorPosition.y
-    };
+    ImVec2 nodePos =
+        ImVec2{canvasPos.x + scrolling.x + state.editorPosition.x, canvasPos.y + scrolling.y + state.editorPosition.y};
     ImVec2 nodeEnd = ImVec2{nodePos.x + NODE_WIDTH, nodePos.y + NODE_HEIGHT};
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -369,7 +382,8 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
 
     ImVec2 headerEnd = ImVec2{nodeEnd.x, nodePos.y + 28};
     drawList->AddRectFilled(nodePos, headerEnd, headerColor, NODE_ROUNDING, ImDrawFlags_RoundCornersTop);
-    drawList->AddRectFilled(ImVec2{nodePos.x, nodePos.y + 28}, nodeEnd, bodyColor, NODE_ROUNDING, ImDrawFlags_RoundCornersBottom);
+    drawList->AddRectFilled(ImVec2{nodePos.x, nodePos.y + 28}, nodeEnd, bodyColor, NODE_ROUNDING,
+                            ImDrawFlags_RoundCornersBottom);
     drawList->AddRect(nodePos, nodeEnd, borderColor, NODE_ROUNDING, 0, isSelected ? 3.0f : 2.0f);
 
     ImVec2 textPos = ImVec2{nodePos.x + 10, nodePos.y + 10};
@@ -377,7 +391,8 @@ void AnimatorControllerEditorPanel::RenderStateNode(size_t stateIndex, const ImV
 
     if (isDefault) {
         ImVec2 defaultTagPos = ImVec2{nodePos.x + NODE_WIDTH - 65, nodePos.y + 8};
-        drawList->AddRectFilled(defaultTagPos, ImVec2{defaultTagPos.x + 55, defaultTagPos.y + 14}, IM_COL32(100, 200, 100, 200), 2.0f);
+        drawList->AddRectFilled(defaultTagPos, ImVec2{defaultTagPos.x + 55, defaultTagPos.y + 14},
+                                IM_COL32(100, 200, 100, 200), 2.0f);
         ImVec2 defaultTextPos = ImVec2{defaultTagPos.x + 5, defaultTagPos.y + 1};
         drawList->AddText(defaultTextPos, IM_COL32(255, 255, 255, 255), "DEFAULT");
     }
@@ -410,23 +425,22 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
         int toIndex = -1;
 
         for (size_t j = 0; j < states.size(); ++j) {
-            if (states[j].name == trans.fromState) fromIndex = static_cast<int>(j);
-            if (states[j].name == trans.toState) toIndex = static_cast<int>(j);
+            if (states[j].name == trans.fromState)
+                fromIndex = static_cast<int>(j);
+            if (states[j].name == trans.toState)
+                toIndex = static_cast<int>(j);
         }
 
-        if (fromIndex < 0 || toIndex < 0) continue;
+        if (fromIndex < 0 || toIndex < 0)
+            continue;
 
         const AnimatorState& fromState = states[fromIndex];
         const AnimatorState& toState = states[toIndex];
 
-        ImVec2 fromPos = ImVec2{
-            canvasPos.x + scrolling.x + fromState.editorPosition.x + NODE_WIDTH,
-            canvasPos.y + scrolling.y + fromState.editorPosition.y + NODE_HEIGHT / 2.0f
-        };
-        ImVec2 toPos = ImVec2{
-            canvasPos.x + scrolling.x + toState.editorPosition.x,
-            canvasPos.y + scrolling.y + toState.editorPosition.y + NODE_HEIGHT / 2.0f
-        };
+        ImVec2 fromPos = ImVec2{canvasPos.x + scrolling.x + fromState.editorPosition.x + NODE_WIDTH,
+                                canvasPos.y + scrolling.y + fromState.editorPosition.y + NODE_HEIGHT / 2.0f};
+        ImVec2 toPos = ImVec2{canvasPos.x + scrolling.x + toState.editorPosition.x,
+                              canvasPos.y + scrolling.y + toState.editorPosition.y + NODE_HEIGHT / 2.0f};
 
         const bool isSelected = (static_cast<int>(i) == m_SelectedTransitionIndex);
         ImU32 lineColor = isSelected ? IM_COL32(255, 200, 100, 255) : IM_COL32(200, 200, 200, 255);
@@ -443,8 +457,10 @@ void AnimatorControllerEditorPanel::RenderTransitions(const ImVec2& canvasPos, c
 
             ImVec2 arrowTip = ImVec2{toPos.x - direction.x * 20.0f, toPos.y - direction.y * 20.0f};
             ImVec2 perpendicular = ImVec2{-direction.y, direction.x};
-            ImVec2 arrowLeft = ImVec2{arrowTip.x - direction.x * 12.0f + perpendicular.x * 10.0f, arrowTip.y - direction.y * 12.0f + perpendicular.y * 10.0f};
-            ImVec2 arrowRight = ImVec2{arrowTip.x - direction.x * 12.0f - perpendicular.x * 10.0f, arrowTip.y - direction.y * 12.0f - perpendicular.y * 10.0f};
+            ImVec2 arrowLeft = ImVec2{arrowTip.x - direction.x * 12.0f + perpendicular.x * 10.0f,
+                                      arrowTip.y - direction.y * 12.0f + perpendicular.y * 10.0f};
+            ImVec2 arrowRight = ImVec2{arrowTip.x - direction.x * 12.0f - perpendicular.x * 10.0f,
+                                       arrowTip.y - direction.y * 12.0f - perpendicular.y * 10.0f};
 
             drawList->AddTriangle(arrowTip, arrowLeft, arrowRight, arrowOutlineColor, 2.0f);
             drawList->AddTriangleFilled(arrowTip, arrowLeft, arrowRight, lineColor);
@@ -467,7 +483,7 @@ void AnimatorControllerEditorPanel::RenderInspector() {
             char nameBuffer[64];
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
             strncpy(nameBuffer, state.name.c_str(), sizeof(nameBuffer) - 1);
 #ifdef _MSC_VER
@@ -485,7 +501,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                 if (ImGui::Button("Set as Default State", ImVec2{-1, 0})) {
                     m_Controller->SetDefaultState(state.name);
                 }
-            } else {
+            }
+            else {
                 ImGui::BeginDisabled();
                 ImGui::Button("Already Default State", ImVec2{-1, 0});
                 ImGui::EndDisabled();
@@ -512,11 +529,13 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                     std::string displayName = fsPath.stem().string();
                     textPos.x += 10;
                     drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), displayName.c_str());
-                } else {
+                }
+                else {
                     textPos.x += 10;
                     drawList->AddText(textPos, IM_COL32(255, 128, 128, 255), "[Missing Clip]");
                 }
-            } else {
+            }
+            else {
                 textPos.x += 10;
                 drawList->AddText(textPos, IM_COL32(128, 128, 128, 255), "Drop AnimationClip here");
             }
@@ -538,18 +557,24 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                     if (payload) {
                         AssetInfo* assetInfo = *static_cast<AssetInfo**>(payload->Data);
                         if (assetInfo && assetInfo->type == "animclip") {
-                            PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(), assetInfo->filename.c_str());
+                            PX_LOG_INFO(EDITOR, "Received drop - UUID: %llu, filename: %s", assetInfo->uuid.Get(),
+                                        assetInfo->filename.c_str());
 
                             if (assetInfo->uuid.Get() != 0) {
                                 state.animationClipUUID = assetInfo->uuid;
-                                PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu", state.animationClipUUID.Get());
+                                PX_LOG_INFO(EDITOR, "Animation clip UUID assigned: %llu",
+                                            state.animationClipUUID.Get());
                                 Save();
-                            } else {
-                                PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s", assetInfo->path.c_str());
-                                std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
+                            }
+                            else {
+                                PX_LOG_WARNING(EDITOR, "Asset UUID is 0, trying to load from path: %s",
+                                               assetInfo->path.c_str());
+                                std::shared_ptr<Asset> asset =
+                                    AssetRegistry::Instance().LoadAssetFromPath(assetInfo->path);
                                 if (asset) {
                                     state.animationClipUUID = asset->GetUUID();
-                                    PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu", state.animationClipUUID.Get());
+                                    PX_LOG_INFO(EDITOR, "Loaded and assigned UUID: %llu",
+                                                state.animationClipUUID.Get());
                                     Save();
                                 }
                             }
@@ -580,7 +605,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                 m_SelectedStateIndex = -1;
             }
         }
-    } else if (m_SelectedTransitionIndex >= 0) {
+    }
+    else if (m_SelectedTransitionIndex >= 0) {
         const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
         if (m_SelectedTransitionIndex < static_cast<int>(transitions.size())) {
             AnimatorTransition& trans = const_cast<AnimatorTransition&>(transitions[m_SelectedTransitionIndex]);
@@ -615,7 +641,9 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                 }
 
                 if (!params.empty()) {
-                    if (ImGui::Combo("Parameter", &currentParamIndex, paramNames.data(), static_cast<int>(paramNames.size()))) {
+                    if (ImGui::Combo("Parameter", &currentParamIndex, paramNames.data(),
+                                     static_cast<int>(paramNames.size())))
+                    {
                         cond.parameterName = params[currentParamIndex].name;
                     }
 
@@ -623,26 +651,33 @@ void AnimatorControllerEditorPanel::RenderInspector() {
 
                     if (selectedParam.type == AnimatorParameterType::Trigger) {
                         ImGui::TextDisabled("Trigger (fires when set)");
-                    } else if (selectedParam.type == AnimatorParameterType::Bool) {
+                    }
+                    else if (selectedParam.type == AnimatorParameterType::Bool) {
                         const char* boolCondTypes[] = {"True", "False"};
                         int boolCondType = std::get<bool>(cond.value) ? 0 : 1;
                         if (ImGui::Combo("Condition", &boolCondType, boolCondTypes, 2)) {
                             cond.value = (boolCondType == 0);
-                            cond.type = (boolCondType == 0) ? TransitionConditionType::Equals : TransitionConditionType::NotEquals;
+                            cond.type = (boolCondType == 0) ? TransitionConditionType::Equals
+                                                            : TransitionConditionType::NotEquals;
                         }
-                    } else if (selectedParam.type == AnimatorParameterType::Float) {
+                    }
+                    else if (selectedParam.type == AnimatorParameterType::Float) {
                         const char* floatCondTypes[] = {"Greater", "Less", "Equals"};
-                        int floatCondType = (cond.type == TransitionConditionType::Greater) ? 0 :
-                                           (cond.type == TransitionConditionType::Less) ? 1 : 2;
+                        int floatCondType = (cond.type == TransitionConditionType::Greater) ? 0
+                                            : (cond.type == TransitionConditionType::Less)  ? 1
+                                                                                            : 2;
                         if (ImGui::Combo("Condition", &floatCondType, floatCondTypes, 3)) {
-                            cond.type = (floatCondType == 0) ? TransitionConditionType::Greater :
-                                       (floatCondType == 1) ? TransitionConditionType::Less : TransitionConditionType::Equals;
+                            cond.type = (floatCondType == 0)   ? TransitionConditionType::Greater
+                                        : (floatCondType == 1) ? TransitionConditionType::Less
+                                                               : TransitionConditionType::Equals;
                         }
-                        float floatValue = std::holds_alternative<float>(cond.value) ? std::get<float>(cond.value) : 0.0f;
+                        float floatValue =
+                            std::holds_alternative<float>(cond.value) ? std::get<float>(cond.value) : 0.0f;
                         if (ImGui::DragFloat("Value", &floatValue, 0.1f)) {
                             cond.value = floatValue;
                         }
-                    } else if (selectedParam.type == AnimatorParameterType::Int) {
+                    }
+                    else if (selectedParam.type == AnimatorParameterType::Int) {
                         const char* intCondTypes[] = {"Greater", "Less", "Equals", "NotEquals"};
                         int intCondType = static_cast<int>(cond.type);
                         if (ImGui::Combo("Condition", &intCondType, intCondTypes, 4)) {
@@ -653,7 +688,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                             cond.value = intValue;
                         }
                     }
-                } else {
+                }
+                else {
                     ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "No parameters available");
                 }
 
@@ -686,7 +722,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
                 m_SelectedTransitionIndex = -1;
             }
         }
-    } else {
+    }
+    else {
         ImGui::TextDisabled("Select a state or transition to edit");
     }
 }
@@ -708,7 +745,8 @@ void AnimatorControllerEditorPanel::CreateNewState(const ImVec2& position) {
 
 void AnimatorControllerEditorPanel::DeleteState(size_t stateIndex) {
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
-    if (stateIndex >= states.size()) return;
+    if (stateIndex >= states.size())
+        return;
 
     const std::string stateName = states[stateIndex].name;
 
@@ -724,7 +762,8 @@ void AnimatorControllerEditorPanel::DeleteState(size_t stateIndex) {
 
 void AnimatorControllerEditorPanel::CreateTransition(size_t fromIndex, size_t toIndex) {
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
-    if (fromIndex >= states.size() || toIndex >= states.size()) return;
+    if (fromIndex >= states.size() || toIndex >= states.size())
+        return;
 
     AnimatorTransition trans{};
     trans.fromState = states[fromIndex].name;
@@ -738,7 +777,8 @@ void AnimatorControllerEditorPanel::CreateTransition(size_t fromIndex, size_t to
 
 void AnimatorControllerEditorPanel::DeleteTransition(size_t transitionIndex) {
     const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
-    if (transitionIndex >= transitions.size()) return;
+    if (transitionIndex >= transitions.size())
+        return;
 
     const AnimatorTransition& trans = transitions[transitionIndex];
     m_Controller->RemoveTransition(trans.fromState, trans.toState);
@@ -754,7 +794,8 @@ void AnimatorControllerEditorPanel::Save() {
 
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
     for (size_t i = 0; i < states.size(); ++i) {
-        PX_LOG_INFO(EDITOR, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(), states[i].animationClipUUID.Get());
+        PX_LOG_INFO(EDITOR, "State %zu: %s - AnimClip UUID: %llu", i, states[i].name.c_str(),
+                    states[i].animationClipUUID.Get());
     }
 
     if (AnimationSerializer::SerializeAnimatorController(*m_Controller, m_CurrentPath)) {
@@ -768,22 +809,26 @@ void AnimatorControllerEditorPanel::Save() {
 
             if (m_Controller) {
                 PX_LOG_INFO(EDITOR, "AnimatorController reloaded after save");
-            } else {
+            }
+            else {
                 PX_LOG_ERROR(EDITOR, "Failed to reload AnimatorController after save");
             }
         }
-    } else {
+    }
+    else {
         PX_LOG_ERROR(EDITOR, "Failed to save AnimatorController to: %s", m_CurrentPath.c_str());
     }
 }
 
 ImVec2 AnimatorControllerEditorPanel::GetStateNodePosition(size_t stateIndex) const {
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
-    if (stateIndex >= states.size()) return ImVec2{0, 0};
+    if (stateIndex >= states.size())
+        return ImVec2{0, 0};
     return ImVec2{states[stateIndex].editorPosition.x, states[stateIndex].editorPosition.y};
 }
 
-int AnimatorControllerEditorPanel::GetStateIndexAtPosition(const ImVec2& pos, const ImVec2& canvasPos, const ImVec2& scrolling) {
+int AnimatorControllerEditorPanel::GetStateIndexAtPosition(const ImVec2& pos, const ImVec2& canvasPos,
+                                                           const ImVec2& scrolling) {
     (void)canvasPos;
     (void)scrolling;
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
@@ -801,7 +846,8 @@ int AnimatorControllerEditorPanel::GetStateIndexAtPosition(const ImVec2& pos, co
     return -1;
 }
 
-int AnimatorControllerEditorPanel::GetTransitionIndexAtPosition(const ImVec2& mousePos, const ImVec2& canvasPos, const ImVec2& scrolling) {
+int AnimatorControllerEditorPanel::GetTransitionIndexAtPosition(const ImVec2& mousePos, const ImVec2& canvasPos,
+                                                                const ImVec2& scrolling) {
     const std::vector<AnimatorTransition>& transitions = m_Controller->GetTransitions();
     const std::vector<AnimatorState>& states = m_Controller->GetStates();
 
@@ -812,27 +858,27 @@ int AnimatorControllerEditorPanel::GetTransitionIndexAtPosition(const ImVec2& mo
         int toIndex = -1;
 
         for (size_t j = 0; j < states.size(); ++j) {
-            if (states[j].name == trans.fromState) fromIndex = static_cast<int>(j);
-            if (states[j].name == trans.toState) toIndex = static_cast<int>(j);
+            if (states[j].name == trans.fromState)
+                fromIndex = static_cast<int>(j);
+            if (states[j].name == trans.toState)
+                toIndex = static_cast<int>(j);
         }
 
-        if (fromIndex < 0 || toIndex < 0) continue;
+        if (fromIndex < 0 || toIndex < 0)
+            continue;
 
         const AnimatorState& fromState = states[fromIndex];
         const AnimatorState& toState = states[toIndex];
 
-        ImVec2 fromPos = ImVec2{
-            canvasPos.x + scrolling.x + fromState.editorPosition.x + NODE_WIDTH,
-            canvasPos.y + scrolling.y + fromState.editorPosition.y + NODE_HEIGHT / 2.0f
-        };
-        ImVec2 toPos = ImVec2{
-            canvasPos.x + scrolling.x + toState.editorPosition.x,
-            canvasPos.y + scrolling.y + toState.editorPosition.y + NODE_HEIGHT / 2.0f
-        };
+        ImVec2 fromPos = ImVec2{canvasPos.x + scrolling.x + fromState.editorPosition.x + NODE_WIDTH,
+                                canvasPos.y + scrolling.y + fromState.editorPosition.y + NODE_HEIGHT / 2.0f};
+        ImVec2 toPos = ImVec2{canvasPos.x + scrolling.x + toState.editorPosition.x,
+                              canvasPos.y + scrolling.y + toState.editorPosition.y + NODE_HEIGHT / 2.0f};
 
         ImVec2 dir = ImVec2{toPos.x - fromPos.x, toPos.y - fromPos.y};
         float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-        if (len == 0) continue;
+        if (len == 0)
+            continue;
         dir.x /= len;
         dir.y /= len;
 

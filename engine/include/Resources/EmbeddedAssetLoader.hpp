@@ -1,10 +1,10 @@
 #pragma once
 
-#include <span>
 #include <cstddef>
-#include <string_view>
 #include <optional>
 #include <raylib.h>
+#include <span>
+#include <string_view>
 
 namespace PiiXeL {
 
@@ -22,4 +22,4 @@ private:
     EmbeddedAssetLoader() = default;
 };
 
-}
+} // namespace PiiXeL

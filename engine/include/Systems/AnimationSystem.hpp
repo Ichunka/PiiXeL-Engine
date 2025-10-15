@@ -1,6 +1,7 @@
 #pragma once
 
 #include <entt/entt.hpp>
+
 #include <variant>
 
 namespace PiiXeL {
@@ -15,8 +16,7 @@ private:
     static void EvaluateTransitions(entt::registry& registry, entt::entity entity);
     static void UpdateAnimation(entt::registry& registry, entt::entity entity, float deltaTime);
     static bool EvaluateCondition(const std::variant<float, int, bool>& paramValue,
-                                  const std::variant<float, int, bool>& conditionValue,
-                                  int conditionType);
+                                  const std::variant<float, int, bool>& conditionValue, int conditionType);
 };
 
 } // namespace PiiXeL

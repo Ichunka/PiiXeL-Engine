@@ -1,10 +1,11 @@
 #ifndef PIIXELENGINE_GAMEPACKAGE_HPP
 #define PIIXELENGINE_GAMEPACKAGE_HPP
 
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <nlohmann/json.hpp>
+
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace PiiXeL {
 

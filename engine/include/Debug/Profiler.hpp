@@ -3,11 +3,11 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include <string>
 #include <chrono>
-#include <vector>
-#include <unordered_map>
 #include <deque>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace PiiXeL {
 

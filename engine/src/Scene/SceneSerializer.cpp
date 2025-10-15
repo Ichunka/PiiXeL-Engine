@@ -1,31 +1,30 @@
 #include "Scene/SceneSerializer.hpp"
-#include "Core/Logger.hpp"
-#include "Scene/Scene.hpp"
+
+#include "Components/Animator.hpp"
+#include "Components/BoxCollider2D.hpp"
+#include "Components/Camera.hpp"
+#include "Components/CircleCollider2D.hpp"
+#include "Components/ComponentModuleRegistry.hpp"
+#include "Components/RigidBody2D.hpp"
+#include "Components/Script.hpp"
+#include "Components/Sprite.hpp"
 #include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
-#include "Components/Sprite.hpp"
-#include "Components/Camera.hpp"
-#include "Components/RigidBody2D.hpp"
-#include "Components/BoxCollider2D.hpp"
-#include "Components/CircleCollider2D.hpp"
-#include "Components/Script.hpp"
-#include "Components/Animator.hpp"
 #include "Components/UUID.hpp"
-#include "Scene/EntityRegistry.hpp"
-#include "Scripting/ScriptComponent.hpp"
-#include "Resources/AssetManager.hpp"
+#include "Core/Logger.hpp"
 #include "Reflection/Reflection.hpp"
-#include "Components/ComponentModuleRegistry.hpp"
-#include <fstream>
+#include "Resources/AssetManager.hpp"
+#include "Scene/EntityRegistry.hpp"
+#include "Scene/Scene.hpp"
+#include "Scripting/ScriptComponent.hpp"
+
 #include <filesystem>
+#include <fstream>
 #include <raylib.h>
 
 namespace PiiXeL {
 
-SceneSerializer::SceneSerializer(Scene* scene)
-    : m_Scene{scene}
-{
-}
+SceneSerializer::SceneSerializer(Scene* scene) : m_Scene{scene} {}
 
 bool SceneSerializer::Serialize(const std::string& filepath) {
     if (!m_Scene) {
@@ -81,7 +80,8 @@ bool SceneSerializer::Deserialize(const std::string& filepath) {
     nlohmann::json sceneJson{};
     try {
         file >> sceneJson;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(SCENE, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -118,27 +118,24 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
         entityJson["uuid"] = uuid.Get();
     }
 
-
     if (registry.all_of<Sprite>(entity)) {
         const Sprite& sprite = registry.get<Sprite>(entity);
         entityJson["Sprite"] = {
             {"textureAssetUUID", sprite.textureAssetUUID.Get()},
-            {"sourceRect", {sprite.sourceRect.x, sprite.sourceRect.y, sprite.sourceRect.width, sprite.sourceRect.height}},
+            {"sourceRect",
+             {sprite.sourceRect.x, sprite.sourceRect.y, sprite.sourceRect.width, sprite.sourceRect.height}},
             {"tint", {sprite.tint.r, sprite.tint.g, sprite.tint.b, sprite.tint.a}},
             {"layer", sprite.layer},
-            {"origin", {sprite.origin.x, sprite.origin.y}}
-        };
+            {"origin", {sprite.origin.x, sprite.origin.y}}};
     }
 
     if (registry.all_of<RigidBody2D>(entity)) {
         const RigidBody2D& rb = registry.get<RigidBody2D>(entity);
-        entityJson["RigidBody2D"] = {
-            {"type", static_cast<int>(rb.type)},
-            {"mass", rb.mass},
-            {"friction", rb.friction},
-            {"restitution", rb.restitution},
-            {"fixedRotation", rb.fixedRotation}
-        };
+        entityJson["RigidBody2D"] = {{"type", static_cast<int>(rb.type)},
+                                     {"mass", rb.mass},
+                                     {"friction", rb.friction},
+                                     {"restitution", rb.restitution},
+                                     {"fixedRotation", rb.fixedRotation}};
     }
 
     nlohmann::json moduleJson = ComponentModuleRegistry::Instance().SerializeEntity(registry, entity);
@@ -156,7 +153,8 @@ nlohmann::json SceneSerializer::SerializeEntity(entt::entity entity) {
             scriptJson["enabled"] = script.instance ? script.instance->m_Enabled : true;
 
             if (script.instance) {
-                const Reflection::TypeInfo* typeInfo = Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
+                const Reflection::TypeInfo* typeInfo =
+                    Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
                 if (typeInfo) {
                     nlohmann::json propertiesJson{};
                     for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
@@ -189,7 +187,6 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
     registry.emplace<UUID>(entity, uuid);
     EntityRegistry::Instance().RegisterEntity(uuid, entity);
 
-
     if (entityJson.contains("Sprite")) {
         const nlohmann::json& spriteJson = entityJson["Sprite"];
         Sprite sprite{};
@@ -198,7 +195,9 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
             sprite.textureAssetUUID = UUID{spriteJson["textureAssetUUID"].get<uint64_t>()};
         }
 
-        if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() && spriteJson["sourceRect"].size() == 4) {
+        if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() &&
+            spriteJson["sourceRect"].size() == 4)
+        {
             sprite.sourceRect.x = spriteJson["sourceRect"][0].get<float>();
             sprite.sourceRect.y = spriteJson["sourceRect"][1].get<float>();
             sprite.sourceRect.width = spriteJson["sourceRect"][2].get<float>();
@@ -237,9 +236,9 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
 
     for (auto it = entityJson.begin(); it != entityJson.end(); ++it) {
         const std::string& componentName = it.key();
-        if (componentName == "uuid" ||
-            componentName == "Sprite" || componentName == "RigidBody2D" ||
-            componentName == "Scripts" || componentName == "Script") {
+        if (componentName == "uuid" || componentName == "Sprite" || componentName == "RigidBody2D" ||
+            componentName == "Scripts" || componentName == "Script")
+        {
             continue;
         }
 
@@ -257,7 +256,8 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         if (scriptComponent.GetScriptCount() > 0) {
             registry.emplace<Script>(entity, scriptComponent);
         }
-    } else if (entityJson.contains("Script")) {
+    }
+    else if (entityJson.contains("Script")) {
         Script scriptComponent{};
         const nlohmann::json& scriptJson = entityJson["Script"];
         std::string scriptName = scriptJson.value("scriptName", "");
@@ -296,7 +296,8 @@ bool SceneSerializer::DeserializeFromString(const std::string& data) {
     nlohmann::json sceneJson{};
     try {
         sceneJson = nlohmann::json::parse(data);
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(SCENE, "Failed to parse JSON from string: %s", e.what());
         return false;
     }

@@ -1,6 +1,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorThemeManager.hpp"
+
 #include <imgui.h>
 
 namespace PiiXeL {
@@ -48,6 +49,6 @@ void EditorThemeManager::SetupDarkTheme() {
     style.ItemSpacing = ImVec2{8.0f, 4.0f};
 }
 
-}
+} // namespace PiiXeL
 
 #endif

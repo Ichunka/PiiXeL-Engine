@@ -1,4 +1,5 @@
 #include "Scripting/AssetRef.hpp"
+
 #include "Resources/AssetManager.hpp"
 
 namespace PiiXeL {

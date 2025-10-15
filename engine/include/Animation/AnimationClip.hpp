@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Resources/Asset.hpp"
-#include <vector>
+
 #include <string>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -11,11 +12,7 @@ struct AnimationFrame {
     float duration{0.1f};
 };
 
-enum class AnimationWrapMode {
-    Once,
-    Loop,
-    PingPong
-};
+enum class AnimationWrapMode { Once, Loop, PingPong };
 
 class AnimationClip : public Asset {
 public:

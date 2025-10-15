@@ -1,30 +1,23 @@
 #include "Build/GamePackage.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <fstream>
 #include <raylib.h>
 
 namespace PiiXeL {
 
-GamePackage::GamePackage()
-    : m_Header{}
-    , m_Scenes{}
-    , m_Assets{}
-    , m_Config{}
-    , m_AssetIndexMap{}
-{
-}
+GamePackage::GamePackage() : m_Header{}, m_Scenes{}, m_Assets{}, m_Config{}, m_AssetIndexMap{} {}
 
 GamePackage::~GamePackage() = default;
 
 bool GamePackage::SaveToFile(const std::string& filepath) {
     nlohmann::json packageJson{};
 
-    packageJson["header"] = {
-        {"version", m_Header.version},
-        {"sceneCount", m_Header.sceneCount},
-        {"assetCount", m_Header.assetCount},
-        {"engineVersion", m_Header.engineVersion}
-    };
+    packageJson["header"] = {{"version", m_Header.version},
+                             {"sceneCount", m_Header.sceneCount},
+                             {"assetCount", m_Header.assetCount},
+                             {"engineVersion", m_Header.engineVersion}};
 
     packageJson["scenes"] = nlohmann::json::array();
     for (const std::pair<std::string, nlohmann::json>& scenePair : m_Scenes) {
@@ -94,7 +87,8 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
     nlohmann::json packageJson{};
     try {
         file >> packageJson;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(BUILD, "Failed to parse package: %s", e.what());
         return false;
     }
@@ -137,7 +131,8 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
                     int val2 = decodeTable[static_cast<unsigned char>(base64Data[i + 2])];
                     int val3 = decodeTable[static_cast<unsigned char>(base64Data[i + 3])];
 
-                    if (val0 == -1 || val1 == -1) break;
+                    if (val0 == -1 || val1 == -1)
+                        break;
 
                     asset.data.push_back(static_cast<unsigned char>((val0 << 2) | (val1 >> 4)));
                     if (val2 != -1) {
@@ -158,8 +153,8 @@ bool GamePackage::LoadFromFile(const std::string& filepath) {
         m_Config = packageJson["config"];
     }
 
-    PX_LOG_INFO(BUILD, "Game package loaded: %s (%llu scenes, %llu assets)",
-             filepath.c_str(), static_cast<unsigned long long>(m_Scenes.size()), static_cast<unsigned long long>(m_Assets.size()));
+    PX_LOG_INFO(BUILD, "Game package loaded: %s (%llu scenes, %llu assets)", filepath.c_str(),
+                static_cast<unsigned long long>(m_Scenes.size()), static_cast<unsigned long long>(m_Assets.size()));
     return true;
 }
 

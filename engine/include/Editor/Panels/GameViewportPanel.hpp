@@ -3,24 +3,21 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
-#include <raylib.h>
 #include <entt/entt.hpp>
+
 #include <functional>
+#include <raylib.h>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
 class Engine;
-
-enum class EditorState;
+class EditorStateManager;
 
 class GameViewportPanel : public EditorPanel {
 public:
-    GameViewportPanel(
-        Engine* engine,
-        RenderTexture2D* gameViewportTexture,
-        EditorState* editorState
-    );
+    GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture, EditorStateManager* stateManager);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Game"; }
@@ -32,14 +29,14 @@ public:
 private:
     Engine* m_Engine;
     RenderTexture2D* m_GameViewportTexture;
-    EditorState* m_EditorState;
+    EditorStateManager* m_StateManager;
 
     bool m_IsOpen{true};
 
     std::function<entt::entity()> m_GetPrimaryCameraCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

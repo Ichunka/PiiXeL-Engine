@@ -1,16 +1,14 @@
 #include "Editor/BuildPanel.hpp"
-#include <imgui.h>
+
 #include <cstring>
 #include <ctime>
+#include <imgui.h>
 #include <iomanip>
 #include <sstream>
 
 namespace PiiXeL {
 
-BuildPanel::BuildPanel()
-    : m_BuildSystem(std::make_unique<BuildSystem>())
-    , m_ShowExportDialog(false)
-{
+BuildPanel::BuildPanel() : m_BuildSystem(std::make_unique<BuildSystem>()), m_ShowExportDialog(false) {
     const std::string defaultExportPath = m_BuildSystem->GetProjectRoot() + "/export";
     std::memset(m_ExportPathBuffer, 0, sizeof(m_ExportPathBuffer));
 #ifdef _MSC_VER
@@ -22,8 +20,7 @@ BuildPanel::BuildPanel()
 
 BuildPanel::~BuildPanel() = default;
 
-void BuildPanel::Update() {
-}
+void BuildPanel::Update() {}
 
 std::string GetCurrentTimeString() {
     const std::time_t now = std::time(nullptr);
@@ -82,9 +79,8 @@ void BuildPanel::Render() {
             m_ExportPath = std::string(m_ExportPathBuffer);
             AddLogMessage("Starting export to: " + m_ExportPath);
 
-            m_BuildSystem->ExportGame(m_ExportPath, [this](const BuildProgress& progress) {
-                OnBuildProgress(progress);
-            });
+            m_BuildSystem->ExportGame(m_ExportPath,
+                                      [this](const BuildProgress& progress) { OnBuildProgress(progress); });
 
             ImGui::CloseCurrentPopup();
         }
@@ -111,9 +107,7 @@ void BuildPanel::RenderBuildButtons() {
 
     if (ImGui::Button("Build Game Package", ImVec2(200, 0))) {
         AddLogMessage("Building game package...");
-        m_BuildSystem->BuildGamePackage([this](const BuildProgress& progress) {
-            OnBuildProgress(progress);
-        });
+        m_BuildSystem->BuildGamePackage([this](const BuildProgress& progress) { OnBuildProgress(progress); });
     }
 
     ImGui::SameLine();
@@ -124,9 +118,7 @@ void BuildPanel::RenderBuildButtons() {
 
     if (ImGui::Button("Build Game Executable", ImVec2(200, 0))) {
         AddLogMessage("Building game executable...");
-        m_BuildSystem->BuildGameExecutable([this](const BuildProgress& progress) {
-            OnBuildProgress(progress);
-        });
+        m_BuildSystem->BuildGameExecutable([this](const BuildProgress& progress) { OnBuildProgress(progress); });
     }
 
     ImGui::SameLine();
@@ -158,15 +150,24 @@ void BuildPanel::RenderBuildButtons() {
 
 const char* GetBuildStepName(BuildStep step) {
     switch (step) {
-        case BuildStep::Idle: return "Idle";
-        case BuildStep::ConfiguringCMake: return "Configuring CMake";
-        case BuildStep::CompilingGame: return "Compiling Game";
-        case BuildStep::BuildingPackage: return "Building Package";
-        case BuildStep::CopyingAssets: return "Copying Assets";
-        case BuildStep::CopyingDependencies: return "Copying Dependencies";
-        case BuildStep::Completed: return "Completed";
-        case BuildStep::Failed: return "Failed";
-        default: return "Unknown";
+        case BuildStep::Idle:
+            return "Idle";
+        case BuildStep::ConfiguringCMake:
+            return "Configuring CMake";
+        case BuildStep::CompilingGame:
+            return "Compiling Game";
+        case BuildStep::BuildingPackage:
+            return "Building Package";
+        case BuildStep::CopyingAssets:
+            return "Copying Assets";
+        case BuildStep::CopyingDependencies:
+            return "Copying Dependencies";
+        case BuildStep::Completed:
+            return "Completed";
+        case BuildStep::Failed:
+            return "Failed";
+        default:
+            return "Unknown";
     }
 }
 
@@ -180,7 +181,8 @@ void BuildPanel::RenderProgressBar() {
 
     if (progress.currentStep == BuildStep::Completed) {
         progressColor = ImVec4{0.2f, 0.8f, 0.2f, 1.0f};
-    } else if (progress.currentStep == BuildStep::Failed) {
+    }
+    else if (progress.currentStep == BuildStep::Failed) {
         progressColor = ImVec4{0.8f, 0.2f, 0.2f, 1.0f};
     }
 
@@ -207,14 +209,17 @@ void BuildPanel::RenderProgressBar() {
         static int spinnerIndex = 0;
         spinnerIndex = (spinnerIndex + 1) % 4;
         ImGui::Text("Working %s", spinner[spinnerIndex]);
-    } else if (progress.currentStep == BuildStep::Completed) {
+    }
+    else if (progress.currentStep == BuildStep::Completed) {
         ImGui::TextColored(ImVec4{0.2f, 1.0f, 0.2f, 1.0f}, "Build completed successfully!");
-    } else if (progress.currentStep == BuildStep::Failed) {
+    }
+    else if (progress.currentStep == BuildStep::Failed) {
         ImGui::TextColored(ImVec4{1.0f, 0.2f, 0.2f, 1.0f}, "Build failed!");
         if (!progress.statusMessage.empty()) {
             ImGui::TextWrapped("%s", progress.statusMessage.c_str());
         }
-    } else if (progress.currentStep == BuildStep::Idle) {
+    }
+    else if (progress.currentStep == BuildStep::Idle) {
         ImGui::TextDisabled("No build running. Use the buttons above to start a build.");
     }
 }
@@ -249,4 +254,4 @@ void BuildPanel::RenderBuildLog() {
     }
 }
 
-}
+} // namespace PiiXeL

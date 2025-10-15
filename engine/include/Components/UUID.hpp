@@ -2,10 +2,10 @@
 #define PIIXELENGINE_UUID_HPP
 
 #include <cstdint>
-#include <string>
+#include <iomanip>
 #include <random>
 #include <sstream>
-#include <iomanip>
+#include <string>
 
 namespace PiiXeL {
 
@@ -26,15 +26,13 @@ private:
     uint64_t m_UUID;
 };
 
-}
+} // namespace PiiXeL
 
 namespace std {
-    template<>
-    struct hash<PiiXeL::UUID> {
-        size_t operator()(const PiiXeL::UUID& uuid) const {
-            return hash<uint64_t>()(uuid.Get());
-        }
-    };
-}
+template <>
+struct hash<PiiXeL::UUID> {
+    size_t operator()(const PiiXeL::UUID& uuid) const { return hash<uint64_t>()(uuid.Get()); }
+};
+} // namespace std
 
 #endif

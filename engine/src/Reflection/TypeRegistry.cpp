@@ -20,4 +20,4 @@ const TypeInfo* TypeRegistry::GetTypeInfo(std::type_index typeIndex) const {
     return nullptr;
 }
 
-}
+} // namespace PiiXeL::Reflection

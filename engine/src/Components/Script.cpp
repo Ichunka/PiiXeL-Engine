@@ -1,4 +1,5 @@
 #include "Components/Script.hpp"
+
 #include "Scripting/ScriptComponent.hpp"
 
 namespace PiiXeL {
@@ -25,11 +26,8 @@ void Script::RemoveScript(size_t index) {
 void Script::RemoveScript(const std::string& scriptName) {
     scripts.erase(
         std::remove_if(scripts.begin(), scripts.end(),
-            [&scriptName](const ScriptInstance& script) {
-                return script.scriptName == scriptName;
-            }),
-        scripts.end()
-    );
+                       [&scriptName](const ScriptInstance& script) { return script.scriptName == scriptName; }),
+        scripts.end());
 }
 
 ScriptInstance* Script::GetScript(size_t index) {

@@ -1,27 +1,16 @@
 #ifndef PIIXELENGINE_TYPEINFO_HPP
 #define PIIXELENGINE_TYPEINFO_HPP
 
-#include <string>
-#include <vector>
-#include <typeindex>
-#include <functional>
 #include <any>
 #include <cstdint>
+#include <functional>
+#include <string>
+#include <typeindex>
+#include <vector>
 
 namespace PiiXeL::Reflection {
 
-enum class FieldType {
-    Float,
-    Int,
-    Bool,
-    String,
-    Vector2,
-    Color,
-    Entity,
-    EntityRef,
-    AssetRef,
-    Custom
-};
+enum class FieldType { Float, Int, Bool, String, Vector2, Color, Entity, EntityRef, AssetRef, Custom };
 
 enum FieldFlags : uint32_t {
     None = 0,
@@ -77,6 +66,6 @@ private:
     std::vector<FieldInfo> m_Fields;
 };
 
-}
+} // namespace PiiXeL::Reflection
 
 #endif

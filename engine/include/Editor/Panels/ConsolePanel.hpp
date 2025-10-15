@@ -3,8 +3,9 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
 #include <vector>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
@@ -31,7 +32,8 @@ struct ConsoleFilters {
 
 class ConsolePanel : public EditorPanel {
 public:
-    ConsolePanel(ConsoleFilters* filters, bool* autoScroll, int* selectedTab, std::vector<int>* selectedLines, int* lastClickedLine);
+    ConsolePanel(ConsoleFilters* filters, bool* autoScroll, int* selectedTab, std::vector<int>* selectedLines,
+                 int* lastClickedLine);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Console"; }
@@ -48,7 +50,7 @@ private:
     bool m_IsOpen{true};
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

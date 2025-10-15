@@ -2,9 +2,10 @@
 #define PIIXELENGINE_ASSETPACKAGE_HPP
 
 #include "Resources/Asset.hpp"
-#include <vector>
-#include <memory>
+
 #include <fstream>
+#include <memory>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -28,14 +29,12 @@ public:
     AssetPackage() = default;
     ~AssetPackage() = default;
 
-    bool SaveToFile(const std::string& path, const AssetMetadata& metadata,
-                    const void* data, size_t dataSize);
+    bool SaveToFile(const std::string& path, const AssetMetadata& metadata, const void* data, size_t dataSize);
 
-    bool LoadFromFile(const std::string& path, AssetMetadata& outMetadata,
-                      std::vector<uint8_t>& outData);
+    bool LoadFromFile(const std::string& path, AssetMetadata& outMetadata, std::vector<uint8_t>& outData);
 
-    bool LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata,
-                        std::vector<uint8_t>& outData, const std::string& pxaPath = "");
+    bool LoadFromMemory(const uint8_t* data, size_t dataSize, AssetMetadata& outMetadata, std::vector<uint8_t>& outData,
+                        const std::string& pxaPath = "");
 
     bool LoadMetadataOnly(const std::string& path, AssetMetadata& outMetadata);
 

@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Animation/SpriteSheet.hpp"
 #include "Animation/AnimationClip.hpp"
 #include "Animation/AnimatorController.hpp"
+#include "Animation/SpriteSheet.hpp"
+
 #include <nlohmann/json.hpp>
+
 #include <string>
 
 namespace PiiXeL {

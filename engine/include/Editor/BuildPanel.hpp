@@ -2,9 +2,10 @@
 #define PIIXELENGINE_BUILDPANEL_HPP
 
 #include "Editor/BuildSystem.hpp"
+
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace PiiXeL {
 
@@ -30,6 +31,6 @@ private:
     char m_ExportPathBuffer[512];
 };
 
-}
+} // namespace PiiXeL
 
 #endif

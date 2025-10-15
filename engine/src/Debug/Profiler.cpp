@@ -1,10 +1,11 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Debug/Profiler.hpp"
+
+#include <algorithm>
+#include <iomanip>
 #include <raylib.h>
 #include <sstream>
-#include <iomanip>
-#include <algorithm>
 
 namespace PiiXeL {
 
@@ -14,7 +15,8 @@ Profiler& Profiler::Instance() {
 }
 
 void Profiler::BeginFrame() {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     m_FrameStart = std::chrono::high_resolution_clock::now();
     m_CurrentDepth = 0;
@@ -28,7 +30,8 @@ void Profiler::BeginFrame() {
 }
 
 void Profiler::EndFrame() {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     auto frameEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> frameDuration = frameEnd - m_FrameStart;
@@ -42,9 +45,8 @@ void Profiler::EndFrame() {
         }
     }
 
-    std::sort(m_Results.begin(), m_Results.end(), [](const ProfileResult& a, const ProfileResult& b) {
-        return a.startTime < b.startTime;
-    });
+    std::sort(m_Results.begin(), m_Results.end(),
+              [](const ProfileResult& a, const ProfileResult& b) { return a.startTime < b.startTime; });
 
     if (m_Recording) {
         FrameSnapshot snapshot;
@@ -61,7 +63,8 @@ void Profiler::EndFrame() {
 }
 
 void Profiler::BeginScope(const std::string& name) {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     auto now = std::chrono::high_resolution_clock::now();
     auto& scope = m_Scopes[name];
@@ -77,7 +80,8 @@ void Profiler::BeginScope(const std::string& name) {
 }
 
 void Profiler::EndScope(const std::string& name) {
-    if (!m_Enabled) return;
+    if (!m_Enabled)
+        return;
 
     m_CurrentDepth--;
 
@@ -103,8 +107,7 @@ std::string Profiler::GetCurrentFrameAsText() const {
     for (const ProfileResult& result : m_Results) {
         float percentage = static_cast<float>(result.duration / m_FrameTime) * 100.0f;
         ss << std::string(result.depth * 2, ' ');
-        ss << result.name << ": " << result.duration << " ms ("
-           << std::setprecision(1) << percentage << "%) ["
+        ss << result.name << ": " << result.duration << " ms (" << std::setprecision(1) << percentage << "%) ["
            << result.callCount << " calls]\n";
         ss << std::setprecision(3);
     }

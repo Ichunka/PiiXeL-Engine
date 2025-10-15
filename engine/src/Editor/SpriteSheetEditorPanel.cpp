@@ -1,15 +1,17 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/SpriteSheetEditorPanel.hpp"
-#include "Core/Logger.hpp"
+
 #include "Animation/AnimationSerializer.hpp"
+#include "Core/Logger.hpp"
 #include "Resources/AssetRegistry.hpp"
 #include "Resources/TextureAsset.hpp"
-#include <imgui.h>
-#include <rlImGui.h>
-#include <raylib.h>
-#include <cstring>
+
 #include <cinttypes>
+#include <cstring>
+#include <imgui.h>
+#include <raylib.h>
+#include <rlImGui.h>
 
 namespace PiiXeL {
 
@@ -39,7 +41,8 @@ void SpriteSheetEditorPanel::Render() {
             ImGui::BeginChild("PreviewPanel", ImVec2{0, 0}, true);
             RenderPreview();
             ImGui::EndChild();
-        } else {
+        }
+        else {
             ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "Failed to load sprite sheet");
         }
     }
@@ -61,7 +64,8 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
     if (existingUUID.Get() != 0) {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAsset(existingUUID);
         m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(asset);
-    } else {
+    }
+    else {
         std::shared_ptr<Asset> asset = AssetRegistry::Instance().LoadAssetFromPath(spriteSheetPath);
         m_SpriteSheet = std::dynamic_pointer_cast<SpriteSheet>(asset);
     }
@@ -73,8 +77,8 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         m_GridSpacingX = m_SpriteSheet->GetGridSpacingX();
         m_GridSpacingY = m_SpriteSheet->GetGridSpacingY();
 
-        PX_LOG_INFO(EDITOR, "Loaded sprite sheet - Grid: %dx%d, Spacing: %dx%d",
-            m_GridColumns, m_GridRows, m_GridSpacingX, m_GridSpacingY);
+        PX_LOG_INFO(EDITOR, "Loaded sprite sheet - Grid: %dx%d, Spacing: %dx%d", m_GridColumns, m_GridRows,
+                    m_GridSpacingX, m_GridSpacingY);
 
         if (m_SelectedTextureUUID.Get() != 0) {
             AssetRegistry::Instance().LoadAsset(m_SelectedTextureUUID);
@@ -83,7 +87,8 @@ void SpriteSheetEditorPanel::Open(const std::string& spriteSheetPath) {
         if (m_SpriteSheet->GetFrameGroupCount() > 0) {
             size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
             if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
-                PX_LOG_WARNING(EDITOR, "SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames from grid.",
+                PX_LOG_WARNING(
+                    EDITOR, "SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames from grid.",
                     m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
                 UpdateFramesFromGrid();
             }
@@ -122,10 +127,12 @@ void SpriteSheetEditorPanel::RenderTextureSelector() {
         std::shared_ptr<Asset> texAsset = AssetRegistry::Instance().GetAsset(m_SelectedTextureUUID);
         if (texAsset) {
             ImGui::Text("  %s", texAsset->GetName().c_str());
-        } else {
+        }
+        else {
             ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  [Not Found]");
         }
-    } else {
+    }
+    else {
         ImGui::TextColored(ImVec4{0.7f, 0.7f, 0.7f, 1.0f}, "  None");
     }
 
@@ -138,7 +145,8 @@ void SpriteSheetEditorPanel::RenderTextureSelector() {
                 m_SpriteSheet->SetTexture(m_SelectedTextureUUID);
                 UpdateFramesFromGrid();
             }
-        } else if (const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
+        }
+        else if (const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
             struct AssetInfo {
                 std::string path;
                 std::string filename;
@@ -200,7 +208,9 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
     ImGui::SliderInt("Spacing X", &m_GridSpacingX, 0, 100);
     ImGui::SliderInt("Spacing Y", &m_GridSpacingY, 0, 100);
 
-    if (m_GridColumns != prevColumns || m_GridRows != prevRows || m_GridSpacingX != prevSpacingX || m_GridSpacingY != prevSpacingY) {
+    if (m_GridColumns != prevColumns || m_GridRows != prevRows || m_GridSpacingX != prevSpacingX ||
+        m_GridSpacingY != prevSpacingY)
+    {
         m_SpriteSheet->SetGridSize(m_GridColumns, m_GridRows);
         m_SpriteSheet->SetGridSpacing(m_GridSpacingX, m_GridSpacingY);
         if (m_SelectionMode == SelectionMode::Grid) {
@@ -231,7 +241,9 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
             for (int i = 0; i < m_GridColumns * m_GridRows; ++i) {
                 m_SelectedCells.insert(i);
             }
-            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+            if (m_SelectedGroupIndex >= 0 &&
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -245,7 +257,9 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
         ImGui::SameLine();
         if (ImGui::Button("Clear")) {
             m_SelectedCells.clear();
-            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+            if (m_SelectedGroupIndex >= 0 &&
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -262,7 +276,9 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
                 }
             }
             m_SelectedCells = newSelection;
-            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+            if (m_SelectedGroupIndex >= 0 &&
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -279,12 +295,14 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
             ImGui::EndDisabled();
             ImGui::TextColored(ImVec4{1.0f, 0.5f, 0.5f, 1.0f}, "  Cannot use with groups!");
             ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "  Delete all groups first");
-        } else {
+        }
+        else {
             if (ImGui::Button("Apply Selection")) {
                 UpdateFramesFromSelection();
             }
         }
-    } else {
+    }
+    else {
         if (ImGui::Button("Auto-Generate All Frames")) {
             UpdateFramesFromGrid();
         }
@@ -416,10 +434,8 @@ void SpriteSheetEditorPanel::RenderPreview() {
     ImVec2 imagePos{canvasPos.x + m_PreviewOffset.x, canvasPos.y + m_PreviewOffset.y};
 
     ImGui::SetCursorScreenPos(imagePos);
-    rlImGuiImageRect(&texture,
-        static_cast<int>(displayWidth),
-        static_cast<int>(displayHeight),
-        Rectangle{0, 0, static_cast<float>(texture.width), static_cast<float>(texture.height)});
+    rlImGuiImageRect(&texture, static_cast<int>(displayWidth), static_cast<int>(displayHeight),
+                     Rectangle{0, 0, static_cast<float>(texture.width), static_cast<float>(texture.height)});
 
     ImGui::SetCursorScreenPos(canvasPos);
 
@@ -438,14 +454,8 @@ void SpriteSheetEditorPanel::RenderPreview() {
                 float x = imagePos.x + col * cellWidth + halfSpacingX;
                 float y = imagePos.y + row * cellHeight + halfSpacingY;
 
-                drawList->AddRect(
-                    ImVec2{x, y},
-                    ImVec2{x + frameWidth, y + frameHeight},
-                    IM_COL32(255, 255, 0, 200),
-                    0.0f,
-                    0,
-                    1.0f
-                );
+                drawList->AddRect(ImVec2{x, y}, ImVec2{x + frameWidth, y + frameHeight}, IM_COL32(255, 255, 0, 200),
+                                  0.0f, 0, 1.0f);
             }
         }
     }
@@ -467,20 +477,10 @@ void SpriteSheetEditorPanel::RenderPreview() {
             float x = imagePos.x + col * cellWidth + halfSpacingX;
             float y = imagePos.y + row * cellHeight + halfSpacingY;
 
-            drawList->AddRectFilled(
-                ImVec2{x, y},
-                ImVec2{x + frameWidth, y + frameHeight},
-                IM_COL32(0, 255, 255, 80)
-            );
+            drawList->AddRectFilled(ImVec2{x, y}, ImVec2{x + frameWidth, y + frameHeight}, IM_COL32(0, 255, 255, 80));
 
-            drawList->AddRect(
-                ImVec2{x, y},
-                ImVec2{x + frameWidth, y + frameHeight},
-                IM_COL32(0, 255, 255, 255),
-                0.0f,
-                0,
-                2.0f
-            );
+            drawList->AddRect(ImVec2{x, y}, ImVec2{x + frameWidth, y + frameHeight}, IM_COL32(0, 255, 255, 255), 0.0f,
+                              0, 2.0f);
         }
     }
 
@@ -492,22 +492,18 @@ void SpriteSheetEditorPanel::RenderPreview() {
             float frameW = frame->sourceRect.width * m_PreviewZoom;
             float frameH = frame->sourceRect.height * m_PreviewZoom;
 
-            drawList->AddRect(
-                ImVec2{frameX, frameY},
-                ImVec2{frameX + frameW, frameY + frameH},
-                IM_COL32(0, 255, 0, 255),
-                0.0f,
-                0,
-                2.0f
-            );
+            drawList->AddRect(ImVec2{frameX, frameY}, ImVec2{frameX + frameW, frameY + frameH},
+                              IM_COL32(0, 255, 0, 255), 0.0f, 0, 2.0f);
 
             if (m_ShowPivots) {
                 float pivotX = frameX + frame->pivot.x * frameW;
                 float pivotY = frameY + frame->pivot.y * frameH;
 
                 drawList->AddCircleFilled(ImVec2{pivotX, pivotY}, 4.0f, IM_COL32(255, 0, 0, 255));
-                drawList->AddLine(ImVec2{pivotX - 8, pivotY}, ImVec2{pivotX + 8, pivotY}, IM_COL32(255, 0, 0, 255), 2.0f);
-                drawList->AddLine(ImVec2{pivotX, pivotY - 8}, ImVec2{pivotX, pivotY + 8}, IM_COL32(255, 0, 0, 255), 2.0f);
+                drawList->AddLine(ImVec2{pivotX - 8, pivotY}, ImVec2{pivotX + 8, pivotY}, IM_COL32(255, 0, 0, 255),
+                                  2.0f);
+                drawList->AddLine(ImVec2{pivotX, pivotY - 8}, ImVec2{pivotX, pivotY + 8}, IM_COL32(255, 0, 0, 255),
+                                  2.0f);
             }
         }
     }
@@ -530,16 +526,20 @@ void SpriteSheetEditorPanel::RenderPreview() {
         float halfSpacingX = spacingX * 0.5f;
         float halfSpacingY = spacingY * 0.5f;
         ImVec2 adjustedImagePos{imagePos.x + halfSpacingX, imagePos.y + halfSpacingY};
-        int cellIndex = GetCellIndexFromMousePos(mousePos, adjustedImagePos, frameWidth, frameHeight, cellWidth - frameWidth, cellHeight - frameHeight);
+        int cellIndex = GetCellIndexFromMousePos(mousePos, adjustedImagePos, frameWidth, frameHeight,
+                                                 cellWidth - frameWidth, cellHeight - frameHeight);
 
         if (cellIndex >= 0) {
             if (m_SelectedCells.find(cellIndex) != m_SelectedCells.end()) {
                 m_SelectedCells.erase(cellIndex);
-            } else {
+            }
+            else {
                 m_SelectedCells.insert(cellIndex);
             }
 
-            if (m_SelectedGroupIndex >= 0 && m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+            if (m_SelectedGroupIndex >= 0 &&
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -583,12 +583,8 @@ void SpriteSheetEditorPanel::UpdateFramesFromGrid() {
             char frameName[64];
             snprintf(frameName, sizeof(frameName), "frame_%d_%d", row, col);
             frame.name = frameName;
-            frame.sourceRect = Rectangle{
-                col * cellWidth + halfSpacingX,
-                row * cellHeight + halfSpacingY,
-                frameWidth,
-                frameHeight
-            };
+            frame.sourceRect =
+                Rectangle{col * cellWidth + halfSpacingX, row * cellHeight + halfSpacingY, frameWidth, frameHeight};
             frame.pivot = Vector2{0.5f, 0.5f};
             frames.push_back(frame);
         }
@@ -630,12 +626,8 @@ void SpriteSheetEditorPanel::UpdateFramesFromSelection() {
         char frameName[64];
         snprintf(frameName, sizeof(frameName), "frame_%d_%d", row, col);
         frame.name = frameName;
-        frame.sourceRect = Rectangle{
-            col * cellWidth + halfSpacingX,
-            row * cellHeight + halfSpacingY,
-            frameWidth,
-            frameHeight
-        };
+        frame.sourceRect =
+            Rectangle{col * cellWidth + halfSpacingX, row * cellHeight + halfSpacingY, frameWidth, frameHeight};
         frame.pivot = Vector2{0.5f, 0.5f};
         frames.push_back(frame);
     }
@@ -676,7 +668,9 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
 
         if (isSelected && m_IsEditingGroupName) {
             ImGui::SetKeyboardFocusHere();
-            if (ImGui::InputText("##edit", m_EditGroupName, sizeof(m_EditGroupName), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::InputText("##edit", m_EditGroupName, sizeof(m_EditGroupName),
+                                 ImGuiInputTextFlags_EnterReturnsTrue))
+            {
                 FrameGroup* editGroup = m_SpriteSheet->GetFrameGroup(i);
                 if (editGroup) {
                     editGroup->name = m_EditGroupName;
@@ -686,7 +680,8 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
             if (!ImGui::IsItemActive() && !ImGui::IsItemFocused()) {
                 m_IsEditingGroupName = false;
             }
-        } else {
+        }
+        else {
             char label[128];
             snprintf(label, sizeof(label), "%s (%zu frames)", group->name.c_str(), group->frameIndices.size());
 
@@ -697,7 +692,7 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
                 if (currentGroup) {
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
                     strncpy(m_EditGroupName, currentGroup->name.c_str(), sizeof(m_EditGroupName) - 1);
 #ifdef _MSC_VER
@@ -720,7 +715,7 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
                 if (ImGui::MenuItem("Rename")) {
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
                     strncpy(m_EditGroupName, group->name.c_str(), sizeof(m_EditGroupName) - 1);
 #ifdef _MSC_VER
@@ -740,7 +735,7 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
                 m_IsEditingGroupName = true;
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
                 strncpy(m_EditGroupName, group->name.c_str(), sizeof(m_EditGroupName) - 1);
 #ifdef _MSC_VER
@@ -769,7 +764,8 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
         if (m_SelectedGroupIndex == groupToDelete) {
             m_SelectedGroupIndex = -1;
             m_IsEditingGroupName = false;
-        } else if (m_SelectedGroupIndex > groupToDelete) {
+        }
+        else if (m_SelectedGroupIndex > groupToDelete) {
             m_SelectedGroupIndex--;
         }
     }
@@ -807,7 +803,8 @@ void SpriteSheetEditorPanel::CreateGroupFromSelection() {
     snprintf(m_NewGroupName, sizeof(m_NewGroupName), "NewGroup%zu", m_SpriteSheet->GetFrameGroupCount() + 1);
 }
 
-int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth, float cellHeight, float spacingX, float spacingY) {
+int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, const ImVec2& imagePos, float cellWidth,
+                                                     float cellHeight, float spacingX, float spacingY) {
     float relX = mousePos.x - imagePos.x;
     float relY = mousePos.y - imagePos.y;
 
@@ -821,8 +818,7 @@ int SpriteSheetEditorPanel::GetCellIndexFromMousePos(const ImVec2& mousePos, con
     float cellStartX = col * (cellWidth + spacingX);
     float cellStartY = row * (cellHeight + spacingY);
 
-    if (relX >= cellStartX && relX < cellStartX + cellWidth &&
-        relY >= cellStartY && relY < cellStartY + cellHeight) {
+    if (relX >= cellStartX && relX < cellStartX + cellWidth && relY >= cellStartY && relY < cellStartY + cellHeight) {
         return row * m_GridColumns + col;
     }
 
@@ -844,9 +840,8 @@ void SpriteSheetEditorPanel::Save() {
     m_SpriteSheet->SetGridSpacing(m_GridSpacingX, m_GridSpacingY);
 
     PX_LOG_INFO(EDITOR, "Attempting to save sprite sheet to: %s", m_CurrentPath.c_str());
-    PX_LOG_INFO(EDITOR, "Before save - Frames: %zu, Groups: %zu, Spacing: %dx%d",
-        m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount(),
-        m_GridSpacingX, m_GridSpacingY);
+    PX_LOG_INFO(EDITOR, "Before save - Frames: %zu, Groups: %zu, Spacing: %dx%d", m_SpriteSheet->GetFrameCount(),
+                m_SpriteSheet->GetFrameGroupCount(), m_GridSpacingX, m_GridSpacingY);
 
     if (AnimationSerializer::SerializeSpriteSheet(*m_SpriteSheet, m_CurrentPath)) {
         PX_LOG_INFO(EDITOR, "Saved sprite sheet successfully: %s", m_CurrentPath.c_str());
@@ -865,21 +860,25 @@ void SpriteSheetEditorPanel::Save() {
             m_GridSpacingY = m_SpriteSheet->GetGridSpacingY();
 
             PX_LOG_INFO(EDITOR, "After reload - Frames: %zu, Groups: %zu, Grid: %dx%d, Spacing: %dx%d",
-                m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount(),
-                m_GridColumns, m_GridRows, m_GridSpacingX, m_GridSpacingY);
+                        m_SpriteSheet->GetFrameCount(), m_SpriteSheet->GetFrameGroupCount(), m_GridColumns, m_GridRows,
+                        m_GridSpacingX, m_GridSpacingY);
 
             if (m_SpriteSheet->GetFrameGroupCount() > 0) {
                 size_t expectedFrameCount = static_cast<size_t>(m_GridColumns * m_GridRows);
                 if (m_SpriteSheet->GetFrameCount() != expectedFrameCount) {
-                    PX_LOG_WARNING(EDITOR, "After reload: SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames.",
+                    PX_LOG_WARNING(
+                        EDITOR,
+                        "After reload: SpriteSheet has %zu frames but grid is %dx%d = %zu cells. Regenerating frames.",
                         m_SpriteSheet->GetFrameCount(), m_GridColumns, m_GridRows, expectedFrameCount);
                     UpdateFramesFromGrid();
                 }
             }
-        } else {
+        }
+        else {
             PX_LOG_ERROR(EDITOR, "Failed to reload sprite sheet after save");
         }
-    } else {
+    }
+    else {
         PX_LOG_ERROR(EDITOR, "Failed to save sprite sheet: %s", m_CurrentPath.c_str());
     }
 }

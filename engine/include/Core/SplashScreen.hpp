@@ -1,8 +1,8 @@
 #ifndef PIIXELENGINE_CORE_SPLASHSCREEN_HPP
 #define PIIXELENGINE_CORE_SPLASHSCREEN_HPP
 
-#include <string>
 #include <raylib.h>
+#include <string>
 
 namespace PiiXeL {
 

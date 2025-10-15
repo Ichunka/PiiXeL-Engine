@@ -1,8 +1,10 @@
 #include "Systems/ScriptSystem.hpp"
-#include "Scene/Scene.hpp"
+
 #include "Components/Script.hpp"
+#include "Scene/Scene.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Scripting/ScriptRegistry.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -12,7 +14,8 @@ ScriptSystem::ScriptSystem() = default;
 ScriptSystem::~ScriptSystem() = default;
 
 void ScriptSystem::OnUpdate(Scene* scene, float deltaTime) {
-    if (!scene) return;
+    if (!scene)
+        return;
 
     entt::registry& registry = scene->GetRegistry();
 
@@ -40,7 +43,8 @@ void ScriptSystem::OnUpdate(Scene* scene, float deltaTime) {
 }
 
 void ScriptSystem::OnFixedUpdate(Scene* scene, float fixedDeltaTime) {
-    if (!scene) return;
+    if (!scene)
+        return;
 
     entt::registry& registry = scene->GetRegistry();
 

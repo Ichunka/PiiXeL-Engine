@@ -9,6 +9,6 @@ public:
     static void SetupDarkTheme();
 };
 
-}
+} // namespace PiiXeL
 
 #endif

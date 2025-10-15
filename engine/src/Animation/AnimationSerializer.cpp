@@ -1,5 +1,7 @@
 #include "Animation/AnimationSerializer.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <fstream>
 #include <raylib.h>
 
@@ -31,7 +33,8 @@ bool AnimationSerializer::DeserializeSpriteSheet(SpriteSheet& spriteSheet, const
     nlohmann::json json{};
     try {
         file >> json;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -67,7 +70,8 @@ bool AnimationSerializer::DeserializeAnimationClip(AnimationClip& clip, const st
     nlohmann::json json{};
     try {
         file >> json;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -77,7 +81,8 @@ bool AnimationSerializer::DeserializeAnimationClip(AnimationClip& clip, const st
     return true;
 }
 
-bool AnimationSerializer::SerializeAnimatorController(const AnimatorController& controller, const std::string& filepath) {
+bool AnimationSerializer::SerializeAnimatorController(const AnimatorController& controller,
+                                                      const std::string& filepath) {
     nlohmann::json json = AnimatorControllerToJson(controller);
 
     std::ofstream file{filepath};
@@ -103,7 +108,8 @@ bool AnimationSerializer::DeserializeAnimatorController(AnimatorController& cont
     nlohmann::json json{};
     try {
         file >> json;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse JSON: %s", e.what());
         return false;
     }
@@ -128,7 +134,8 @@ nlohmann::json AnimationSerializer::SpriteSheetToJson(const SpriteSheet& spriteS
     for (const SpriteFrame& frame : spriteSheet.GetFrames()) {
         nlohmann::json frameJson{};
         frameJson["name"] = frame.name;
-        frameJson["sourceRect"] = {frame.sourceRect.x, frame.sourceRect.y, frame.sourceRect.width, frame.sourceRect.height};
+        frameJson["sourceRect"] = {frame.sourceRect.x, frame.sourceRect.y, frame.sourceRect.width,
+                                   frame.sourceRect.height};
         frameJson["pivot"] = {frame.pivot.x, frame.pivot.y};
         json["frames"].push_back(frameJson);
     }
@@ -258,9 +265,11 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
 
         if (std::holds_alternative<float>(param.defaultValue)) {
             paramJson["defaultValue"] = std::get<float>(param.defaultValue);
-        } else if (std::holds_alternative<int>(param.defaultValue)) {
+        }
+        else if (std::holds_alternative<int>(param.defaultValue)) {
             paramJson["defaultValue"] = std::get<int>(param.defaultValue);
-        } else if (std::holds_alternative<bool>(param.defaultValue)) {
+        }
+        else if (std::holds_alternative<bool>(param.defaultValue)) {
             paramJson["defaultValue"] = std::get<bool>(param.defaultValue);
         }
 
@@ -294,9 +303,11 @@ nlohmann::json AnimationSerializer::AnimatorControllerToJson(const AnimatorContr
 
             if (std::holds_alternative<float>(condition.value)) {
                 condJson["value"] = std::get<float>(condition.value);
-            } else if (std::holds_alternative<int>(condition.value)) {
+            }
+            else if (std::holds_alternative<int>(condition.value)) {
                 condJson["value"] = std::get<int>(condition.value);
-            } else if (std::holds_alternative<bool>(condition.value)) {
+            }
+            else if (std::holds_alternative<bool>(condition.value)) {
                 condJson["value"] = std::get<bool>(condition.value);
             }
 
@@ -373,9 +384,11 @@ void AnimationSerializer::JsonToAnimatorController(const nlohmann::json& json, A
                     if (condJson.contains("value")) {
                         if (condJson["value"].is_number_float()) {
                             condition.value = condJson["value"].get<float>();
-                        } else if (condJson["value"].is_number_integer()) {
+                        }
+                        else if (condJson["value"].is_number_integer()) {
                             condition.value = condJson["value"].get<int>();
-                        } else if (condJson["value"].is_boolean()) {
+                        }
+                        else if (condJson["value"].is_boolean()) {
                             condition.value = condJson["value"].get<bool>();
                         }
                     }

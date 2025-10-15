@@ -1,8 +1,8 @@
 #ifndef PIIXELENGINE_APPLICATION_HPP
 #define PIIXELENGINE_APPLICATION_HPP
 
-#include <string>
 #include <memory>
+#include <string>
 
 namespace PiiXeL {
 

@@ -3,15 +3,17 @@
 
 #include "Reflection/TypeInfo.hpp"
 #include "Reflection/TypeRegistry.hpp"
-#include <nlohmann/json.hpp>
-#include <raylib.h>
+
 #include <entt/entt.hpp>
+#include <nlohmann/json.hpp>
+
+#include <raylib.h>
 
 namespace PiiXeL::Reflection {
 
 class JsonSerializer {
 public:
-    template<typename T>
+    template <typename T>
     static nlohmann::json Serialize(const T& object) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
         if (!typeInfo) {
@@ -31,7 +33,7 @@ public:
         return j;
     }
 
-    template<typename T>
+    template <typename T>
     static void Deserialize(const nlohmann::json& j, T& object) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
         if (!typeInfo) {
@@ -56,6 +58,6 @@ public:
     static void DeserializeField(const FieldInfo& field, const nlohmann::json& j, void* fieldPtr);
 };
 
-}
+} // namespace PiiXeL::Reflection
 
 #endif

@@ -1,16 +1,13 @@
 #ifndef PIIXELENGINE_RIGIDBODY2D_HPP
 #define PIIXELENGINE_RIGIDBODY2D_HPP
 
-#include <raylib.h>
 #include <box2d/box2d.h>
+
+#include <raylib.h>
 
 namespace PiiXeL {
 
-enum class BodyType {
-    Static,
-    Dynamic,
-    Kinematic
-};
+enum class BodyType { Static, Dynamic, Kinematic };
 
 struct RigidBody2D {
     BodyType type{BodyType::Dynamic};

@@ -5,10 +5,11 @@
 
 #include "Animation/AnimatorController.hpp"
 #include "Components/UUID.hpp"
-#include <string>
-#include <memory>
-#include <vector>
+
 #include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 struct ImVec2;
 
@@ -30,11 +31,13 @@ public:
     [[nodiscard]] bool IsOpen() const { return m_IsOpen; }
     [[nodiscard]] bool HasSelection() const { return m_SelectedStateIndex >= 0 || m_SelectedTransitionIndex >= 0; }
     [[nodiscard]] std::shared_ptr<AnimatorController> GetController() const { return m_Controller; }
-    void ClearSelection() { m_SelectedStateIndex = -1; m_SelectedTransitionIndex = -1; }
+    void ClearSelection() {
+        m_SelectedStateIndex = -1;
+        m_SelectedTransitionIndex = -1;
+    }
     void SetOnSelectionChangedCallback(std::function<void()> callback) { m_OnSelectionChanged = callback; }
 
 private:
-
     void RenderStateNode(size_t stateIndex, const ImVec2& canvasPos, const ImVec2& scrolling);
     void RenderTransitions(const ImVec2& canvasPos, const ImVec2& scrolling);
 

@@ -2,7 +2,9 @@
 #define PIIXELENGINE_ENTITYREGISTRY_HPP
 
 #include "Components/UUID.hpp"
+
 #include <entt/entt.hpp>
+
 #include <unordered_map>
 
 namespace PiiXeL {
@@ -26,6 +28,6 @@ private:
     std::unordered_map<uint32_t, UUID> m_EntityToUUID;
 };
 
-}
+} // namespace PiiXeL
 
 #endif

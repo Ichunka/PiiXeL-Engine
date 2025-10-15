@@ -1,45 +1,40 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/Panels/ContentBrowserPanel.hpp"
-#include "Core/Logger.hpp"
+
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimationSerializer.hpp"
+#include "Animation/AnimatorController.hpp"
+#include "Animation/SpriteSheet.hpp"
 #include "Components/UUID.hpp"
-#include "Resources/AssetRegistry.hpp"
-#include "Resources/AssetManager.hpp"
-#include "Resources/AssetImporter.hpp"
-#include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Core/Logger.hpp"
+#include "Debug/Profiler.hpp"
 #include "Editor/AnimationClipEditorPanel.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
+#include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Resources/AssetImporter.hpp"
+#include "Resources/AssetManager.hpp"
+#include "Resources/AssetRegistry.hpp"
 #include "Scene/SceneSerializer.hpp"
-#include "Animation/AnimationSerializer.hpp"
-#include "Animation/SpriteSheet.hpp"
-#include "Animation/AnimationClip.hpp"
-#include "Animation/AnimatorController.hpp"
-#include "Debug/Profiler.hpp"
-#include <imgui.h>
-#include <rlImGui.h>
+
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <cstring>
-#include <algorithm>
+#include <imgui.h>
+#include <rlImGui.h>
 
 namespace PiiXeL {
 
-ContentBrowserPanel::ContentBrowserPanel(
-    UUID* selectedAssetUUID,
-    std::string* selectedAssetPath,
-    entt::entity* selectedEntity,
-    SpriteSheetEditorPanel* spriteSheetEditor,
-    AnimationClipEditorPanel* animationClipEditor,
-    AnimatorControllerEditorPanel* animatorControllerEditor
-)
-    : m_SelectedAssetUUID{selectedAssetUUID}
-    , m_SelectedAssetPath{selectedAssetPath}
-    , m_SelectedEntity{selectedEntity}
-    , m_SpriteSheetEditor{spriteSheetEditor}
-    , m_AnimationClipEditor{animationClipEditor}
-    , m_AnimatorControllerEditor{animatorControllerEditor}
-{}
+ContentBrowserPanel::ContentBrowserPanel(UUID* selectedAssetUUID, std::string* selectedAssetPath,
+                                         entt::entity* selectedEntity, SpriteSheetEditorPanel* spriteSheetEditor,
+                                         AnimationClipEditorPanel* animationClipEditor,
+                                         AnimatorControllerEditorPanel* animatorControllerEditor) :
+    m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath}, m_SelectedEntity{selectedEntity},
+    m_SpriteSheetEditor{spriteSheetEditor}, m_AnimationClipEditor{animationClipEditor},
+    m_AnimatorControllerEditor{animatorControllerEditor} {}
 
 void ContentBrowserPanel::SetDeleteAssetCallback(std::function<void(const std::string&)> callback) {
     m_DeleteAssetCallback = callback;
@@ -78,14 +73,17 @@ void ContentBrowserPanel::OnImGuiRender() {
                 if (entry.is_directory()) {
                     std::string dirPath = entry.path().string();
                     for (char& c : dirPath) {
-                        if (c == '\\') c = '/';
+                        if (c == '\\')
+                            c = '/';
                     }
                     m_Directories.push_back(dirPath);
-                } else if (entry.is_regular_file()) {
+                }
+                else if (entry.is_regular_file()) {
                     AssetInfo info{};
                     info.path = entry.path().string();
                     for (char& c : info.path) {
-                        if (c == '\\') c = '/';
+                        if (c == '\\')
+                            c = '/';
                     }
                     info.filename = entry.path().filename().string();
                     info.extension = entry.path().extension().string();
@@ -95,7 +93,9 @@ void ContentBrowserPanel::OnImGuiRender() {
                         continue;
                     }
 
-                    if (info.extension == ".png" || info.extension == ".jpg" || info.extension == ".jpeg" || info.extension == ".bmp" || info.extension == ".tga") {
+                    if (info.extension == ".png" || info.extension == ".jpg" || info.extension == ".jpeg" ||
+                        info.extension == ".bmp" || info.extension == ".tga")
+                    {
                         info.type = "texture";
                         Image img = LoadImage(info.path.c_str());
                         if (img.data != nullptr) {
@@ -103,17 +103,23 @@ void ContentBrowserPanel::OnImGuiRender() {
                             info.height = img.height;
                             UnloadImage(img);
                         }
-                    } else if (info.extension == ".wav" || info.extension == ".ogg" || info.extension == ".mp3") {
+                    }
+                    else if (info.extension == ".wav" || info.extension == ".ogg" || info.extension == ".mp3") {
                         info.type = "audio";
-                    } else if (info.extension == ".scene") {
+                    }
+                    else if (info.extension == ".scene") {
                         info.type = "scene";
-                    } else if (info.extension == ".spritesheet") {
+                    }
+                    else if (info.extension == ".spritesheet") {
                         info.type = "spritesheet";
-                    } else if (info.extension == ".animclip") {
+                    }
+                    else if (info.extension == ".animclip") {
                         info.type = "animclip";
-                    } else if (info.extension == ".animcontroller") {
+                    }
+                    else if (info.extension == ".animcontroller") {
                         info.type = "animcontroller";
-                    } else {
+                    }
+                    else {
                         info.type = "unknown";
                     }
 
@@ -130,7 +136,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         size_t lastSlash = m_CurrentPath.find_last_of('/');
         if (lastSlash != std::string::npos) {
             m_CurrentPath = m_CurrentPath.substr(0, lastSlash);
-        } else {
+        }
+        else {
             m_CurrentPath = "content";
         }
         m_NeedsRefresh = true;
@@ -153,15 +160,14 @@ void ContentBrowserPanel::OnImGuiRender() {
     if (m_Directories.empty() && m_Files.empty()) {
         ImVec2 windowSize = ImGui::GetContentRegionAvail();
         ImVec2 textSize = ImGui::CalcTextSize("Empty folder");
-        ImGui::SetCursorPos(ImVec2{
-            (windowSize.x - textSize.x) * 0.5f,
-            (windowSize.y - textSize.y) * 0.5f
-        });
+        ImGui::SetCursorPos(ImVec2{(windowSize.x - textSize.x) * 0.5f, (windowSize.y - textSize.y) * 0.5f});
         ImGui::TextDisabled("Empty folder");
-    } else {
+    }
+    else {
         float panelWidth = ImGui::GetContentRegionAvail().x;
         int columnCount = static_cast<int>(panelWidth / (m_ThumbnailSize + 10));
-        if (columnCount < 1) columnCount = 1;
+        if (columnCount < 1)
+            columnCount = 1;
 
         ImGui::Columns(columnCount, nullptr, false);
 
@@ -181,7 +187,9 @@ void ContentBrowserPanel::OnImGuiRender() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.4f, 0.4f, 0.4f, 1.0f});
             ImGui::PushStyleColor(ImGuiCol_Text, folderColor);
 
-            if (ImGui::Button(dirName.c_str(), ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+            if (ImGui::Button(dirName.c_str(),
+                              ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+            {
                 if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
                     m_CurrentPath = dirPath;
                     m_NeedsRefresh = true;
@@ -218,7 +226,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                         std::filesystem::remove_all(dirPath);
                         m_NeedsRefresh = true;
                         PX_LOG_INFO(EDITOR, "Deleted: %s", dirPath.c_str());
-                    } catch (const std::filesystem::filesystem_error& e) {
+                    }
+                    catch (const std::filesystem::filesystem_error& e) {
                         PX_LOG_ERROR(EDITOR, "Failed to delete folder: %s", e.what());
                     }
                 }
@@ -258,7 +267,8 @@ void ContentBrowserPanel::OnImGuiRender() {
 
                     if (aspectRatio > 1.0f) {
                         displayHeight = displayWidth / aspectRatio;
-                    } else {
+                    }
+                    else {
                         displayWidth = displayHeight * aspectRatio;
                     }
 
@@ -272,16 +282,17 @@ void ContentBrowserPanel::OnImGuiRender() {
                         }
 
                         UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
-                        std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
-                            ? AssetRegistry::Instance().GetAsset(existingUUID)
-                            : nullptr;
+                        std::shared_ptr<Asset> existingAsset =
+                            existingUUID.Get() != 0 ? AssetRegistry::Instance().GetAsset(existingUUID) : nullptr;
 
                         if (!existingAsset) {
-                            std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
+                            std::shared_ptr<Asset> loadedAsset =
+                                AssetRegistry::Instance().LoadAssetFromPath(asset.path);
                             if (loadedAsset) {
                                 *m_SelectedAssetUUID = loadedAsset->GetUUID();
                             }
-                        } else {
+                        }
+                        else {
                             *m_SelectedAssetUUID = existingUUID;
                         }
 
@@ -297,7 +308,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                         if (dotPos != std::string::npos) {
                             itemName = itemName.substr(0, dotPos);
                         }
-                        std::memcpy(m_NewItemName, itemName.c_str(), std::min(itemName.size(), sizeof(m_NewItemName) - 1));
+                        std::memcpy(m_NewItemName, itemName.c_str(),
+                                    std::min(itemName.size(), sizeof(m_NewItemName) - 1));
                         m_NewItemName[sizeof(m_NewItemName) - 1] = '\0';
                     }
 
@@ -312,7 +324,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                             if (dotPos != std::string::npos) {
                                 itemName = itemName.substr(0, dotPos);
                             }
-                            std::memcpy(m_NewItemName, itemName.c_str(), std::min(itemName.size(), sizeof(m_NewItemName) - 1));
+                            std::memcpy(m_NewItemName, itemName.c_str(),
+                                        std::min(itemName.size(), sizeof(m_NewItemName) - 1));
                             m_NewItemName[sizeof(m_NewItemName) - 1] = '\0';
                         }
 
@@ -341,13 +354,16 @@ void ContentBrowserPanel::OnImGuiRender() {
                         ImGui::EndTooltip();
                     }
                 }
-            } else if (isScene) {
+            }
+            else if (isScene) {
                 ImVec4 sceneColor{0.4f, 0.9f, 1.0f, 1.0f};
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.3f, 0.4f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.5f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_Text, sceneColor);
 
-                if (ImGui::Button("SCENE", ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+                if (ImGui::Button("SCENE",
+                                  ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+                {
                     *m_SelectedAssetPath = asset.path;
                     *m_SelectedAssetUUID = UUID{0};
                     *m_SelectedEntity = entt::null;
@@ -386,7 +402,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                         if (dotPos != std::string::npos) {
                             itemName = itemName.substr(0, dotPos);
                         }
-                        std::memcpy(m_NewItemName, itemName.c_str(), std::min(itemName.size(), sizeof(m_NewItemName) - 1));
+                        std::memcpy(m_NewItemName, itemName.c_str(),
+                                    std::min(itemName.size(), sizeof(m_NewItemName) - 1));
                         m_NewItemName[sizeof(m_NewItemName) - 1] = '\0';
                     }
 
@@ -399,17 +416,21 @@ void ContentBrowserPanel::OnImGuiRender() {
                 }
 
                 ImGui::PopStyleColor(3);
-            } else if (asset.type == "spritesheet" || asset.type == "animclip" || asset.type == "animcontroller") {
-                ImVec4 animColor = asset.type == "spritesheet" ? ImVec4{0.4f, 0.8f, 0.6f, 1.0f} :
-                                   asset.type == "animclip" ? ImVec4{0.6f, 0.8f, 0.4f, 1.0f} :
-                                   ImVec4{0.8f, 0.6f, 0.4f, 1.0f};
+            }
+            else if (asset.type == "spritesheet" || asset.type == "animclip" || asset.type == "animcontroller") {
+                ImVec4 animColor = asset.type == "spritesheet" ? ImVec4{0.4f, 0.8f, 0.6f, 1.0f}
+                                   : asset.type == "animclip"  ? ImVec4{0.6f, 0.8f, 0.4f, 1.0f}
+                                                               : ImVec4{0.8f, 0.6f, 0.4f, 1.0f};
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.3f, 0.3f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.4f, 0.4f, 1.0f});
                 ImGui::PushStyleColor(ImGuiCol_Text, animColor);
 
-                std::string buttonLabel = asset.type == "spritesheet" ? "SHEET" :
-                                         asset.type == "animclip" ? "CLIP" : "CTRL";
-                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+                std::string buttonLabel = asset.type == "spritesheet" ? "SHEET"
+                                          : asset.type == "animclip"  ? "CLIP"
+                                                                      : "CTRL";
+                if (ImGui::Button(buttonLabel.c_str(),
+                                  ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+                {
                     *m_SelectedAssetPath = asset.path;
                     *m_SelectedEntity = entt::null;
                     if (m_AnimatorControllerEditor) {
@@ -417,18 +438,19 @@ void ContentBrowserPanel::OnImGuiRender() {
                     }
 
                     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
-                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
-                        ? AssetRegistry::Instance().GetAsset(existingUUID)
-                        : nullptr;
+                    std::shared_ptr<Asset> existingAsset =
+                        existingUUID.Get() != 0 ? AssetRegistry::Instance().GetAsset(existingUUID) : nullptr;
 
                     if (!existingAsset) {
                         std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
                         if (loadedAsset) {
                             *m_SelectedAssetUUID = loadedAsset->GetUUID();
-                        } else {
+                        }
+                        else {
                             *m_SelectedAssetUUID = UUID{0};
                         }
-                    } else {
+                    }
+                    else {
                         *m_SelectedAssetUUID = existingUUID;
                     }
                 }
@@ -443,9 +465,11 @@ void ContentBrowserPanel::OnImGuiRender() {
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (asset.type == "spritesheet" && m_SpriteSheetEditor) {
                         m_SpriteSheetEditor->Open(asset.path);
-                    } else if (asset.type == "animclip" && m_AnimationClipEditor) {
+                    }
+                    else if (asset.type == "animclip" && m_AnimationClipEditor) {
                         m_AnimationClipEditor->Open(asset.path);
-                    } else if (asset.type == "animcontroller" && m_AnimatorControllerEditor) {
+                    }
+                    else if (asset.type == "animcontroller" && m_AnimatorControllerEditor) {
                         m_AnimatorControllerEditor->Open(asset.path);
                     }
                 }
@@ -461,7 +485,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                         if (dotPos != std::string::npos) {
                             itemName = itemName.substr(0, dotPos);
                         }
-                        std::memcpy(m_NewItemName, itemName.c_str(), std::min(itemName.size(), sizeof(m_NewItemName) - 1));
+                        std::memcpy(m_NewItemName, itemName.c_str(),
+                                    std::min(itemName.size(), sizeof(m_NewItemName) - 1));
                         m_NewItemName[sizeof(m_NewItemName) - 1] = '\0';
                     }
 
@@ -474,28 +499,32 @@ void ContentBrowserPanel::OnImGuiRender() {
                 }
 
                 ImGui::PopStyleColor(3);
-            } else {
-                ImVec4 fileColor = asset.type == "audio" ? ImVec4{0.8f, 0.4f, 0.8f, 1.0f} : ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
+            }
+            else {
+                ImVec4 fileColor =
+                    asset.type == "audio" ? ImVec4{0.8f, 0.4f, 0.8f, 1.0f} : ImVec4{0.6f, 0.6f, 0.6f, 1.0f};
                 ImGui::PushStyleColor(ImGuiCol_Text, fileColor);
 
                 std::string buttonLabel = asset.type == "audio" ? "AUDIO" : "FILE";
-                if (ImGui::Button(buttonLabel.c_str(), ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)})) {
+                if (ImGui::Button(buttonLabel.c_str(),
+                                  ImVec2{static_cast<float>(m_ThumbnailSize), static_cast<float>(m_ThumbnailSize)}))
+                {
                     *m_SelectedAssetPath = asset.path;
                     if (m_AnimatorControllerEditor) {
                         m_AnimatorControllerEditor->ClearSelection();
                     }
 
                     UUID existingUUID = AssetRegistry::Instance().GetUUIDFromPath(asset.path);
-                    std::shared_ptr<Asset> existingAsset = existingUUID.Get() != 0
-                        ? AssetRegistry::Instance().GetAsset(existingUUID)
-                        : nullptr;
+                    std::shared_ptr<Asset> existingAsset =
+                        existingUUID.Get() != 0 ? AssetRegistry::Instance().GetAsset(existingUUID) : nullptr;
 
                     if (!existingAsset) {
                         std::shared_ptr<Asset> loadedAsset = AssetRegistry::Instance().LoadAssetFromPath(asset.path);
                         if (loadedAsset) {
                             *m_SelectedAssetUUID = loadedAsset->GetUUID();
                         }
-                    } else {
+                    }
+                    else {
                         *m_SelectedAssetUUID = existingUUID;
                     }
 
@@ -528,7 +557,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                         if (dotPos != std::string::npos) {
                             itemName = itemName.substr(0, dotPos);
                         }
-                        std::memcpy(m_NewItemName, itemName.c_str(), std::min(itemName.size(), sizeof(m_NewItemName) - 1));
+                        std::memcpy(m_NewItemName, itemName.c_str(),
+                                    std::min(itemName.size(), sizeof(m_NewItemName) - 1));
                         m_NewItemName[sizeof(m_NewItemName) - 1] = '\0';
                     }
 
@@ -551,7 +581,9 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Columns(1);
     }
 
-    if (ImGui::BeginPopupContextWindow("ContentContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+    if (ImGui::BeginPopupContextWindow("ContentContextMenu",
+                                       ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+    {
         m_RightClickedItem.clear();
 
         if (ImGui::MenuItem("New Scene")) {
@@ -598,7 +630,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter scene name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##SceneName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed =
+            ImGui::InputText("##SceneName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -624,10 +657,12 @@ void ContentBrowserPanel::OnImGuiRender() {
                         file.close();
                         m_NeedsRefresh = true;
                         PX_LOG_INFO(EDITOR, "Created scene: %s", newPath.c_str());
-                    } else {
+                    }
+                    else {
                         PX_LOG_ERROR(EDITOR, "Failed to create scene file: %s", newPath.c_str());
                     }
-                } catch (const std::exception& e) {
+                }
+                catch (const std::exception& e) {
                     PX_LOG_ERROR(EDITOR, "Failed to create scene: %s", e.what());
                 }
                 ImGui::CloseCurrentPopup();
@@ -651,7 +686,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter folder name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##FolderName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##FolderName", m_NewItemName, sizeof(m_NewItemName),
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -664,7 +700,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                     std::filesystem::create_directory(newFolderPath);
                     m_NeedsRefresh = true;
                     PX_LOG_INFO(EDITOR, "Created folder: %s", newFolderPath.c_str());
-                } catch (const std::filesystem::filesystem_error& e) {
+                }
+                catch (const std::filesystem::filesystem_error& e) {
                     PX_LOG_ERROR(EDITOR, "Failed to create folder: %s", e.what());
                 }
                 ImGui::CloseCurrentPopup();
@@ -688,7 +725,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter sprite sheet name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##SpriteSheetName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##SpriteSheetName", m_NewItemName, sizeof(m_NewItemName),
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -734,7 +772,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter animation clip name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##AnimClipName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##AnimClipName", m_NewItemName, sizeof(m_NewItemName),
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -780,7 +819,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter animator controller name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##AnimControllerName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##AnimControllerName", m_NewItemName, sizeof(m_NewItemName),
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -826,7 +866,8 @@ void ContentBrowserPanel::OnImGuiRender() {
         ImGui::Text("Enter new name:");
         ImGui::Separator();
 
-        bool enterPressed = ImGui::InputText("##RenameName", m_NewItemName, sizeof(m_NewItemName), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##RenameName", m_NewItemName, sizeof(m_NewItemName),
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
 
         ImGui::Separator();
 
@@ -843,7 +884,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                 std::string newPath;
                 if (m_IsRightClickFolder) {
                     newPath = parentPath + "/" + newName;
-                } else {
+                }
+                else {
                     std::string extension;
                     size_t dotPos = m_RightClickedItem.find_last_of('.');
                     if (dotPos != std::string::npos) {
@@ -857,7 +899,8 @@ void ContentBrowserPanel::OnImGuiRender() {
                     m_NeedsRefresh = true;
                     PX_LOG_INFO(EDITOR, "Renamed: %s -> %s", m_RightClickedItem.c_str(), newPath.c_str());
                     m_RightClickedItem.clear();
-                } catch (const std::filesystem::filesystem_error& e) {
+                }
+                catch (const std::filesystem::filesystem_error& e) {
                     PX_LOG_ERROR(EDITOR, "Failed to rename: %s", e.what());
                 }
 
@@ -876,8 +919,6 @@ void ContentBrowserPanel::OnImGuiRender() {
     ImGui::End();
 }
 
-
-
-}
+} // namespace PiiXeL
 
 #endif

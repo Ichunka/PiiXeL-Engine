@@ -17,14 +17,11 @@ struct ScriptInstance {
 
     ScriptInstance() = default;
 
-    template<typename T>
-    explicit ScriptInstance(std::shared_ptr<T> scriptInstance)
-        : instance{std::move(scriptInstance)}
-        , scriptName{typeid(T).name()}
-        , typeIndex{typeid(T)}
-    {}
+    template <typename T>
+    explicit ScriptInstance(std::shared_ptr<T> scriptInstance) :
+        instance{std::move(scriptInstance)}, scriptName{typeid(T).name()}, typeIndex{typeid(T)} {}
 
-    template<typename T>
+    template <typename T>
     T* As() {
         if (typeIndex == std::type_index(typeid(T))) {
             return static_cast<T*>(instance.get());
@@ -32,7 +29,7 @@ struct ScriptInstance {
         return nullptr;
     }
 
-    template<typename T>
+    template <typename T>
     bool Is() const {
         return typeIndex == std::type_index(typeid(T));
     }
@@ -51,7 +48,7 @@ struct Script {
     ScriptInstance* GetScript(const std::string& scriptName);
     size_t GetScriptCount() const { return scripts.size(); }
 
-    template<typename T>
+    template <typename T>
     T* GetScriptOfType() {
         for (ScriptInstance& script : scripts) {
             if (T* typedScript = script.As<T>()) {
@@ -61,7 +58,7 @@ struct Script {
         return nullptr;
     }
 
-    template<typename T>
+    template <typename T>
     bool HasScriptOfType() const {
         for (const ScriptInstance& script : scripts) {
             if (script.Is<T>()) {

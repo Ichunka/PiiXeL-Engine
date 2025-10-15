@@ -1,10 +1,12 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/AssetBrowserPanel.hpp"
+
 #include "Resources/AssetRegistry.hpp"
-#include <imgui.h>
-#include <filesystem>
+
 #include <algorithm>
+#include <filesystem>
+#include <imgui.h>
 
 namespace PiiXeL {
 
@@ -37,15 +39,16 @@ void AssetBrowserPanel::RefreshAssetList() {
 
     if (std::filesystem::exists(m_CurrentDirectory)) {
         for (const auto& entry : std::filesystem::recursive_directory_iterator{m_CurrentDirectory}) {
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+                continue;
 
             std::string ext = entry.path().extension().string();
-            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+            std::transform(ext.begin(), ext.end(), ext.begin(),
+                           [](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
-            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
-                ext == ".wav" || ext == ".mp3" || ext == ".ogg" ||
-                ext == ".spritesheet" || ext == ".animclip" || ext == ".animcontroller") {
-
+            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".wav" || ext == ".mp3" ||
+                ext == ".ogg" || ext == ".spritesheet" || ext == ".animclip" || ext == ".animcontroller")
+            {
                 std::string pxaPath = entry.path().string();
                 pxaPath = pxaPath.substr(0, pxaPath.find_last_of('.')) + ".pxa";
 
@@ -85,7 +88,8 @@ void AssetBrowserPanel::RenderAssetGrid() {
     float cellPadding = 10.0f;
     float panelWidth = ImGui::GetContentRegionAvail().x;
     int columnCount = static_cast<int>(panelWidth / (cellSize + cellPadding));
-    if (columnCount < 1) columnCount = 1;
+    if (columnCount < 1)
+        columnCount = 1;
 
     ImGui::Columns(columnCount, nullptr, false);
 
@@ -127,10 +131,17 @@ void AssetBrowserPanel::RenderAssetItem(const AssetMetadata& metadata) {
 
     const char* typeStr = "Unknown";
     switch (metadata.type) {
-        case AssetType::Texture: typeStr = "Texture"; break;
-        case AssetType::Audio: typeStr = "Audio"; break;
-        case AssetType::Scene: typeStr = "Scene"; break;
-        default: break;
+        case AssetType::Texture:
+            typeStr = "Texture";
+            break;
+        case AssetType::Audio:
+            typeStr = "Audio";
+            break;
+        case AssetType::Scene:
+            typeStr = "Scene";
+            break;
+        default:
+            break;
     }
     ImGui::TextColored(ImVec4{0.6f, 0.6f, 0.6f, 1.0f}, "%s", typeStr);
 

@@ -2,6 +2,7 @@
 
 #include "Core/Application.hpp"
 #include "Reflection/ReflectionInit.hpp"
+
 #include <iostream>
 
 int main() {

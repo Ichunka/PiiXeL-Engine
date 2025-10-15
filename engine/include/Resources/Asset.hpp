@@ -2,9 +2,10 @@
 #define PIIXELENGINE_ASSET_HPP
 
 #include "Components/UUID.hpp"
-#include <string>
-#include <cstdint>
+
 #include <chrono>
+#include <cstdint>
+#include <string>
 
 namespace PiiXeL {
 
@@ -32,9 +33,7 @@ struct AssetMetadata {
     uint64_t sourceTimestamp{0};
     uint32_t version{1};
 
-    bool NeedsReimport(uint64_t currentSourceTimestamp) const {
-        return currentSourceTimestamp > sourceTimestamp;
-    }
+    bool NeedsReimport(uint64_t currentSourceTimestamp) const { return currentSourceTimestamp > sourceTimestamp; }
 };
 
 class Asset {

@@ -17,6 +17,8 @@ public:
     void SaveSceneAs();
     void LoadScene();
 
+    void RestoreScriptPropertiesFromFile(const std::string& filepath);
+
     [[nodiscard]] const std::string& GetCurrentScenePath() const { return m_CurrentScenePath; }
     void SetCurrentScenePath(const std::string& path) { m_CurrentScenePath = path; }
 
@@ -25,6 +27,6 @@ private:
     std::string m_CurrentScenePath;
 };
 
-}
+} // namespace PiiXeL
 
 #endif

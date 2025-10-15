@@ -1,32 +1,28 @@
 #include "Core/Engine.hpp"
-#include "Core/Logger.hpp"
-#include "Scene/Scene.hpp"
-#include "Scene/SceneSerializer.hpp"
-#include "Scene/ComponentRegistry.hpp"
+
 #include "Build/GamePackageLoader.hpp"
-#include "Resources/AssetRegistry.hpp"
-#include "Systems/RenderSystem.hpp"
-#include "Systems/PhysicsSystem.hpp"
-#include "Systems/ScriptSystem.hpp"
-#include "Systems/AnimationSystem.hpp"
-#include "Components/Transform.hpp"
+#include "Components/BoxCollider2D.hpp"
 #include "Components/Camera.hpp"
 #include "Components/RigidBody2D.hpp"
-#include "Components/BoxCollider2D.hpp"
 #include "Components/Script.hpp"
+#include "Components/Transform.hpp"
+#include "Core/Logger.hpp"
 #include "Debug/Profiler.hpp"
+#include "Resources/AssetRegistry.hpp"
+#include "Scene/ComponentRegistry.hpp"
+#include "Scene/Scene.hpp"
+#include "Scene/SceneSerializer.hpp"
+#include "Systems/AnimationSystem.hpp"
+#include "Systems/PhysicsSystem.hpp"
+#include "Systems/RenderSystem.hpp"
+#include "Systems/ScriptSystem.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {
 
-Engine::Engine()
-    : m_Registry{}
-    , m_ActiveScene{nullptr}
-    , m_RenderSystem{nullptr}
-    , m_PhysicsSystem{nullptr}
-    , m_ScriptSystem{nullptr}
-{
-}
+Engine::Engine() :
+    m_Registry{}, m_ActiveScene{nullptr}, m_RenderSystem{nullptr}, m_PhysicsSystem{nullptr}, m_ScriptSystem{nullptr} {}
 
 Engine::~Engine() {
     Shutdown();
@@ -56,11 +52,13 @@ void Engine::Initialize() {
                 AnimationSystem::ResetAnimators(m_ActiveScene->GetRegistry());
                 CreatePhysicsBodies();
             }
-        } else {
+        }
+        else {
             PX_LOG_ERROR(ENGINE, "✗ Failed to load datas/game.package");
             m_ActiveScene = std::make_unique<Scene>("Empty Scene");
         }
-    } else {
+    }
+    else {
         PX_LOG_ERROR(ENGINE, "✗ datas/game.package not found! Cannot run without package.");
         PX_LOG_ERROR(ENGINE, "   Build the package first using: build_package.bat");
         m_ActiveScene = std::make_unique<Scene>("Empty Scene");
@@ -174,12 +172,14 @@ void Engine::Render() {
 
                 Camera2D raylibCamera{};
                 raylibCamera.target = transform.position;
-                raylibCamera.offset = Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
+                raylibCamera.offset =
+                    Vector2{static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f};
                 raylibCamera.rotation = cameraComp.rotation;
                 raylibCamera.zoom = cameraComp.zoom;
 
                 m_RenderSystem->RenderWithCamera(registry, raylibCamera);
-            } else {
+            }
+            else {
                 m_RenderSystem->Render(registry);
             }
 #endif
@@ -211,9 +211,10 @@ void Engine::CreatePhysicsBodies() {
 
     entt::registry& registry = m_ActiveScene->GetRegistry();
 
-    registry.view<Transform, RigidBody2D>().each([this, &registry](entt::entity entity, const Transform&, const RigidBody2D&) {
-        m_PhysicsSystem->CreateBody(registry, entity);
-    });
+    registry.view<Transform, RigidBody2D>().each(
+        [this, &registry](entt::entity entity, const Transform&, const RigidBody2D&) {
+            m_PhysicsSystem->CreateBody(registry, entity);
+        });
 }
 
 void Engine::DestroyAllPhysicsBodies() {
@@ -254,7 +255,8 @@ bool Engine::LoadFromPackage(const std::string& packagePath, const std::string& 
         size_t scriptCount = registry.view<Script>().size();
         size_t cameraCount = registry.view<Camera>().size();
 
-        PX_LOG_INFO(ENGINE, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount, cameraCount);
+        PX_LOG_INFO(ENGINE, "Scene loaded: %zu entities, %zu scripts, %zu cameras", entityCount, scriptCount,
+                    cameraCount);
 
         return true;
     }

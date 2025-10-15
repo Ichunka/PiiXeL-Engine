@@ -3,34 +3,28 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "EditorPanel.hpp"
 #include "Components/Transform.hpp"
+
 #include <entt/entt.hpp>
-#include <raylib.h>
+
 #include <functional>
+#include <raylib.h>
+
+#include "EditorPanel.hpp"
 
 namespace PiiXeL {
 
 class Engine;
-class CommandHistory;
+class EditorCommandSystem;
 class AnimatorControllerEditorPanel;
 class UUID;
 
 class InspectorPanel : public EditorPanel {
 public:
-    InspectorPanel(
-        Engine* engine,
-        CommandHistory* commandHistory,
-        entt::entity* selectedEntity,
-        bool* inspectorLocked,
-        entt::entity* lockedEntity,
-        UUID* selectedAssetUUID,
-        std::string* selectedAssetPath,
-        AnimatorControllerEditorPanel* animatorControllerEditor,
-        Transform* cachedTransform,
-        bool* isModifyingTransform,
-        Texture2D* defaultWhiteTexture
-    );
+    InspectorPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
+                   bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
+                   std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
+                   Texture2D* defaultWhiteTexture);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Inspector"; }
@@ -50,15 +44,13 @@ private:
 
 private:
     Engine* m_Engine;
-    CommandHistory* m_CommandHistory;
+    EditorCommandSystem* m_CommandSystem;
     entt::entity* m_SelectedEntity;
     bool* m_InspectorLocked;
     entt::entity* m_LockedEntity;
     UUID* m_SelectedAssetUUID;
     std::string* m_SelectedAssetPath;
     AnimatorControllerEditorPanel* m_AnimatorControllerEditor;
-    Transform* m_CachedTransform;
-    bool* m_IsModifyingTransform;
     Texture2D* m_DefaultWhiteTexture;
 
     bool m_IsOpen{true};
@@ -67,7 +59,7 @@ private:
     std::function<bool(const char*, UUID*, const std::string&)> m_RenderAssetPickerCallback;
 };
 
-}
+} // namespace PiiXeL
 
 #endif
 

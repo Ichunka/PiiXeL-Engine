@@ -1,10 +1,12 @@
 #include "Systems/AnimationSystem.hpp"
+
+#include "Animation/AnimationClip.hpp"
+#include "Animation/AnimatorController.hpp"
+#include "Animation/SpriteSheet.hpp"
 #include "Components/Animator.hpp"
 #include "Components/Sprite.hpp"
-#include "Animation/AnimatorController.hpp"
-#include "Animation/AnimationClip.hpp"
-#include "Animation/SpriteSheet.hpp"
 #include "Resources/AssetRegistry.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {
@@ -194,10 +196,12 @@ void AnimationSystem::UpdateAnimation(entt::registry& registry, entt::entity ent
 
         if (clip->GetWrapMode() == AnimationWrapMode::Loop) {
             animator.currentFrameIndex = (animator.currentFrameIndex + 1) % frames.size();
-        } else if (clip->GetWrapMode() == AnimationWrapMode::Once) {
+        }
+        else if (clip->GetWrapMode() == AnimationWrapMode::Once) {
             if (animator.currentFrameIndex < frames.size() - 1) {
                 animator.currentFrameIndex++;
-            } else {
+            }
+            else {
                 animator.frameTime = currentFrame.duration;
                 break;
             }
@@ -216,35 +220,46 @@ void AnimationSystem::UpdateAnimation(entt::registry& registry, entt::entity ent
 }
 
 bool AnimationSystem::EvaluateCondition(const std::variant<float, int, bool>& paramValue,
-                                        const std::variant<float, int, bool>& conditionValue,
-                                        int conditionType) {
+                                        const std::variant<float, int, bool>& conditionValue, int conditionType) {
     if (std::holds_alternative<float>(paramValue) && std::holds_alternative<float>(conditionValue)) {
         float pVal = std::get<float>(paramValue);
         float cVal = std::get<float>(conditionValue);
 
         switch (conditionType) {
-            case 0: return pVal > cVal;
-            case 1: return pVal < cVal;
-            case 2: return pVal == cVal;
-            case 3: return pVal != cVal;
+            case 0:
+                return pVal > cVal;
+            case 1:
+                return pVal < cVal;
+            case 2:
+                return pVal == cVal;
+            case 3:
+                return pVal != cVal;
         }
-    } else if (std::holds_alternative<int>(paramValue) && std::holds_alternative<int>(conditionValue)) {
+    }
+    else if (std::holds_alternative<int>(paramValue) && std::holds_alternative<int>(conditionValue)) {
         int pVal = std::get<int>(paramValue);
         int cVal = std::get<int>(conditionValue);
 
         switch (conditionType) {
-            case 0: return pVal > cVal;
-            case 1: return pVal < cVal;
-            case 2: return pVal == cVal;
-            case 3: return pVal != cVal;
+            case 0:
+                return pVal > cVal;
+            case 1:
+                return pVal < cVal;
+            case 2:
+                return pVal == cVal;
+            case 3:
+                return pVal != cVal;
         }
-    } else if (std::holds_alternative<bool>(paramValue) && std::holds_alternative<bool>(conditionValue)) {
+    }
+    else if (std::holds_alternative<bool>(paramValue) && std::holds_alternative<bool>(conditionValue)) {
         bool pVal = std::get<bool>(paramValue);
         bool cVal = std::get<bool>(conditionValue);
 
         switch (conditionType) {
-            case 2: return pVal == cVal;
-            case 3: return pVal != cVal;
+            case 2:
+                return pVal == cVal;
+            case 3:
+                return pVal != cVal;
         }
     }
 

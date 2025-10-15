@@ -1,26 +1,22 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/Panels/GameViewportPanel.hpp"
-#include "Core/Engine.hpp"
-#include "Scene/Scene.hpp"
+
 #include "Components/Camera.hpp"
 #include "Components/Transform.hpp"
+#include "Core/Engine.hpp"
+#include "Editor/EditorStateManager.hpp"
+#include "Scene/Scene.hpp"
 #include "Systems/RenderSystem.hpp"
-#include "Editor/EditorLayer.hpp"
+
 #include <imgui.h>
 #include <rlImGui.h>
 
 namespace PiiXeL {
 
-GameViewportPanel::GameViewportPanel(
-    Engine* engine,
-    RenderTexture2D* gameViewportTexture,
-    EditorState* editorState
-)
-    : m_Engine{engine}
-    , m_GameViewportTexture{gameViewportTexture}
-    , m_EditorState{editorState}
-{}
+GameViewportPanel::GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture,
+                                     EditorStateManager* stateManager) :
+    m_Engine{engine}, m_GameViewportTexture{gameViewportTexture}, m_StateManager{stateManager} {}
 
 void GameViewportPanel::SetGetPrimaryCameraCallback(std::function<entt::entity()> callback) {
     m_GetPrimaryCameraCallback = callback;
@@ -38,20 +34,16 @@ void GameViewportPanel::OnImGuiRender() {
         ImVec2 windowSize = ImGui::GetWindowSize();
         const char* message = "No Primary Camera";
         ImVec2 textSize = ImGui::CalcTextSize(message);
-        ImGui::SetCursorPos(ImVec2{
-            (windowSize.x - textSize.x) * 0.5f,
-            (windowSize.y - textSize.y) * 0.5f
-        });
+        ImGui::SetCursorPos(ImVec2{(windowSize.x - textSize.x) * 0.5f, (windowSize.y - textSize.y) * 0.5f});
         ImGui::TextDisabled("%s", message);
     }
     else if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
         if (static_cast<int>(viewportPanelSize.x) != m_GameViewportTexture->texture.width ||
-            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture->texture.height) {
+            static_cast<int>(viewportPanelSize.y) != m_GameViewportTexture->texture.height)
+        {
             UnloadRenderTexture(*m_GameViewportTexture);
-            *m_GameViewportTexture = LoadRenderTexture(
-                static_cast<int>(viewportPanelSize.x),
-                static_cast<int>(viewportPanelSize.y)
-            );
+            *m_GameViewportTexture =
+                LoadRenderTexture(static_cast<int>(viewportPanelSize.x), static_cast<int>(viewportPanelSize.y));
         }
 
         BeginTextureMode(*m_GameViewportTexture);
@@ -102,19 +94,14 @@ void GameViewportPanel::OnImGuiRender() {
 
         EndTextureMode();
 
-        Rectangle sourceRec{
-            0.0f, 0.0f,
-            static_cast<float>(m_GameViewportTexture->texture.width),
-            -static_cast<float>(m_GameViewportTexture->texture.height)
-        };
+        Rectangle sourceRec{0.0f, 0.0f, static_cast<float>(m_GameViewportTexture->texture.width),
+                            -static_cast<float>(m_GameViewportTexture->texture.height)};
 
-        rlImGuiImageRect(&m_GameViewportTexture->texture,
-                        static_cast<int>(viewportPanelSize.x),
-                        static_cast<int>(viewportPanelSize.y),
-                        sourceRec);
+        rlImGuiImageRect(&m_GameViewportTexture->texture, static_cast<int>(viewportPanelSize.x),
+                         static_cast<int>(viewportPanelSize.y), sourceRec);
     }
 
-    if (*m_EditorState == EditorState::Play) {
+    if (m_StateManager && m_StateManager->IsPlayMode()) {
         if (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) {
             ImGuiIO& io = ImGui::GetIO();
             io.WantCaptureMouse = false;
@@ -126,7 +113,6 @@ void GameViewportPanel::OnImGuiRender() {
     ImGui::PopStyleVar();
 }
 
-
-}
+} // namespace PiiXeL
 
 #endif

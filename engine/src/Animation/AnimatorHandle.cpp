@@ -1,15 +1,12 @@
 #include "Animation/AnimatorHandle.hpp"
+
 #include "Components/Animator.hpp"
 #include "Scene/Scene.hpp"
 
 namespace PiiXeL {
 
-AnimatorHandle::AnimatorHandle(Scene* scene, entt::entity entity, Animator* component)
-    : m_Scene{scene}
-    , m_Entity{entity}
-    , m_Component{component}
-{
-}
+AnimatorHandle::AnimatorHandle(Scene* scene, entt::entity entity, Animator* component) :
+    m_Scene{scene}, m_Entity{entity}, m_Component{component} {}
 
 bool AnimatorHandle::IsValid() const {
     if (!m_Scene || m_Entity == entt::null || !m_Component) {

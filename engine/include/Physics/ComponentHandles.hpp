@@ -9,17 +9,17 @@ class RigidBodyHandle;
 struct Animator;
 class AnimatorHandle;
 
-template<typename Component>
+template <typename Component>
 struct ComponentHandle {
     using Type = void;
 };
 
-template<>
+template <>
 struct ComponentHandle<RigidBody2D> {
     using Type = RigidBodyHandle;
 };
 
-template<>
+template <>
 struct ComponentHandle<Animator> {
     using Type = AnimatorHandle;
 };

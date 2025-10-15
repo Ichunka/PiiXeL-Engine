@@ -1,13 +1,13 @@
 #include "Resources/AudioAsset.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <cstring>
 #include <fstream>
 
 namespace PiiXeL {
 
-AudioAsset::AudioAsset(UUID uuid, const std::string& name)
-    : Asset{uuid, AssetType::Audio, name} {
-}
+AudioAsset::AudioAsset(UUID uuid, const std::string& name) : Asset{uuid, AssetType::Audio, name} {}
 
 AudioAsset::~AudioAsset() {
     Unload();
@@ -35,8 +35,7 @@ bool AudioAsset::Load(const void* data, size_t size) {
     }
 
     m_IsLoaded = true;
-    PX_LOG_INFO(ASSET, "Audio asset loaded: %s (%u frames)", m_Metadata.name.c_str(),
-             m_Sound.frameCount);
+    PX_LOG_INFO(ASSET, "Audio asset loaded: %s (%u frames)", m_Metadata.name.c_str(), m_Sound.frameCount);
     return true;
 }
 
@@ -55,7 +54,8 @@ void AudioAsset::Unload() {
 }
 
 size_t AudioAsset::GetMemoryUsage() const {
-    if (!m_IsLoaded) return 0;
+    if (!m_IsLoaded)
+        return 0;
     return m_Wave.frameCount * m_Wave.channels * (m_Wave.sampleSize / 8);
 }
 

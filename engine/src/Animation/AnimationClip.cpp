@@ -1,13 +1,14 @@
 #include "Animation/AnimationClip.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <nlohmann/json.hpp>
+
 #include <raylib.h>
 
 namespace PiiXeL {
 
-AnimationClip::AnimationClip(UUID uuid, const std::string& name)
-    : Asset(uuid, AssetType::AnimationClip, name) {
-}
+AnimationClip::AnimationClip(UUID uuid, const std::string& name) : Asset(uuid, AssetType::AnimationClip, name) {}
 
 bool AnimationClip::Load(const void* data, size_t size) {
     if (!data || size == 0) {
@@ -43,7 +44,8 @@ bool AnimationClip::Load(const void* data, size_t size) {
 
         m_IsLoaded = true;
         return true;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         PX_LOG_ERROR(ANIMATION, "Failed to parse AnimationClip JSON: %s", e.what());
         return false;
     }

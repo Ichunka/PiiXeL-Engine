@@ -1,10 +1,10 @@
 #ifndef PIIXELENGINE_BUILDSYSTEM_HPP
 #define PIIXELENGINE_BUILDSYSTEM_HPP
 
-#include <string>
 #include <functional>
-#include <vector>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace PiiXeL {
 
@@ -63,6 +63,6 @@ private:
 #endif
 };
 
-}
+} // namespace PiiXeL
 
 #endif

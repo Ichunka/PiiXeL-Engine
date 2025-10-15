@@ -1,4 +1,5 @@
 #include "Animation/AnimatorAPI.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {

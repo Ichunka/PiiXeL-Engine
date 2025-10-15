@@ -1,6 +1,9 @@
 #include "Project/ProjectSettings.hpp"
+
 #include "Systems/PhysicsSystem.hpp"
+
 #include <nlohmann/json.hpp>
+
 #include <fstream>
 #include <raylib.h>
 
@@ -26,7 +29,8 @@ bool ProjectSettings::Load(const std::string& filepath) {
     nlohmann::json json{};
     try {
         file >> json;
-    } catch (const nlohmann::json::exception& e) {
+    }
+    catch (const nlohmann::json::exception& e) {
         TraceLog(LOG_ERROR, "Failed to parse project config: %s", e.what());
         return false;
     }
@@ -47,13 +51,20 @@ bool ProjectSettings::Load(const std::string& filepath) {
 
     if (json.contains("window")) {
         const nlohmann::json& windowJson = json["window"];
-        if (windowJson.contains("width")) window.width = windowJson["width"].get<int>();
-        if (windowJson.contains("height")) window.height = windowJson["height"].get<int>();
-        if (windowJson.contains("resizable")) window.resizable = windowJson["resizable"].get<bool>();
-        if (windowJson.contains("vsync")) window.vsync = windowJson["vsync"].get<bool>();
-        if (windowJson.contains("fullscreen")) window.fullscreen = windowJson["fullscreen"].get<bool>();
-        if (windowJson.contains("targetFPS")) window.targetFPS = windowJson["targetFPS"].get<int>();
-        if (windowJson.contains("icon")) window.icon = windowJson["icon"].get<std::string>();
+        if (windowJson.contains("width"))
+            window.width = windowJson["width"].get<int>();
+        if (windowJson.contains("height"))
+            window.height = windowJson["height"].get<int>();
+        if (windowJson.contains("resizable"))
+            window.resizable = windowJson["resizable"].get<bool>();
+        if (windowJson.contains("vsync"))
+            window.vsync = windowJson["vsync"].get<bool>();
+        if (windowJson.contains("fullscreen"))
+            window.fullscreen = windowJson["fullscreen"].get<bool>();
+        if (windowJson.contains("targetFPS"))
+            window.targetFPS = windowJson["targetFPS"].get<int>();
+        if (windowJson.contains("icon"))
+            window.icon = windowJson["icon"].get<std::string>();
     }
 
     if (json.contains("physics")) {

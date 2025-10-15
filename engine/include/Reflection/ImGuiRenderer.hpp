@@ -3,10 +3,12 @@
 
 #ifdef BUILD_WITH_EDITOR
 
+#include "Components/UUID.hpp"
 #include "Reflection/TypeInfo.hpp"
 #include "Reflection/TypeRegistry.hpp"
-#include "Components/UUID.hpp"
+
 #include <entt/entt.hpp>
+
 #include <functional>
 
 namespace PiiXeL::Reflection {
@@ -16,8 +18,9 @@ using AssetPickerCallback = std::function<bool(const char*, UUID*, const std::st
 
 class ImGuiRenderer {
 public:
-    template<typename T>
-    static bool RenderProperties(T& object, EntityPickerCallback entityPicker = nullptr, AssetPickerCallback assetPicker = nullptr) {
+    template <typename T>
+    static bool RenderProperties(T& object, EntityPickerCallback entityPicker = nullptr,
+                                 AssetPickerCallback assetPicker = nullptr) {
         const TypeInfo* typeInfo = TypeRegistry::Instance().GetTypeInfo<T>();
         if (!typeInfo) {
             return false;
@@ -38,10 +41,11 @@ public:
         return modified;
     }
 
-    static bool RenderField(const FieldInfo& field, void* fieldPtr, EntityPickerCallback entityPicker, AssetPickerCallback assetPicker);
+    static bool RenderField(const FieldInfo& field, void* fieldPtr, EntityPickerCallback entityPicker,
+                            AssetPickerCallback assetPicker);
 };
 
-}
+} // namespace PiiXeL::Reflection
 
 #endif
 

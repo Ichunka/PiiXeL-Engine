@@ -22,4 +22,4 @@ void InitializeReflection() {
     __force_link_Animator();
 }
 
-}
+} // namespace PiiXeL::Reflection

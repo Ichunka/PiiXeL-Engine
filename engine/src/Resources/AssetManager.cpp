@@ -1,14 +1,11 @@
 #include "Resources/AssetManager.hpp"
+
 #include <filesystem>
 #include <iostream>
 
 namespace PiiXeL {
 
-AssetManager::AssetManager()
-    : m_Textures{}
-    , m_DefaultTexture{}
-    , m_IsShutdown{false}
-{
+AssetManager::AssetManager() : m_Textures{}, m_DefaultTexture{}, m_IsShutdown{false} {
     CreateDefaultTexture();
 }
 
@@ -25,7 +22,8 @@ Texture2D AssetManager::LoadTexture(const std::string& path) {
 
     if (texture.id == 0) {
         std::cerr << "Failed to load texture: " << path << std::endl;
-    } else {
+    }
+    else {
         m_Textures[path] = texture;
     }
 
@@ -102,11 +100,15 @@ std::vector<AssetInfo> AssetManager::ScanAssetsDirectory(const std::string& dire
             std::string extension = entry.path().extension().string();
             std::string type{};
 
-            if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp" || extension == ".tga") {
+            if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp" ||
+                extension == ".tga")
+            {
                 type = "texture";
-            } else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
+            }
+            else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {
                 type = "audio";
-            } else {
+            }
+            else {
                 continue;
             }
 
@@ -127,7 +129,8 @@ std::vector<AssetInfo> AssetManager::ScanAssetsDirectory(const std::string& dire
             }
 
             for (char& c : info.path) {
-                if (c == '\\') c = '/';
+                if (c == '\\')
+                    c = '/';
             }
 
             assets.push_back(info);
@@ -150,7 +153,8 @@ AssetInfo AssetManager::GetAssetInfo(const std::string& path) const {
 
     if (info.extension == ".png" || info.extension == ".jpg" || info.extension == ".jpeg" || info.extension == ".bmp") {
         info.type = "texture";
-    } else if (info.extension == ".wav" || info.extension == ".mp3" || info.extension == ".ogg") {
+    }
+    else if (info.extension == ".wav" || info.extension == ".mp3" || info.extension == ".ogg") {
         info.type = "audio";
     }
 

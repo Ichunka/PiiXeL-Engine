@@ -1,12 +1,12 @@
 #include "Resources/TextureAsset.hpp"
+
 #include "Core/Logger.hpp"
+
 #include <cstring>
 
 namespace PiiXeL {
 
-TextureAsset::TextureAsset(UUID uuid, const std::string& name)
-    : Asset{uuid, AssetType::Texture, name} {
-}
+TextureAsset::TextureAsset(UUID uuid, const std::string& name) : Asset{uuid, AssetType::Texture, name} {}
 
 TextureAsset::~TextureAsset() {
     Unload();
@@ -36,8 +36,7 @@ bool TextureAsset::Load(const void* data, size_t size) {
     SetTextureWrap(m_Texture, TEXTURE_WRAP_CLAMP);
 
     m_IsLoaded = true;
-    PX_LOG_INFO(ASSET, "Texture asset loaded: %s (%dx%d)", m_Metadata.name.c_str(),
-             m_Texture.width, m_Texture.height);
+    PX_LOG_INFO(ASSET, "Texture asset loaded: %s (%dx%d)", m_Metadata.name.c_str(), m_Texture.width, m_Texture.height);
     return true;
 }
 
@@ -50,16 +49,29 @@ void TextureAsset::Unload() {
 }
 
 size_t TextureAsset::GetMemoryUsage() const {
-    if (!m_IsLoaded) return 0;
+    if (!m_IsLoaded)
+        return 0;
 
     int bytesPerPixel = 4;
     switch (m_Texture.format) {
-        case PIXELFORMAT_UNCOMPRESSED_GRAYSCALE: bytesPerPixel = 1; break;
-        case PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA: bytesPerPixel = 2; break;
-        case PIXELFORMAT_UNCOMPRESSED_R5G6B5: bytesPerPixel = 2; break;
-        case PIXELFORMAT_UNCOMPRESSED_R8G8B8: bytesPerPixel = 3; break;
-        case PIXELFORMAT_UNCOMPRESSED_R8G8B8A8: bytesPerPixel = 4; break;
-        default: bytesPerPixel = 4; break;
+        case PIXELFORMAT_UNCOMPRESSED_GRAYSCALE:
+            bytesPerPixel = 1;
+            break;
+        case PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA:
+            bytesPerPixel = 2;
+            break;
+        case PIXELFORMAT_UNCOMPRESSED_R5G6B5:
+            bytesPerPixel = 2;
+            break;
+        case PIXELFORMAT_UNCOMPRESSED_R8G8B8:
+            bytesPerPixel = 3;
+            break;
+        case PIXELFORMAT_UNCOMPRESSED_R8G8B8A8:
+            bytesPerPixel = 4;
+            break;
+        default:
+            bytesPerPixel = 4;
+            break;
     }
 
     return m_Texture.width * m_Texture.height * bytesPerPixel;

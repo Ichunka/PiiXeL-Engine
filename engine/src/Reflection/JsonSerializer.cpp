@@ -1,4 +1,5 @@
 #include "Reflection/JsonSerializer.hpp"
+
 #include "Scripting/EntityRef.hpp"
 
 namespace PiiXeL::Reflection {
@@ -66,7 +67,8 @@ void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::js
             if (j.is_array() && j.size() == 2) {
                 v.x = j[0].get<float>();
                 v.y = j[1].get<float>();
-            } else if (j.is_object()) {
+            }
+            else if (j.is_object()) {
                 v.x = j.value("x", 0.0f);
                 v.y = j.value("y", 0.0f);
             }
@@ -101,4 +103,4 @@ void JsonSerializer::DeserializeField(const FieldInfo& field, const nlohmann::js
     }
 }
 
-}
+} // namespace PiiXeL::Reflection

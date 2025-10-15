@@ -1,4 +1,5 @@
 #include "Scripting/EntityRef.hpp"
+
 #include "Scene/EntityRegistry.hpp"
 
 namespace PiiXeL {
@@ -26,4 +27,4 @@ bool EntityRef::IsValid() const {
     return entity != entt::null && EntityRegistry::Instance().HasEntity(m_UUID);
 }
 
-}
+} // namespace PiiXeL

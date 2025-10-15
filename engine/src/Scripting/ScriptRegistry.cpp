@@ -1,5 +1,7 @@
 #include "Scripting/ScriptRegistry.hpp"
+
 #include "Scripting/ScriptComponent.hpp"
+
 #include <raylib.h>
 
 namespace PiiXeL {
