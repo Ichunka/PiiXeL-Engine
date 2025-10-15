@@ -131,7 +131,13 @@ void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::e
 
 void EntityFactory::DuplicateModuleComponents(entt::registry& registry, entt::entity source,
                                               entt::entity destination) {
+#ifdef BUILD_WITH_EDITOR
     ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, source, destination);
+#else
+    (void)registry;
+    (void)source;
+    (void)destination;
+#endif
 }
 
 } // namespace PiiXeL
