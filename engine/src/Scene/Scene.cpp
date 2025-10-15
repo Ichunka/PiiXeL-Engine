@@ -1,9 +1,7 @@
 #include "Scene/Scene.hpp"
 
-#include "Components/Sprite.hpp"
-#include "Components/Tag.hpp"
-#include "Components/Transform.hpp"
 #include "Components/UUID.hpp"
+#include "Scene/EntityFactory.hpp"
 #include "Scene/EntityRegistry.hpp"
 
 namespace PiiXeL {
@@ -23,18 +21,7 @@ void Scene::OnUpdate(float deltaTime) {
 void Scene::OnRender() {}
 
 entt::entity Scene::CreateEntity(const std::string& name) {
-    entt::entity entity{m_Registry.create()};
-
-    UUID uuid;
-    m_Registry.emplace<UUID>(entity, uuid);
-    EntityRegistry::Instance().RegisterEntity(uuid, entity);
-
-    m_Registry.emplace<Tag>(entity, name);
-    m_Registry.emplace<Transform>(entity);
-
-    m_EntityOrder.push_back(entity);
-
-    return entity;
+    return EntityFactory::CreateEntity(this, name);
 }
 
 void Scene::DestroyEntity(entt::entity entity) {

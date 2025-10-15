@@ -2,16 +2,13 @@
 
 #include "Editor/EditorSelectionManager.hpp"
 
-#include "Components/ComponentModuleRegistry.hpp"
-#include "Components/Script.hpp"
-#include "Components/Sprite.hpp"
-#include "Components/Tag.hpp"
-#include "Components/Transform.hpp"
 #include "Core/Engine.hpp"
 #include "Core/Logger.hpp"
 #include "Editor/EditorCamera.hpp"
+#include "Scene/EntityFactory.hpp"
 #include "Scene/Scene.hpp"
-#include "Scripting/ScriptComponent.hpp"
+#include "Components/Transform.hpp"
+#include "Components/Sprite.hpp"
 
 #include <cmath>
 #include <imgui.h>
@@ -92,52 +89,7 @@ void EditorSelectionManager::ClearSelection() {
 }
 
 entt::entity EditorSelectionManager::DuplicateEntity(Engine* engine, entt::entity entity) {
-    if (!engine || !engine->GetActiveScene()) {
-        return entt::null;
-    }
-
-    Scene* scene = engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    if (!registry.valid(entity)) {
-        return entt::null;
-    }
-
-    std::string newName = "Entity (Copy)";
-    if (registry.all_of<Tag>(entity)) {
-        const Tag& originalTag = registry.get<Tag>(entity);
-        newName = originalTag.name + " (Copy)";
-    }
-
-    entt::entity newEntity = scene->CreateEntity(newName);
-
-    if (registry.all_of<Sprite>(entity)) {
-        const Sprite& originalSprite = registry.get<Sprite>(entity);
-        Sprite newSprite;
-
-        newSprite.textureAssetUUID = originalSprite.textureAssetUUID;
-        newSprite.tint = originalSprite.tint;
-        newSprite.sourceRect = originalSprite.sourceRect;
-        newSprite.origin = originalSprite.origin;
-        newSprite.layer = originalSprite.layer;
-
-        registry.emplace<Sprite>(newEntity, newSprite);
-    }
-
-    ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, entity, newEntity);
-
-    if (registry.all_of<Script>(entity)) {
-        const Script& originalScript = registry.get<Script>(entity);
-        Script newScript;
-        for (const ScriptInstance& script : originalScript.scripts) {
-            newScript.AddScript(script.scriptName);
-        }
-        registry.emplace<Script>(newEntity, newScript);
-    }
-
-    PX_LOG_INFO(EDITOR, "Entity duplicated with all components");
-
-    return newEntity;
+    return EntityFactory::DuplicateEntity(engine, entity);
 }
 
 void EditorSelectionManager::CopyEntity(Engine* engine, entt::entity entity) {

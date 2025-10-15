@@ -174,6 +174,10 @@ public:
             return;
         }
 
+        if (registry.all_of<T>(dstEntity)) {
+            return;
+        }
+
         const T& original = registry.get<T>(srcEntity);
         T copy;
 
