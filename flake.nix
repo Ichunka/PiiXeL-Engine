@@ -25,13 +25,15 @@
           packages = with pkgs; [
             cmake
 
-            raylib
+            /*
+              raylib
+              entt
+              nlohmann_json
+              imgui
+              box2d
+            */
 
-            entt
-            nlohmann_json
-            imgui
-            box2d
-
+            libGL
             libxcursor
             libxrandr
             xorg.libXi
@@ -40,6 +42,18 @@
 
           shellHook = ''
             export C_INCLUDE_PATH="${pkgs.raylib}/include:$C_INCLUDE_PATH"
+
+            engineClangdConfig="$PWD/engine/.clangd"
+            if [ ! \( -f "$engineClangdConfig" \) ]; then
+              echo "Created $engineClangdConfig"
+              echo -en "CompileFlags:\n  Add: [ -Wall, -Wextra, -I$PWD/engine/include" ] > "$engineClangdConfig"
+            fi
+
+            gameClangdConfig="$PWD/games/MyFirstGame/.clangd"
+            if [ ! \( -f "$gameClangdConfig" \) ]; then
+              echo "Created $gameClangdConfig"
+              echo -en "CompileFlags:\n  Add: [ -Wall, -Wextra, -I$PWD/engine/include, -I$PWD/games/MyFirstGame/include ]" > "$gameClangdConfig"
+            fi
           '';
         };
       }

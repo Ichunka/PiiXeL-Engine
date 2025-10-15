@@ -1,2 +1,0 @@
-CompileFlags:
-  Add: [ -Wall, -Wextra, -I/home/_shared/Dev/jam/PiiXeL-Engine/engine/include ]
