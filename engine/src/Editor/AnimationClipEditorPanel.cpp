@@ -253,7 +253,8 @@ void AnimationClipEditorPanel::RenderAvailableFrames() {
     ImGui::BeginChild("AvailableFramesScroll", ImVec2{0, 0}, false);
 
     if (m_SpriteSheet->GetFrameGroupCount() > 0 &&
-        ImGui::CollapsingHeader("Frame Groups", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::CollapsingHeader("Frame Groups", ImGuiTreeNodeFlags_DefaultOpen))
+    {
         const std::vector<FrameGroup>& groups = m_SpriteSheet->GetFrameGroups();
         for (size_t i = 0; i < groups.size(); ++i) {
             ImGui::PushID(static_cast<int>(i) + 10000);

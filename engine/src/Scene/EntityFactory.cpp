@@ -36,8 +36,7 @@ entt::entity EntityFactory::CreateEntity(Scene* scene, const std::string& name) 
     return entity;
 }
 
-entt::entity EntityFactory::DuplicateEntity(Scene* scene, entt::entity source,
-                                           const DuplicationOptions& options) {
+entt::entity EntityFactory::DuplicateEntity(Scene* scene, entt::entity source, const DuplicationOptions& options) {
     if (!scene) {
         PX_LOG_ERROR(SCENE, "Cannot duplicate entity: scene is null");
         return entt::null;
@@ -68,8 +67,7 @@ entt::entity EntityFactory::DuplicateEntity(Scene* scene, entt::entity source) {
     return DuplicateEntity(scene, source, DuplicationOptions{});
 }
 
-entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source,
-                                           const DuplicationOptions& options) {
+entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source, const DuplicationOptions& options) {
     if (!engine || !engine->GetActiveScene()) {
         PX_LOG_ERROR(SCENE, "Cannot duplicate entity: engine or scene is null");
         return entt::null;
@@ -82,8 +80,8 @@ entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source)
     return DuplicateEntity(engine, source, DuplicationOptions{});
 }
 
-void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::entity source,
-                                               entt::entity destination, const DuplicationOptions& options) {
+void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::entity source, entt::entity destination,
+                                               const DuplicationOptions& options) {
     UUID uuid;
     registry.emplace<UUID>(destination, uuid);
     EntityRegistry::Instance().RegisterEntity(uuid, destination);
@@ -120,7 +118,8 @@ void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::e
                     ScriptRegistry::Instance().CreateScript(sourceScriptInstance.scriptName);
                 if (newInstance) {
                     destScript.AddScript(newInstance, sourceScriptInstance.scriptName);
-                } else {
+                }
+                else {
                     destScript.AddScript(sourceScriptInstance.scriptName);
                 }
             }
@@ -129,8 +128,7 @@ void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::e
     }
 }
 
-void EntityFactory::DuplicateModuleComponents(entt::registry& registry, entt::entity source,
-                                              entt::entity destination) {
+void EntityFactory::DuplicateModuleComponents(entt::registry& registry, entt::entity source, entt::entity destination) {
 #ifdef BUILD_WITH_EDITOR
     ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, source, destination);
 #else

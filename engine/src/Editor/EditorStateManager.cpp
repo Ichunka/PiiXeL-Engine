@@ -96,7 +96,8 @@ void EditorStateManager::OnStopButtonPressed(Engine* engine, EditorSelectionMana
                                 if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
                                     const nlohmann::json& scriptsArray = entityJson["Scripts"];
                                     for (size_t i = 0; i < scriptComponent.scripts.size() && i < scriptsArray.size();
-                                         ++i) {
+                                         ++i)
+                                    {
                                         const nlohmann::json& scriptJson = scriptsArray[i];
                                         ScriptInstance& script = scriptComponent.scripts[i];
 
@@ -115,7 +116,8 @@ void EditorStateManager::OnStopButtonPressed(Engine* engine, EditorSelectionMana
                                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields())
                                                         {
                                                             if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                                                propertiesJson.contains(field.name)) {
+                                                                propertiesJson.contains(field.name))
+                                                            {
                                                                 void* fieldPtr = field.getPtr(
                                                                     static_cast<void*>(script.instance.get()));
                                                                 Reflection::JsonSerializer::DeserializeField(
@@ -148,7 +150,8 @@ void EditorStateManager::OnStopButtonPressed(Engine* engine, EditorSelectionMana
                                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields())
                                                         {
                                                             if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                                                propertiesJson.contains(field.name)) {
+                                                                propertiesJson.contains(field.name))
+                                                            {
                                                                 void* fieldPtr = field.getPtr(
                                                                     static_cast<void*>(script.instance.get()));
                                                                 Reflection::JsonSerializer::DeserializeField(

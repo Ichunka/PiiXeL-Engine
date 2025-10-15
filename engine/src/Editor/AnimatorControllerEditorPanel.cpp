@@ -642,7 +642,8 @@ void AnimatorControllerEditorPanel::RenderInspector() {
 
                 if (!params.empty()) {
                     if (ImGui::Combo("Parameter", &currentParamIndex, paramNames.data(),
-                                     static_cast<int>(paramNames.size()))) {
+                                     static_cast<int>(paramNames.size())))
+                    {
                         cond.parameterName = params[currentParamIndex].name;
                     }
 

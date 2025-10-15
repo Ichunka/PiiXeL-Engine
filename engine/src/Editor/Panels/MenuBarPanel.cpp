@@ -15,8 +15,8 @@ namespace PiiXeL {
 
 MenuBarPanel::MenuBarPanel(Engine* engine, EditorCommandSystem* commandSystem, EditorSceneManager* sceneManager,
                            ProjectSettingsPanel* projectSettingsPanel) :
-    m_Engine{engine},
-    m_CommandSystem{commandSystem}, m_SceneManager{sceneManager}, m_ProjectSettingsPanel{projectSettingsPanel} {}
+    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SceneManager{sceneManager},
+    m_ProjectSettingsPanel{projectSettingsPanel} {}
 
 void MenuBarPanel::OnImGuiRender() {
     if (ImGui::BeginMenuBar()) {

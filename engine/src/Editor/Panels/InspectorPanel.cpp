@@ -40,10 +40,10 @@ InspectorPanel::InspectorPanel(Engine* engine, EditorCommandSystem* commandSyste
                                bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
                                std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
                                Texture2D* defaultWhiteTexture) :
-    m_Engine{engine},
-    m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity}, m_InspectorLocked{inspectorLocked},
-    m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
-    m_AnimatorControllerEditor{animatorControllerEditor}, m_DefaultWhiteTexture{defaultWhiteTexture} {}
+    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity},
+    m_InspectorLocked{inspectorLocked}, m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID},
+    m_SelectedAssetPath{selectedAssetPath}, m_AnimatorControllerEditor{animatorControllerEditor},
+    m_DefaultWhiteTexture{defaultWhiteTexture} {}
 
 void InspectorPanel::SetRenderEntityPickerCallback(std::function<bool(const char*, entt::entity*)> callback) {
     m_RenderEntityPickerCallback = callback;

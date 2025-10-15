@@ -16,8 +16,7 @@ namespace PiiXeL {
 
 GameViewportPanel::GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture,
                                      EditorStateManager* stateManager) :
-    m_Engine{engine},
-    m_GameViewportTexture{gameViewportTexture}, m_StateManager{stateManager} {}
+    m_Engine{engine}, m_GameViewportTexture{gameViewportTexture}, m_StateManager{stateManager} {}
 
 void GameViewportPanel::SetGetPrimaryCameraCallback(std::function<entt::entity()> callback) {
     m_GetPrimaryCameraCallback = callback;

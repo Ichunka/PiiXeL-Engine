@@ -142,7 +142,8 @@ void EditorSceneManager::RestoreScriptPropertiesFromFile(const std::string& file
                             if (typeInfo) {
                                 for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                     if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
+                                        propertiesJson.contains(field.name))
+                                    {
                                         void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
                                         Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
                                                                                      fieldPtr);
@@ -172,7 +173,8 @@ void EditorSceneManager::RestoreScriptPropertiesFromFile(const std::string& file
                             if (typeInfo) {
                                 for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                     if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
+                                        propertiesJson.contains(field.name))
+                                    {
                                         void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
                                         Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
                                                                                      fieldPtr);

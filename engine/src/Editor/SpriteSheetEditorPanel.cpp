@@ -242,7 +242,8 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
                 m_SelectedCells.insert(i);
             }
             if (m_SelectedGroupIndex >= 0 &&
-                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -257,7 +258,8 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
         if (ImGui::Button("Clear")) {
             m_SelectedCells.clear();
             if (m_SelectedGroupIndex >= 0 &&
-                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -275,7 +277,8 @@ void SpriteSheetEditorPanel::RenderGridSettings() {
             }
             m_SelectedCells = newSelection;
             if (m_SelectedGroupIndex >= 0 &&
-                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -535,7 +538,8 @@ void SpriteSheetEditorPanel::RenderPreview() {
             }
 
             if (m_SelectedGroupIndex >= 0 &&
-                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount())) {
+                m_SelectedGroupIndex < static_cast<int>(m_SpriteSheet->GetFrameGroupCount()))
+            {
                 FrameGroup* group = m_SpriteSheet->GetFrameGroup(static_cast<size_t>(m_SelectedGroupIndex));
                 if (group) {
                     group->frameIndices.clear();
@@ -665,7 +669,8 @@ void SpriteSheetEditorPanel::RenderFrameGroups() {
         if (isSelected && m_IsEditingGroupName) {
             ImGui::SetKeyboardFocusHere();
             if (ImGui::InputText("##edit", m_EditGroupName, sizeof(m_EditGroupName),
-                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                 ImGuiInputTextFlags_EnterReturnsTrue))
+            {
                 FrameGroup* editGroup = m_SpriteSheet->GetFrameGroup(i);
                 if (editGroup) {
                     editGroup->name = m_EditGroupName;

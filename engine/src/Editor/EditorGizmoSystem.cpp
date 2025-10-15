@@ -43,7 +43,8 @@ void EditorGizmoSystem::HandleGizmoInteraction(Engine* engine, EditorCamera* edi
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !editorCamera->IsPanning()) {
         if (selectedEntity != entt::null && registry.valid(selectedEntity) &&
-            registry.all_of<Transform>(selectedEntity)) {
+            registry.all_of<Transform>(selectedEntity))
+        {
             Transform& transform = registry.get<Transform>(selectedEntity);
 
             m_SelectedAxis = GizmoAxis::None;
@@ -86,7 +87,8 @@ void EditorGizmoSystem::HandleGizmoInteraction(Engine* engine, EditorCamera* edi
                 Vector2 yHandle{transform.position.x, transform.position.y + arrowLength};
 
                 if (std::abs(mouseWorldPos.x - xHandle.x) < scaleHandleSize &&
-                    std::abs(mouseWorldPos.y - xHandle.y) < scaleHandleSize) {
+                    std::abs(mouseWorldPos.y - xHandle.y) < scaleHandleSize)
+                {
                     m_SelectedAxis = GizmoAxis::X;
                     m_IsDragging = true;
                     m_DragStartPos = mouseWorldPos;

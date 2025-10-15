@@ -18,10 +18,9 @@ namespace PiiXeL {
 HierarchyPanel::HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
                                bool* inspectorLocked, UUID* selectedAssetUUID, std::string* selectedAssetPath,
                                AnimatorControllerEditorPanel* animatorControllerEditor) :
-    m_Engine{engine},
-    m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity}, m_InspectorLocked{inspectorLocked},
-    m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath}, m_AnimatorControllerEditor{
-                                                                                        animatorControllerEditor} {}
+    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity},
+    m_InspectorLocked{inspectorLocked}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
+    m_AnimatorControllerEditor{animatorControllerEditor} {}
 
 void HierarchyPanel::SetDuplicateEntityCallback(std::function<entt::entity(entt::entity)> callback) {
     m_DuplicateEntityCallback = callback;
