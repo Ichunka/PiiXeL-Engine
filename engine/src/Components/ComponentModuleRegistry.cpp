@@ -40,8 +40,8 @@ void ComponentModuleRegistry::DeserializeComponent(const std::string& componentN
 #ifdef BUILD_WITH_EDITOR
 
 void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry, entt::entity entity,
-                                                       EditorCommandSystem& commandSystem, EntityPickerFunc entityPicker,
-                                                       AssetPickerFunc assetPicker) {
+                                                       EditorCommandSystem& commandSystem,
+                                                       EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) {
     std::vector<IComponentModule*> sortedModules;
     for (const auto& module : m_AllModules) {
         if (!module->IsRenderedByRegistry()) {

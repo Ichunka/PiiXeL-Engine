@@ -160,6 +160,6 @@ bool EditorAssetPickerUtility::RenderAssetPicker(const char* label, UUID* uuid, 
     return changed;
 }
 
-}
+} // namespace PiiXeL
 
 #endif

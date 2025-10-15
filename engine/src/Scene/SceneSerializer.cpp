@@ -196,8 +196,7 @@ entt::entity SceneSerializer::DeserializeEntity(const nlohmann::json& entityJson
         }
 
         if (spriteJson.contains("sourceRect") && spriteJson["sourceRect"].is_array() &&
-            spriteJson["sourceRect"].size() == 4)
-        {
+            spriteJson["sourceRect"].size() == 4) {
             sprite.sourceRect.x = spriteJson["sourceRect"][0].get<float>();
             sprite.sourceRect.y = spriteJson["sourceRect"][1].get<float>();
             sprite.sourceRect.width = spriteJson["sourceRect"][2].get<float>();

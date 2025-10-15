@@ -18,10 +18,12 @@ namespace PiiXeL {
 RenderSystem::RenderSystem()
 #ifdef BUILD_WITH_EDITOR
     :
-    m_ShowDebug{false}, m_ShowColliders{false}, m_DefaultWhiteTexture{}
+    m_ShowDebug{false},
+    m_ShowColliders{false}, m_DefaultWhiteTexture{}
 #else
     :
-    m_ShowDebug{false}, m_ShowColliders{false}, m_DefaultWhiteTexture{}
+    m_ShowDebug{false},
+    m_ShowColliders{false}, m_DefaultWhiteTexture{}
 #endif
 {
     Image whiteImage = GenImageColor(64, 64, WHITE);

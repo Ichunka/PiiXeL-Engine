@@ -3,6 +3,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include <entt/entt.hpp>
+
 #include <string>
 
 namespace PiiXeL {
@@ -16,6 +17,6 @@ public:
     static bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
 };
 
-}
+} // namespace PiiXeL
 
 #endif

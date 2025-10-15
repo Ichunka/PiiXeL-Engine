@@ -29,6 +29,9 @@ class ContentBrowserPanel;
 class ProfilerPanel;
 class GameViewportPanel;
 class SceneViewportPanel;
+class ProjectSettingsPanel;
+class ToolbarPanel;
+class MenuBarPanel;
 class EditorSceneManager;
 class EditorPanelManager;
 class EditorCamera;
@@ -51,11 +54,8 @@ public:
     [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
 
 private:
+    void LoadDefaultScene();
     void DeleteAssetWithPackage(const std::string& assetPath);
-
-    void RenderMenuBar();
-    void RenderToolbar();
-    void RenderProjectSettings();
 
     void HandleGizmoInteraction();
     void HandleEntitySelection();
@@ -64,19 +64,7 @@ private:
     void OnPlayButtonPressed();
     void OnStopButtonPressed();
 
-    void NewScene();
-    void SaveScene();
-    void SaveSceneAs();
-    void LoadScene();
-
     entt::entity GetPrimaryCamera();
-
-    entt::entity DuplicateEntity(entt::entity entity);
-    void CopyEntity(entt::entity entity);
-    void PasteEntity();
-
-    void RestoreScriptPropertiesFromFile(const std::string& filepath);
-    void UpdateAnimatorPreviewInEditMode();
 
 private:
     Engine* m_Engine;
@@ -92,15 +80,11 @@ private:
 
     bool m_IsDraggingEntity{false};
 
-    bool m_ShowProjectSettings{false};
-
     ConsoleFilters m_ConsoleFilters;
     bool m_ConsoleAutoScroll{true};
     int m_ConsoleSelectedTab{0};
     std::vector<int> m_ConsoleSelectedLines;
     int m_ConsoleLastClickedLine{-1};
-
-    entt::entity m_CopiedEntity{entt::null};
 
     bool m_ProfilerPaused{false};
     FrameSnapshot m_ProfilerPausedSnapshot{};
@@ -121,6 +105,9 @@ private:
     std::unique_ptr<ProfilerPanel> m_ProfilerPanel;
     std::unique_ptr<GameViewportPanel> m_GameViewportPanel;
     std::unique_ptr<SceneViewportPanel> m_SceneViewportPanel;
+    std::unique_ptr<ProjectSettingsPanel> m_ProjectSettingsPanel;
+    std::unique_ptr<ToolbarPanel> m_ToolbarPanel;
+    std::unique_ptr<MenuBarPanel> m_MenuBarPanel;
 
     std::unique_ptr<EditorSceneManager> m_SceneManager;
     std::unique_ptr<EditorPanelManager> m_PanelManager;

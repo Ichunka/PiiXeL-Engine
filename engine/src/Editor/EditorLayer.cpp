@@ -4,58 +4,48 @@
 
 #include "Animation/AnimationClip.hpp"
 #include "Animation/AnimatorController.hpp"
-#include "Animation/SpriteSheet.hpp"
 #include "Components/Animator.hpp"
 #include "Components/Camera.hpp"
 #include "Components/ComponentModuleRegistry.hpp"
-#include "Components/Script.hpp"
-#include "Components/Sprite.hpp"
-#include "Components/Tag.hpp"
 #include "Components/Transform.hpp"
 #include "Core/Engine.hpp"
 #include "Core/Logger.hpp"
-#include "Debug/DebugDraw.hpp"
 #include "Debug/Profiler.hpp"
 #include "Editor/AnimationClipEditorPanel.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
 #include "Editor/BuildPanel.hpp"
 #include "Editor/ConsoleLogger.hpp"
+#include "Editor/EditorAnimatorPreviewSystem.hpp"
 #include "Editor/EditorCamera.hpp"
-#include "Editor/EditorCommands.hpp"
 #include "Editor/EditorCommandSystem.hpp"
+#include "Editor/EditorGizmoSystem.hpp"
 #include "Editor/EditorPanelManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorSelectionManager.hpp"
-#include "Editor/EditorGizmoSystem.hpp"
+#include "Editor/EditorShortcutHandler.hpp"
 #include "Editor/EditorStateManager.hpp"
 #include "Editor/EditorThemeManager.hpp"
 #include "Editor/Panels/ConsolePanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
-#include "Editor/Utilities/EditorAssetPickerUtility.hpp"
 #include "Editor/Panels/GameViewportPanel.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
+#include "Editor/Panels/MenuBarPanel.hpp"
 #include "Editor/Panels/ProfilerPanel.hpp"
+#include "Editor/Panels/ProjectSettingsPanel.hpp"
 #include "Editor/Panels/SceneViewportPanel.hpp"
+#include "Editor/Panels/ToolbarPanel.hpp"
 #include "Editor/SpriteSheetEditorPanel.hpp"
+#include "Editor/Utilities/EditorAssetPickerUtility.hpp"
 #include "Project/ProjectSettings.hpp"
-#include "Reflection/Reflection.hpp"
-#include "Resources/AssetRegistry.hpp"
-#include "Resources/TextureAsset.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
-#include "Scripting/ScriptComponent.hpp"
-#include "Systems/AnimationSystem.hpp"
-#include "Systems/RenderSystem.hpp"
-#include "Systems/ScriptSystem.hpp"
 
 #include <entt/entt.hpp>
 #include <nlohmann/json.hpp>
 
-#include <algorithm>
 #include <cinttypes>
 #include <filesystem>
-#include <fstream>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <iomanip>
@@ -73,13 +63,10 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_DefaultWhiteTexture = LoadTextureFromImage(whiteImage);
     UnloadImage(whiteImage);
 
-    if (m_DefaultWhiteTexture.id != 0) {
+    if (m_DefaultWhiteTexture.id != 0)
         SetTextureWrap(m_DefaultWhiteTexture, TEXTURE_WRAP_CLAMP);
-        PX_LOG_INFO(EDITOR, "Default white texture created: %d (64x64)", m_DefaultWhiteTexture.id);
-    }
-    else {
+    else
         PX_LOG_ERROR(EDITOR, "Failed to create default white texture");
-    }
 
     m_EditorCamera = std::make_unique<EditorCamera>();
     m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
@@ -125,19 +112,31 @@ EditorLayer::EditorLayer(Engine* engine) :
         std::make_unique<SceneViewportPanel>(m_Engine, &m_ViewportTexture, &m_ViewportBounds, &m_ViewportHovered,
                                              &m_ViewportFocused, m_EditorCamera.get(), &m_ViewportPos, &m_ViewportSize);
 
-    m_HierarchyPanel->SetDuplicateEntityCallback([this](entt::entity entity) { return DuplicateEntity(entity); });
-    m_HierarchyPanel->SetCopyEntityCallback([this](entt::entity entity) { CopyEntity(entity); });
+    m_ProjectSettingsPanel = std::make_unique<ProjectSettingsPanel>(m_Engine);
 
-    m_InspectorPanel->SetRenderEntityPickerCallback(
-        [this](const char* label, entt::entity* entity) {
-            return EditorAssetPickerUtility::RenderEntityPicker(label, entity, m_Engine);
-        });
-    m_InspectorPanel->SetRenderAssetPickerCallback([](const char* label, UUID* uuid, const std::string& assetType) {
-        return EditorAssetPickerUtility::RenderAssetPicker(label, uuid, assetType);
+    m_ToolbarPanel = std::make_unique<ToolbarPanel>(m_Engine, m_GizmoSystem.get(), m_StateManager.get());
+    m_ToolbarPanel->SetOnPlayCallback([this]() { OnPlayButtonPressed(); });
+    m_ToolbarPanel->SetOnStopCallback([this]() { OnStopButtonPressed(); });
+
+    m_MenuBarPanel = std::make_unique<MenuBarPanel>(m_Engine, m_CommandSystem.get(), m_SceneManager.get(),
+                                                    m_ProjectSettingsPanel.get());
+
+    m_HierarchyPanel->SetDuplicateEntityCallback(
+        [this](entt::entity e) { return m_SelectionManager->DuplicateEntity(m_Engine, e); });
+    m_HierarchyPanel->SetCopyEntityCallback([this](entt::entity e) { m_SelectionManager->CopyEntity(m_Engine, e); });
+    m_InspectorPanel->SetRenderEntityPickerCallback([this](const char* l, entt::entity* e) {
+        return EditorAssetPickerUtility::RenderEntityPicker(l, e, m_Engine);
+    });
+    m_InspectorPanel->SetRenderAssetPickerCallback([](const char* l, UUID* u, const std::string& t) {
+        return EditorAssetPickerUtility::RenderAssetPicker(l, u, t);
     });
 
     m_ContentBrowserPanel->SetDeleteAssetCallback([this](const std::string& path) { DeleteAssetWithPackage(path); });
-    m_ContentBrowserPanel->SetLoadSceneCallback([this]() { LoadScene(); });
+    m_ContentBrowserPanel->SetLoadSceneCallback([this]() {
+        m_SceneManager->LoadScene();
+        m_SelectionManager->SetSelectedEntity(entt::null);
+        m_CommandSystem->Clear();
+    });
 
     m_GameViewportPanel->SetGetPrimaryCameraCallback([this]() { return GetPrimaryCamera(); });
 
@@ -151,49 +150,37 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_Engine->SetAnimationEnabled(false);
 
     SetTraceLogCallback(ConsoleLogger::RaylibLogCallback);
+    ProjectSettings::Instance().Load("game.config.json");
 
-    LOG_ENGINE_INFO("Console logger initialized");
-    LOG_ENGINE_DEBUG("Editor viewport size: 1920x1080");
-    LOG_GAME_INFO("Game subsystem ready");
-    LOG_GAME_DEBUG("Physics engine enabled");
+    LoadDefaultScene();
+}
 
-    PX_LOG_INFO(EDITOR, "Trace level message from Raylib");
-    PX_LOG_WARNING(EDITOR, "This is a warning test");
-    PX_LOG_ERROR(EDITOR, "This is an error test (not a real error)");
-
-    ProjectSettings& settings = ProjectSettings::Instance();
-    settings.Load("game.config.json");
-
+void EditorLayer::LoadDefaultScene() {
     std::string defaultScenePath = "content/scenes/Default_Scene.scene";
     if (FileExists(defaultScenePath.c_str()) && m_Engine && m_Engine->GetActiveScene()) {
         Scene* scene = m_Engine->GetActiveScene();
         SceneSerializer serializer{scene};
         if (serializer.Deserialize(defaultScenePath)) {
             m_SceneManager->SetCurrentScenePath(defaultScenePath);
-            RestoreScriptPropertiesFromFile(defaultScenePath);
+            m_SceneManager->RestoreScriptPropertiesFromFile(defaultScenePath);
             PX_LOG_INFO(EDITOR, "Loaded default scene: %s", defaultScenePath.c_str());
         }
     }
 }
 
 EditorLayer::~EditorLayer() {
-    if (m_ViewportTexture.id != 0) {
+    if (m_ViewportTexture.id != 0)
         UnloadRenderTexture(m_ViewportTexture);
-    }
-    if (m_GameViewportTexture.id != 0) {
+    if (m_GameViewportTexture.id != 0)
         UnloadRenderTexture(m_GameViewportTexture);
-    }
-    if (m_DefaultWhiteTexture.id != 0) {
+    if (m_DefaultWhiteTexture.id != 0)
         UnloadTexture(m_DefaultWhiteTexture);
-    }
 }
 
 void EditorLayer::OnUpdate(float deltaTime) {
     (void)deltaTime;
-
-    if (m_StateManager->IsEditMode()) {
-        UpdateAnimatorPreviewInEditMode();
-    }
+    if (m_StateManager->IsEditMode())
+        EditorAnimatorPreviewSystem::UpdateAnimatorPreviewInEditMode(m_Engine);
 }
 
 void EditorLayer::OnRender() {}
@@ -201,79 +188,25 @@ void EditorLayer::OnRender() {}
 void EditorLayer::OnImGuiRender() {
     PROFILE_FUNCTION();
 
-    ImGuiIO& io = ImGui::GetIO();
-
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_W, false)) {
-        m_CommandSystem->Undo();
-    }
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
-        m_CommandSystem->Redo();
-    }
-
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
-        SaveScene();
-    }
-    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false)) {
-        LoadScene();
-    }
-
-    if (m_StateManager->IsEditMode() && m_SelectionManager->GetSelectedEntity() != entt::null) {
-        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-            CopyEntity(m_SelectionManager->GetSelectedEntity());
-        }
-        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
-            PasteEntity();
-        }
-        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-            entt::entity newEntity = DuplicateEntity(m_SelectionManager->GetSelectedEntity());
-            m_SelectionManager->SetSelectedEntity(newEntity);
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
-            if (m_Engine && m_Engine->GetActiveScene()) {
-                Scene* scene = m_Engine->GetActiveScene();
-                entt::registry& registry = scene->GetRegistry();
-                if (registry.valid(m_SelectionManager->GetSelectedEntity())) {
-                    registry.destroy(m_SelectionManager->GetSelectedEntity());
-                    m_SelectionManager->SetSelectedEntity(entt::null);
-                }
-            }
-        }
-    }
+    EditorShortcutHandler::HandleShortcuts(m_Engine, m_CommandSystem.get(), m_SceneManager.get(),
+                                           m_SelectionManager.get(), m_StateManager.get());
 
     m_PanelManager->BeginDockspace();
 
-    RenderMenuBar();
-    RenderToolbar();
-
-    if (m_HierarchyPanel)
-        m_HierarchyPanel->OnImGuiRender();
-    if (m_InspectorPanel)
-        m_InspectorPanel->OnImGuiRender();
-    if (m_SceneViewportPanel)
-        m_SceneViewportPanel->OnImGuiRender();
-    if (m_GameViewportPanel)
-        m_GameViewportPanel->OnImGuiRender();
-    if (m_ContentBrowserPanel)
-        m_ContentBrowserPanel->OnImGuiRender();
-    if (m_ConsolePanel)
-        m_ConsolePanel->OnImGuiRender();
-    RenderProjectSettings();
-    if (m_ProfilerPanel)
-        m_ProfilerPanel->OnImGuiRender();
-    if (m_BuildPanel)
-        m_BuildPanel->Render();
-
-    if (m_SpriteSheetEditor) {
-        m_SpriteSheetEditor->Render();
-    }
-
-    if (m_AnimationClipEditor) {
-        m_AnimationClipEditor->Render();
-    }
-
-    if (m_AnimatorControllerEditor) {
-        m_AnimatorControllerEditor->Render();
-    }
+    m_MenuBarPanel->OnImGuiRender();
+    m_ToolbarPanel->OnImGuiRender();
+    m_HierarchyPanel->OnImGuiRender();
+    m_InspectorPanel->OnImGuiRender();
+    m_SceneViewportPanel->OnImGuiRender();
+    m_GameViewportPanel->OnImGuiRender();
+    m_ContentBrowserPanel->OnImGuiRender();
+    m_ConsolePanel->OnImGuiRender();
+    m_ProjectSettingsPanel->OnImGuiRender();
+    m_ProfilerPanel->OnImGuiRender();
+    m_BuildPanel->Render();
+    m_SpriteSheetEditor->Render();
+    m_AnimationClipEditor->Render();
+    m_AnimatorControllerEditor->Render();
 
     m_PanelManager->EndDockspace();
 }
@@ -297,713 +230,48 @@ void EditorLayer::DeleteAssetWithPackage(const std::string& assetPath) {
     }
 }
 
-void EditorLayer::RenderMenuBar() {
-    PROFILE_FUNCTION();
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
-                LoadScene();
-            }
-            if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
-                SaveScene();
-            }
-            if (ImGui::MenuItem("Save Scene As...")) {
-                SaveSceneAs();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Exit")) {
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, m_CommandSystem->CanUndo())) {
-                m_CommandSystem->Undo();
-            }
-            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, m_CommandSystem->CanRedo())) {
-                m_CommandSystem->Redo();
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Entity")) {
-            if (ImGui::MenuItem("Create Empty")) {
-                Scene* scene = m_Engine->GetActiveScene();
-                if (m_Engine && scene) {
-                    m_CommandSystem->ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "Entity"));
-                }
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Project")) {
-            if (ImGui::MenuItem("Settings")) {
-                m_ShowProjectSettings = true;
-            }
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndMenuBar();
-    }
-}
-
-void EditorLayer::RenderToolbar() {
-    PROFILE_FUNCTION();
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8, 8});
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{8, 4});
-
-    ImGui::Begin("Toolbar", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollbar);
-
-    if (m_StateManager->IsEditMode()) {
-        if (ImGui::Button("Play")) {
-            OnPlayButtonPressed();
-        }
-    }
-    else {
-        if (ImGui::Button("Stop")) {
-            OnStopButtonPressed();
-        }
-    }
-
-    ImGui::SameLine();
-    ImGui::Text("| State: %s", m_StateManager->IsEditMode() ? "Edit" : "Play");
-
-    ImGui::SameLine();
-    ImGui::Separator();
-
-    if (m_StateManager->IsEditMode()) {
-        ImGui::SameLine();
-        ImGui::Text("Gizmo:");
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Translate", m_GizmoSystem->GetGizmoMode() == GizmoMode::Translate)) {
-            m_GizmoSystem->SetGizmoMode(GizmoMode::Translate);
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", m_GizmoSystem->GetGizmoMode() == GizmoMode::Rotate)) {
-            m_GizmoSystem->SetGizmoMode(GizmoMode::Rotate);
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", m_GizmoSystem->GetGizmoMode() == GizmoMode::Scale)) {
-            m_GizmoSystem->SetGizmoMode(GizmoMode::Scale);
-        }
-    }
-
-    ImGui::SameLine();
-    ImGui::Separator();
-
-    ImGui::SameLine();
-    if (m_Engine && m_Engine->GetRenderSystem()) {
-        RenderSystem* renderSystem = m_Engine->GetRenderSystem();
-
-        bool showColliders = renderSystem->GetShowColliders();
-        if (ImGui::Checkbox("Show Colliders", &showColliders)) {
-            renderSystem->SetShowColliders(showColliders);
-        }
-
-        ImGui::SameLine();
-        bool showDebug = renderSystem->GetShowDebug();
-        if (ImGui::Checkbox("Show Debug", &showDebug)) {
-            renderSystem->SetShowDebug(showDebug);
-        }
-
-        ImGui::SameLine();
-        bool showDebugRays = DebugDraw::Instance().IsEnabled();
-        if (ImGui::Checkbox("Show Rays", &showDebugRays)) {
-            DebugDraw::Instance().SetEnabled(showDebugRays);
-        }
-    }
-
-    ImGui::End();
-    ImGui::PopStyleVar(2);
-}
-
 void EditorLayer::HandleGizmoInteraction() {
-    if (m_StateManager->IsPlayMode()) {
+    if (m_StateManager->IsPlayMode())
         return;
-    }
-
-    m_GizmoSystem->HandleGizmoInteraction(
-        m_Engine,
-        m_EditorCamera.get(),
-        m_SelectionManager->GetSelectedEntity(),
-        m_ViewportPos.x,
-        m_ViewportPos.y,
-        m_ViewportSize.x,
-        m_ViewportSize.y,
-        m_CommandSystem.get()
-    );
+    m_GizmoSystem->HandleGizmoInteraction(m_Engine, m_EditorCamera.get(), m_SelectionManager->GetSelectedEntity(),
+                                          m_ViewportPos.x, m_ViewportPos.y, m_ViewportSize.x, m_ViewportSize.y,
+                                          m_CommandSystem.get());
 }
 
 void EditorLayer::HandleEntitySelection() {
-    if (m_StateManager->IsPlayMode()) {
+    if (m_StateManager->IsPlayMode())
         return;
-    }
-
-    m_SelectionManager->HandleEntitySelection(
-        m_Engine,
-        m_EditorCamera.get(),
-        m_ViewportPos.x,
-        m_ViewportPos.y,
-        m_ViewportSize.x,
-        m_ViewportSize.y,
-        m_GizmoSystem->IsDragging()
-    );
+    m_SelectionManager->HandleEntitySelection(m_Engine, m_EditorCamera.get(), m_ViewportPos.x, m_ViewportPos.y,
+                                              m_ViewportSize.x, m_ViewportSize.y, m_GizmoSystem->IsDragging());
 }
 
 void EditorLayer::RenderGizmos() {
-    if (m_StateManager->IsPlayMode()) {
+    if (m_StateManager->IsPlayMode())
         return;
-    }
-
-    m_GizmoSystem->RenderGizmos(
-        m_Engine,
-        m_EditorCamera.get(),
-        m_SelectionManager->GetSelectedEntity()
-    );
+    m_GizmoSystem->RenderGizmos(m_Engine, m_EditorCamera.get(), m_SelectionManager->GetSelectedEntity());
 }
 
 entt::entity EditorLayer::GetPrimaryCamera() {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
+    if (!m_Engine || !m_Engine->GetActiveScene())
         return entt::null;
-    }
-
     Scene* scene = m_Engine->GetActiveScene();
     entt::registry& registry = scene->GetRegistry();
 
     entt::entity primaryCamera = entt::null;
     registry.view<Camera, Transform>().each([&](entt::entity entity, const Camera& camera, const Transform&) {
-        if (camera.isPrimary) {
+        if (camera.isPrimary)
             primaryCamera = entity;
-        }
     });
-
     return primaryCamera;
 }
 
 void EditorLayer::OnPlayButtonPressed() {
-    m_StateManager->OnPlayButtonPressed(m_Engine, m_SceneManager.get(), m_SelectionManager.get(), m_CommandSystem.get());
+    m_StateManager->OnPlayButtonPressed(m_Engine, m_SceneManager.get(), m_SelectionManager.get(),
+                                        m_CommandSystem.get());
 }
 
 void EditorLayer::OnStopButtonPressed() {
     m_StateManager->OnStopButtonPressed(m_Engine, m_SelectionManager.get(), m_CommandSystem.get());
-}
-
-void EditorLayer::NewScene() {
-    m_SceneManager->NewScene();
-    m_SelectionManager->SetSelectedEntity(entt::null);
-    m_CommandSystem->Clear();
-}
-
-void EditorLayer::SaveScene() {
-    m_SceneManager->SaveScene();
-}
-
-void EditorLayer::SaveSceneAs() {
-    m_SceneManager->SaveSceneAs();
-}
-
-void EditorLayer::LoadScene() {
-    m_SceneManager->LoadScene();
-    m_SelectionManager->SetSelectedEntity(entt::null);
-    m_CommandSystem->Clear();
-    RestoreScriptPropertiesFromFile(m_SceneManager->GetCurrentScenePath());
-}
-
-void EditorLayer::RenderProjectSettings() {
-    PROFILE_FUNCTION();
-    if (!m_ShowProjectSettings) {
-        return;
-    }
-
-    ImGui::SetNextWindowSize(ImVec2{600, 500}, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Project Settings", &m_ShowProjectSettings)) {
-        ProjectSettings& settings = ProjectSettings::Instance();
-
-        if (ImGui::BeginTabBar("SettingsTabs")) {
-            if (ImGui::BeginTabItem("General")) {
-                ImGui::SeparatorText("Project Info");
-
-                char projectName[256];
-                std::memcpy(projectName, settings.projectName.c_str(),
-                            std::min(settings.projectName.size(), sizeof(projectName) - 1));
-                projectName[std::min(settings.projectName.size(), sizeof(projectName) - 1)] = '\0';
-
-                if (ImGui::InputText("Project Name", projectName, sizeof(projectName))) {
-                    settings.projectName = std::string(projectName);
-                }
-
-                char version[64];
-                std::memcpy(version, settings.version.c_str(), std::min(settings.version.size(), sizeof(version) - 1));
-                version[std::min(settings.version.size(), sizeof(version) - 1)] = '\0';
-
-                if (ImGui::InputText("Version", version, sizeof(version))) {
-                    settings.version = std::string(version);
-                }
-
-                char company[256];
-                std::memcpy(company, settings.company.c_str(), std::min(settings.company.size(), sizeof(company) - 1));
-                company[std::min(settings.company.size(), sizeof(company) - 1)] = '\0';
-
-                if (ImGui::InputText("Company", company, sizeof(company))) {
-                    settings.company = std::string(company);
-                }
-
-                char startScene[256];
-                std::memcpy(startScene, settings.startScene.c_str(),
-                            std::min(settings.startScene.size(), sizeof(startScene) - 1));
-                startScene[std::min(settings.startScene.size(), sizeof(startScene) - 1)] = '\0';
-
-                if (ImGui::InputText("Start Scene", startScene, sizeof(startScene))) {
-                    settings.startScene = std::string(startScene);
-                }
-
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Window")) {
-                ImGui::SeparatorText("Window Settings");
-
-                ImGui::DragInt("Width", &settings.window.width, 1.0f, 640, 3840);
-                ImGui::DragInt("Height", &settings.window.height, 1.0f, 480, 2160);
-                ImGui::DragInt("Target FPS", &settings.window.targetFPS, 1.0f, 30, 240);
-
-                ImGui::Checkbox("Resizable", &settings.window.resizable);
-                ImGui::Checkbox("VSync", &settings.window.vsync);
-                ImGui::Checkbox("Fullscreen by Default", &settings.window.fullscreen);
-
-                ImGui::SeparatorText("Window Icon");
-                char iconPath[512];
-                std::memcpy(iconPath, settings.window.icon.c_str(),
-                            std::min(settings.window.icon.size(), sizeof(iconPath) - 1));
-                iconPath[std::min(settings.window.icon.size(), sizeof(iconPath) - 1)] = '\0';
-                if (ImGui::InputText("Icon Path", iconPath, sizeof(iconPath))) {
-                    settings.window.icon = std::string(iconPath);
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("(?)");
-                if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("Path to icon file (relative to game directory)\n\n"
-                                      "Recommended: Use .ico format for both window and exe icon\n\n"
-                                      "How it works:\n"
-                                      "1. Set path to .ico file (e.g., content/assets/icon.ico)\n"
-                                      "2. Engine tries to load .ico for window icon\n"
-                                      "3. If .ico fails, automatically uses .png fallback\n"
-                                      "4. Windows exe icon is embedded via CMake\n\n"
-                                      "Fallback: If .ico doesn't work for window icon,\n"
-                                      "create icon.png in same directory\n\n"
-                                      "Any pixel format works (RGBA, RGB, Grayscale)\n"
-                                      "- Engine auto-converts to required format");
-                }
-
-                ImGui::Spacing();
-                ImGui::TextDisabled("Note: These settings apply to the built game.");
-                ImGui::TextDisabled("Use F11 to toggle fullscreen at runtime.");
-
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Physics")) {
-                ImGui::SeparatorText("Physics Settings");
-
-                ImGui::DragFloat2("Gravity", &settings.physics.gravity.x, 0.1f, -100.0f, 100.0f);
-                ImGui::DragFloat("Time Step", &settings.physics.timeStep, 0.001f, 0.001f, 0.1f, "%.4f");
-                ImGui::DragInt("Velocity Iterations", &settings.physics.velocityIterations, 1.0f, 1, 20);
-                ImGui::DragInt("Position Iterations", &settings.physics.positionIterations, 1.0f, 1, 20);
-
-                ImGui::Spacing();
-                if (ImGui::Button("Apply to Current Physics")) {
-                    if (m_Engine && m_Engine->GetPhysicsSystem()) {
-                        settings.ApplyToPhysics(m_Engine->GetPhysicsSystem());
-                    }
-                }
-
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Build")) {
-                ImGui::SeparatorText("Build Settings");
-
-                ImGui::Text("Assets Mode:");
-                ImGui::SameLine();
-                ImGui::TextDisabled("(?)");
-                if (ImGui::IsItemHovered()) {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("Auto: Only include assets used in scenes");
-                    ImGui::Text("All: Include all assets from content/assets");
-                    ImGui::Text("Manual: Manually specify assets to include");
-                    ImGui::EndTooltip();
-                }
-
-                const char* assetsModes[] = {"auto", "all", "manual"};
-                int currentMode = 0;
-                std::string currentModeStr = "auto";
-
-                if (settings.buildConfig.contains("assetsMode")) {
-                    currentModeStr = settings.buildConfig["assetsMode"].get<std::string>();
-                    if (currentModeStr == "all")
-                        currentMode = 1;
-                    else if (currentModeStr == "manual")
-                        currentMode = 2;
-                }
-
-                if (ImGui::Combo("##AssetsMode", &currentMode, assetsModes, 3)) {
-                    settings.buildConfig["assetsMode"] = assetsModes[currentMode];
-                }
-
-                ImGui::Spacing();
-                ImGui::SeparatorText("Scenes to Export");
-
-                if (!settings.buildConfig.contains("scenes") || !settings.buildConfig["scenes"].is_array()) {
-                    settings.buildConfig["scenes"] = nlohmann::json::array();
-                }
-
-                nlohmann::json& scenes = settings.buildConfig["scenes"];
-
-                for (size_t i = 0; i < scenes.size(); ++i) {
-                    ImGui::PushID(static_cast<int>(i));
-
-                    std::string scenePath = scenes[i].get<std::string>();
-                    char scenePathBuf[512];
-                    std::memcpy(scenePathBuf, scenePath.c_str(), std::min(scenePath.size(), sizeof(scenePathBuf) - 1));
-                    scenePathBuf[std::min(scenePath.size(), sizeof(scenePathBuf) - 1)] = '\0';
-
-                    ImGui::SetNextItemWidth(-60.0f);
-                    if (ImGui::InputText("##scene", scenePathBuf, sizeof(scenePathBuf))) {
-                        scenes[i] = std::string(scenePathBuf);
-                    }
-
-                    ImGui::SameLine();
-                    if (ImGui::Button("Remove")) {
-                        scenes.erase(scenes.begin() + static_cast<int>(i));
-                        --i;
-                    }
-
-                    ImGui::PopID();
-                }
-
-                if (ImGui::Button("Add Scene")) {
-                    scenes.push_back("content/scenes/NewScene.scene");
-                }
-
-                if (currentMode == 2) {
-                    ImGui::Spacing();
-                    ImGui::SeparatorText("Assets to Export (Manual Mode)");
-
-                    if (!settings.buildConfig.contains("assets") || !settings.buildConfig["assets"].is_array()) {
-                        settings.buildConfig["assets"] = nlohmann::json::array();
-                    }
-
-                    nlohmann::json& assets = settings.buildConfig["assets"];
-
-                    for (size_t i = 0; i < assets.size(); ++i) {
-                        ImGui::PushID(1000 + static_cast<int>(i));
-
-                        std::string assetPath = assets[i].get<std::string>();
-                        char assetPathBuf[512];
-                        std::memcpy(assetPathBuf, assetPath.c_str(),
-                                    std::min(assetPath.size(), sizeof(assetPathBuf) - 1));
-                        assetPathBuf[std::min(assetPath.size(), sizeof(assetPathBuf) - 1)] = '\0';
-
-                        ImGui::SetNextItemWidth(-60.0f);
-                        if (ImGui::InputText("##asset", assetPathBuf, sizeof(assetPathBuf))) {
-                            assets[i] = std::string(assetPathBuf);
-                        }
-
-                        ImGui::SameLine();
-                        if (ImGui::Button("Remove")) {
-                            assets.erase(assets.begin() + static_cast<int>(i));
-                            --i;
-                        }
-
-                        ImGui::PopID();
-                    }
-
-                    if (ImGui::Button("Add Asset")) {
-                        assets.push_back("content/assets/");
-                    }
-                }
-                else {
-                    ImGui::Spacing();
-                    if (currentMode == 0) {
-                        ImGui::TextDisabled("Assets will be automatically detected from scenes");
-                    }
-                    else {
-                        ImGui::TextDisabled("All assets from content/assets will be included");
-                    }
-                }
-
-                ImGui::EndTabItem();
-            }
-
-            ImGui::EndTabBar();
-        }
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        if (ImGui::Button("Save Settings")) {
-            settings.Save();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Load Settings")) {
-            settings.Load();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Close")) {
-            m_ShowProjectSettings = false;
-        }
-    }
-    ImGui::End();
-}
-
-void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {
-    if (!m_Engine || !m_Engine->GetActiveScene() || !m_Engine->GetScriptSystem()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-    ScriptSystem* scriptSystem = m_Engine->GetScriptSystem();
-
-    try {
-        std::ifstream file{filepath};
-        if (!file.is_open()) {
-            return;
-        }
-
-        nlohmann::json sceneJson{};
-        file >> sceneJson;
-        file.close();
-
-        if (!sceneJson.contains("entities") || !sceneJson["entities"].is_array()) {
-            return;
-        }
-
-        size_t entityIndex = 0;
-        const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
-
-        for (entt::entity entity : entityOrder) {
-            if (entityIndex >= sceneJson["entities"].size())
-                break;
-
-            const nlohmann::json& entityJson = sceneJson["entities"][entityIndex];
-
-            if (registry.all_of<Script>(entity)) {
-                Script& scriptComponent = registry.get<Script>(entity);
-
-                if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
-                    const nlohmann::json& scriptsArray = entityJson["Scripts"];
-                    size_t scriptCount = std::min(scriptComponent.scripts.size(), scriptsArray.size());
-
-                    for (size_t i = 0; i < scriptCount; ++i) {
-                        ScriptInstance& script = scriptComponent.scripts[i];
-                        const nlohmann::json& scriptJson = scriptsArray[i];
-
-                        if (!script.scriptName.empty() && !script.instance) {
-                            script.instance = scriptSystem->CreateScript(script.scriptName);
-                            if (script.instance) {
-                                script.instance->Initialize(entity, scene);
-                            }
-                        }
-
-                        if (script.instance && scriptJson.contains("properties")) {
-                            const nlohmann::json& propertiesJson = scriptJson["properties"];
-                            const Reflection::TypeInfo* typeInfo =
-                                Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-
-                            if (typeInfo) {
-                                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                    if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
-                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                        Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
-                                                                                     fieldPtr);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (entityJson.contains("Script")) {
-                    const nlohmann::json& scriptJson = entityJson["Script"];
-                    if (scriptComponent.scripts.size() > 0) {
-                        ScriptInstance& script = scriptComponent.scripts[0];
-
-                        if (!script.scriptName.empty() && !script.instance) {
-                            script.instance = scriptSystem->CreateScript(script.scriptName);
-                            if (script.instance) {
-                                script.instance->Initialize(entity, scene);
-                            }
-                        }
-
-                        if (script.instance && scriptJson.contains("properties")) {
-                            const nlohmann::json& propertiesJson = scriptJson["properties"];
-                            const Reflection::TypeInfo* typeInfo =
-                                Reflection::TypeRegistry::Instance().GetTypeInfo(typeid(*script.instance));
-
-                            if (typeInfo) {
-                                for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
-                                    if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                        propertiesJson.contains(field.name)) {
-                                        void* fieldPtr = field.getPtr(static_cast<void*>(script.instance.get()));
-                                        Reflection::JsonSerializer::DeserializeField(field, propertiesJson[field.name],
-                                                                                     fieldPtr);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            entityIndex++;
-        }
-    }
-    catch (const std::exception& e) {
-        TraceLog(LOG_ERROR, "Failed to restore script properties: %s", e.what());
-    }
-}
-
-void EditorLayer::UpdateAnimatorPreviewInEditMode() {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    auto view = registry.view<Animator, Sprite>();
-    for (entt::entity entity : view) {
-        Animator& animator = view.get<Animator>(entity);
-        Sprite& sprite = view.get<Sprite>(entity);
-
-        if (animator.controllerUUID.Get() == 0) {
-            continue;
-        }
-
-        std::shared_ptr<Asset> controllerAsset = AssetRegistry::Instance().GetAsset(animator.controllerUUID);
-        AnimatorController* controller = dynamic_cast<AnimatorController*>(controllerAsset.get());
-        if (!controller) {
-            continue;
-        }
-
-        std::string defaultStateName = controller->GetDefaultState();
-        const AnimatorState* defaultState = controller->GetState(defaultStateName);
-        if (!defaultState || defaultState->animationClipUUID.Get() == 0) {
-            continue;
-        }
-
-        std::shared_ptr<Asset> clipAsset = AssetRegistry::Instance().GetAsset(defaultState->animationClipUUID);
-        AnimationClip* clip = dynamic_cast<AnimationClip*>(clipAsset.get());
-        if (!clip || clip->GetFrames().empty()) {
-            continue;
-        }
-
-        std::shared_ptr<Asset> sheetAsset = AssetRegistry::Instance().GetAsset(clip->GetSpriteSheetUUID());
-        SpriteSheet* sheet = dynamic_cast<SpriteSheet*>(sheetAsset.get());
-        if (!sheet) {
-            continue;
-        }
-
-        const AnimationFrame& firstFrame = clip->GetFrames()[0];
-        const SpriteFrame* spriteFrame = sheet->GetFrame(firstFrame.frameIndex);
-        if (spriteFrame) {
-            sprite.textureAssetUUID = sheet->GetTextureUUID();
-            sprite.sourceRect = spriteFrame->sourceRect;
-            sprite.origin = spriteFrame->pivot;
-        }
-    }
-}
-
-entt::entity EditorLayer::DuplicateEntity(entt::entity entity) {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return entt::null;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    if (!registry.valid(entity)) {
-        return entt::null;
-    }
-
-    std::string newName = "Entity (Copy)";
-    if (registry.all_of<Tag>(entity)) {
-        const Tag& originalTag = registry.get<Tag>(entity);
-        newName = originalTag.name + " (Copy)";
-    }
-
-    entt::entity newEntity = scene->CreateEntity(newName);
-
-    if (registry.all_of<Sprite>(entity)) {
-        const Sprite& originalSprite = registry.get<Sprite>(entity);
-        Sprite newSprite;
-
-        newSprite.textureAssetUUID = originalSprite.textureAssetUUID;
-        newSprite.tint = originalSprite.tint;
-        newSprite.sourceRect = originalSprite.sourceRect;
-        newSprite.origin = originalSprite.origin;
-        newSprite.layer = originalSprite.layer;
-
-        registry.emplace<Sprite>(newEntity, newSprite);
-    }
-
-    ComponentModuleRegistry::Instance().DuplicateAllComponents(registry, entity, newEntity);
-
-    if (registry.all_of<Script>(entity)) {
-        const Script& originalScript = registry.get<Script>(entity);
-        Script newScript;
-        for (const ScriptInstance& script : originalScript.scripts) {
-            newScript.AddScript(script.scriptName);
-        }
-        registry.emplace<Script>(newEntity, newScript);
-    }
-
-    PX_LOG_INFO(EDITOR, "Entity duplicated with all components");
-
-    return newEntity;
-}
-
-void EditorLayer::CopyEntity(entt::entity entity) {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    if (!registry.valid(entity)) {
-        return;
-    }
-
-    m_CopiedEntity = entity;
-    PX_LOG_INFO(EDITOR, "Entity copied to clipboard");
-}
-
-void EditorLayer::PasteEntity() {
-    if (m_CopiedEntity == entt::null) {
-        return;
-    }
-
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    if (!registry.valid(m_CopiedEntity)) {
-        m_CopiedEntity = entt::null;
-        return;
-    }
-
-    entt::entity newEntity = DuplicateEntity(m_CopiedEntity);
-    m_SelectionManager->SetSelectedEntity(newEntity);
-
-    PX_LOG_INFO(EDITOR, "Entity pasted");
 }
 
 } // namespace PiiXeL

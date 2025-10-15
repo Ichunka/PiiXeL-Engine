@@ -101,8 +101,7 @@ std::vector<AssetInfo> AssetManager::ScanAssetsDirectory(const std::string& dire
             std::string type{};
 
             if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp" ||
-                extension == ".tga")
-            {
+                extension == ".tga") {
                 type = "texture";
             }
             else if (extension == ".wav" || extension == ".mp3" || extension == ".ogg") {

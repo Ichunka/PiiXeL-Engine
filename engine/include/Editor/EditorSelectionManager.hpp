@@ -37,6 +37,10 @@ public:
 
     void ClearSelection();
 
+    entt::entity DuplicateEntity(Engine* engine, entt::entity entity);
+    void CopyEntity(Engine* engine, entt::entity entity);
+    void PasteEntity(Engine* engine);
+
     entt::entity* GetSelectedEntityPtr() { return &m_SelectedEntity; }
     bool* GetInspectorLockedPtr() { return &m_InspectorLocked; }
     entt::entity* GetLockedEntityPtr() { return &m_LockedEntity; }
@@ -49,6 +53,7 @@ private:
     entt::entity m_LockedEntity{entt::null};
     UUID m_SelectedAssetUUID{0};
     std::string m_SelectedAssetPath;
+    entt::entity m_CopiedEntity{entt::null};
 };
 
 } // namespace PiiXeL

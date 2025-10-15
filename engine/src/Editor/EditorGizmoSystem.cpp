@@ -1,37 +1,27 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorGizmoSystem.hpp"
+
+#include "Components/Transform.hpp"
+#include "Core/Engine.hpp"
 #include "Editor/EditorCamera.hpp"
 #include "Editor/EditorCommands.hpp"
 #include "Editor/EditorCommandSystem.hpp"
-#include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
-#include "Components/Transform.hpp"
+
+#include <cmath>
 #include <imgui.h>
 #include <raylib.h>
-#include <cmath>
 
 namespace PiiXeL {
 
-EditorGizmoSystem::EditorGizmoSystem()
-    : m_GizmoMode{GizmoMode::Translate}
-    , m_SelectedAxis{GizmoAxis::None}
-    , m_IsDragging{false}
-    , m_DragStartPos{0.0f, 0.0f}
-    , m_EntityStartPos{0.0f, 0.0f}
-{
-}
+EditorGizmoSystem::EditorGizmoSystem() :
+    m_GizmoMode{GizmoMode::Translate}, m_SelectedAxis{GizmoAxis::None}, m_IsDragging{false}, m_DragStartPos{0.0f, 0.0f},
+    m_EntityStartPos{0.0f, 0.0f} {}
 
-void EditorGizmoSystem::HandleGizmoInteraction(
-    Engine* engine,
-    EditorCamera* editorCamera,
-    entt::entity selectedEntity,
-    float viewportPosX,
-    float viewportPosY,
-    float viewportWidth,
-    float viewportHeight,
-    EditorCommandSystem* commandSystem
-) {
+void EditorGizmoSystem::HandleGizmoInteraction(Engine* engine, EditorCamera* editorCamera, entt::entity selectedEntity,
+                                               float viewportPosX, float viewportPosY, float viewportWidth,
+                                               float viewportHeight, EditorCommandSystem* commandSystem) {
     if (!engine || !engine->GetActiveScene()) {
         return;
     }
@@ -42,8 +32,8 @@ void EditorGizmoSystem::HandleGizmoInteraction(
     ImVec2 mouseImGui = ImGui::GetMousePos();
     Vector2 mouseViewportPos{mouseImGui.x - viewportPosX, mouseImGui.y - viewportPosY};
 
-    if (mouseViewportPos.x < 0 || mouseViewportPos.y < 0 ||
-        mouseViewportPos.x > viewportWidth || mouseViewportPos.y > viewportHeight)
+    if (mouseViewportPos.x < 0 || mouseViewportPos.y < 0 || mouseViewportPos.x > viewportWidth ||
+        mouseViewportPos.y > viewportHeight)
     {
         return;
     }
@@ -53,8 +43,7 @@ void EditorGizmoSystem::HandleGizmoInteraction(
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !editorCamera->IsPanning()) {
         if (selectedEntity != entt::null && registry.valid(selectedEntity) &&
-            registry.all_of<Transform>(selectedEntity))
-        {
+            registry.all_of<Transform>(selectedEntity)) {
             Transform& transform = registry.get<Transform>(selectedEntity);
 
             m_SelectedAxis = GizmoAxis::None;
@@ -216,11 +205,7 @@ void EditorGizmoSystem::HandleGizmoInteraction(
     }
 }
 
-void EditorGizmoSystem::RenderGizmos(
-    Engine* engine,
-    EditorCamera* editorCamera,
-    entt::entity selectedEntity
-) {
+void EditorGizmoSystem::RenderGizmos(Engine* engine, EditorCamera* editorCamera, entt::entity selectedEntity) {
     if (selectedEntity == entt::null || !engine || !engine->GetActiveScene()) {
         return;
     }
@@ -267,6 +252,6 @@ void EditorGizmoSystem::RenderGizmos(
     }
 }
 
-}
+} // namespace PiiXeL
 
 #endif

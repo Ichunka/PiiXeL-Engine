@@ -17,8 +17,8 @@
 #include "Core/Logger.hpp"
 #include "Debug/Profiler.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
-#include "Editor/EditorCommandSystem.hpp"
 #include "Editor/EditorCommands.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Reflection/Reflection.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/AssetRegistry.hpp"
@@ -40,10 +40,10 @@ InspectorPanel::InspectorPanel(Engine* engine, EditorCommandSystem* commandSyste
                                bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
                                std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
                                Texture2D* defaultWhiteTexture) :
-    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity},
-    m_InspectorLocked{inspectorLocked}, m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID},
-    m_SelectedAssetPath{selectedAssetPath}, m_AnimatorControllerEditor{animatorControllerEditor},
-    m_DefaultWhiteTexture{defaultWhiteTexture} {}
+    m_Engine{engine},
+    m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity}, m_InspectorLocked{inspectorLocked},
+    m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
+    m_AnimatorControllerEditor{animatorControllerEditor}, m_DefaultWhiteTexture{defaultWhiteTexture} {}
 
 void InspectorPanel::SetRenderEntityPickerCallback(std::function<bool(const char*, entt::entity*)> callback) {
     m_RenderEntityPickerCallback = callback;
@@ -278,9 +278,8 @@ void InspectorPanel::RenderEntityInspector() {
                 RenderSpriteComponent(registry, inspectedEntity);
             }
 
-            ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, *m_CommandSystem,
-                                                                         m_RenderEntityPickerCallback,
-                                                                         m_RenderAssetPickerCallback);
+            ComponentModuleRegistry::Instance().RenderInspectorForEntity(
+                registry, inspectedEntity, *m_CommandSystem, m_RenderEntityPickerCallback, m_RenderAssetPickerCallback);
 
             if (registry.all_of<Script>(inspectedEntity)) {
                 RenderScriptComponent(registry, inspectedEntity);

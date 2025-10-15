@@ -1,35 +1,30 @@
 #ifdef BUILD_WITH_EDITOR
 
 #include "Editor/EditorStateManager.hpp"
-#include "Editor/EditorSceneManager.hpp"
-#include "Editor/EditorSelectionManager.hpp"
-#include "Editor/EditorCommandSystem.hpp"
+
+#include "Components/Script.hpp"
 #include "Core/Engine.hpp"
 #include "Core/Logger.hpp"
+#include "Editor/EditorCommandSystem.hpp"
+#include "Editor/EditorSceneManager.hpp"
+#include "Editor/EditorSelectionManager.hpp"
+#include "Reflection/Reflection.hpp"
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
-#include "Components/Script.hpp"
 #include "Scripting/ScriptComponent.hpp"
-#include "Systems/ScriptSystem.hpp"
 #include "Systems/AnimationSystem.hpp"
-#include "Reflection/Reflection.hpp"
-#include <nlohmann/json.hpp>
+#include "Systems/ScriptSystem.hpp"
+
 #include <entt/entt.hpp>
+#include <nlohmann/json.hpp>
 
 namespace PiiXeL {
 
-EditorStateManager::EditorStateManager()
-    : m_EditorState{EditorState::Edit}
-    , m_PlayModeSnapshot{}
-{
-}
+EditorStateManager::EditorStateManager() : m_EditorState{EditorState::Edit}, m_PlayModeSnapshot{} {}
 
-void EditorStateManager::OnPlayButtonPressed(
-    Engine* engine,
-    EditorSceneManager* sceneManager,
-    EditorSelectionManager* selectionManager,
-    EditorCommandSystem* commandSystem
-) {
+void EditorStateManager::OnPlayButtonPressed(Engine* engine, EditorSceneManager* sceneManager,
+                                             EditorSelectionManager* selectionManager,
+                                             EditorCommandSystem* commandSystem) {
     if (!engine || !engine->GetActiveScene()) {
         return;
     }
@@ -59,11 +54,8 @@ void EditorStateManager::OnPlayButtonPressed(
     PX_LOG_INFO(EDITOR, "Play mode started with memory snapshot");
 }
 
-void EditorStateManager::OnStopButtonPressed(
-    Engine* engine,
-    EditorSelectionManager* selectionManager,
-    EditorCommandSystem* commandSystem
-) {
+void EditorStateManager::OnStopButtonPressed(Engine* engine, EditorSelectionManager* selectionManager,
+                                             EditorCommandSystem* commandSystem) {
     if (!engine || !engine->GetActiveScene()) {
         return;
     }
@@ -103,8 +95,8 @@ void EditorStateManager::OnStopButtonPressed(
 
                                 if (entityJson.contains("Scripts") && entityJson["Scripts"].is_array()) {
                                     const nlohmann::json& scriptsArray = entityJson["Scripts"];
-                                    for (size_t i = 0;
-                                         i < scriptComponent.scripts.size() && i < scriptsArray.size(); ++i) {
+                                    for (size_t i = 0; i < scriptComponent.scripts.size() && i < scriptsArray.size();
+                                         ++i) {
                                         const nlohmann::json& scriptJson = scriptsArray[i];
                                         ScriptInstance& script = scriptComponent.scripts[i];
 
@@ -120,10 +112,9 @@ void EditorStateManager::OnStopButtonPressed(
                                                             typeid(*script.instance));
 
                                                     if (typeInfo) {
-                                                        for (const Reflection::FieldInfo& field :
-                                                             typeInfo->GetFields()) {
-                                                            if ((field.flags &
-                                                                 Reflection::FieldFlags::Serializable) &&
+                                                        for (const Reflection::FieldInfo& field : typeInfo->GetFields())
+                                                        {
+                                                            if ((field.flags & Reflection::FieldFlags::Serializable) &&
                                                                 propertiesJson.contains(field.name)) {
                                                                 void* fieldPtr = field.getPtr(
                                                                     static_cast<void*>(script.instance.get()));
@@ -154,10 +145,9 @@ void EditorStateManager::OnStopButtonPressed(
                                                             typeid(*script.instance));
 
                                                     if (typeInfo) {
-                                                        for (const Reflection::FieldInfo& field :
-                                                             typeInfo->GetFields()) {
-                                                            if ((field.flags &
-                                                                 Reflection::FieldFlags::Serializable) &&
+                                                        for (const Reflection::FieldInfo& field : typeInfo->GetFields())
+                                                        {
+                                                            if ((field.flags & Reflection::FieldFlags::Serializable) &&
                                                                 propertiesJson.contains(field.name)) {
                                                                 void* fieldPtr = field.getPtr(
                                                                     static_cast<void*>(script.instance.get()));
@@ -191,6 +181,6 @@ void EditorStateManager::OnStopButtonPressed(
     }
 }
 
-}
+} // namespace PiiXeL
 
 #endif

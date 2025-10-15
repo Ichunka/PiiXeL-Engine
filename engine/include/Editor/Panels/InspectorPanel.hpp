@@ -21,9 +21,10 @@ class UUID;
 
 class InspectorPanel : public EditorPanel {
 public:
-    InspectorPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity, bool* inspectorLocked,
-                   entt::entity* lockedEntity, UUID* selectedAssetUUID, std::string* selectedAssetPath,
-                   AnimatorControllerEditorPanel* animatorControllerEditor, Texture2D* defaultWhiteTexture);
+    InspectorPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
+                   bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
+                   std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
+                   Texture2D* defaultWhiteTexture);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Inspector"; }

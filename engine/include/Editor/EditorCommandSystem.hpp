@@ -3,11 +3,13 @@
 
 #ifdef BUILD_WITH_EDITOR
 
-#include "CommandHistory.hpp"
 #include "Components/Transform.hpp"
 
 #include <entt/entt.hpp>
+
 #include <memory>
+
+#include "CommandHistory.hpp"
 
 namespace PiiXeL {
 

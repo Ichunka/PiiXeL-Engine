@@ -18,8 +18,8 @@ class UUID;
 
 class HierarchyPanel : public EditorPanel {
 public:
-    HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity, bool* inspectorLocked,
-                   UUID* selectedAssetUUID, std::string* selectedAssetPath,
+    HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
+                   bool* inspectorLocked, UUID* selectedAssetUUID, std::string* selectedAssetPath,
                    AnimatorControllerEditorPanel* animatorControllerEditor);
 
     void OnImGuiRender() override;

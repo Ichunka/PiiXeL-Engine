@@ -34,7 +34,8 @@ public:
 
     virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                                    EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) = 0;
-    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem) = 0;
+    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity,
+                                      EditorCommandSystem& commandSystem) = 0;
     virtual void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) = 0;
     virtual int GetDisplayOrder() const = 0;
     virtual bool IsRenderedByRegistry() const = 0;
@@ -65,28 +66,50 @@ public:
     {
     }
 
-    const char* GetName() const override { return m_Name; }
+    const char* GetName() const override {
+        return m_Name;
+    }
 
-    std::type_index GetTypeIndex() const override { return m_TypeIndex; }
+    std::type_index GetTypeIndex() const override {
+        return m_TypeIndex;
+    }
 
-    void SetSerializer(SerializeFunc func) { m_Serializer = func; }
+    void SetSerializer(SerializeFunc func) {
+        m_Serializer = func;
+    }
 
-    void SetDeserializer(DeserializeFunc func) { m_Deserializer = func; }
+    void SetDeserializer(DeserializeFunc func) {
+        m_Deserializer = func;
+    }
 
 #ifdef BUILD_WITH_EDITOR
-    void SetEditorUI(EditorUIFunc func) { m_EditorUI = func; }
+    void SetEditorUI(EditorUIFunc func) {
+        m_EditorUI = func;
+    }
 
-    void SetCreateDefault(CreateDefaultFunc func) { m_CreateDefault = func; }
+    void SetCreateDefault(CreateDefaultFunc func) {
+        m_CreateDefault = func;
+    }
 
-    void SetDuplicateFunc(DuplicateFunc func) { m_DuplicateFunc = func; }
+    void SetDuplicateFunc(DuplicateFunc func) {
+        m_DuplicateFunc = func;
+    }
 
-    void SetDisplayOrder(int order) { m_DisplayOrder = order; }
+    void SetDisplayOrder(int order) {
+        m_DisplayOrder = order;
+    }
 
-    int GetDisplayOrder() const override { return m_DisplayOrder; }
+    int GetDisplayOrder() const override {
+        return m_DisplayOrder;
+    }
 
-    void SetRenderInRegistry(bool render) { m_RenderInRegistry = render; }
+    void SetRenderInRegistry(bool render) {
+        m_RenderInRegistry = render;
+    }
 
-    bool IsRenderedByRegistry() const override { return m_RenderInRegistry; }
+    bool IsRenderedByRegistry() const override {
+        return m_RenderInRegistry;
+    }
 #endif
 
     nlohmann::json Serialize(entt::registry& registry, entt::entity entity) const override {
