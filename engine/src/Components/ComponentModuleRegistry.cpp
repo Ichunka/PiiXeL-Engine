@@ -40,7 +40,7 @@ void ComponentModuleRegistry::DeserializeComponent(const std::string& componentN
 #ifdef BUILD_WITH_EDITOR
 
 void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry, entt::entity entity,
-                                                       CommandHistory& history, EntityPickerFunc entityPicker,
+                                                       EditorCommandSystem& commandSystem, EntityPickerFunc entityPicker,
                                                        AssetPickerFunc assetPicker) {
     std::vector<IComponentModule*> sortedModules;
     for (const auto& module : m_AllModules) {
@@ -70,7 +70,7 @@ void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry,
         }
 
         if (isOpen) {
-            module->RenderInspectorUI(registry, entity, history, entityPicker, assetPicker);
+            module->RenderInspectorUI(registry, entity, commandSystem, entityPicker, assetPicker);
             ImGui::TreePop();
         }
 
@@ -81,14 +81,14 @@ void ComponentModuleRegistry::RenderInspectorForEntity(entt::registry& registry,
 }
 
 void ComponentModuleRegistry::RenderAddComponentMenu(entt::registry& registry, entt::entity entity,
-                                                     CommandHistory& history) {
+                                                     EditorCommandSystem& commandSystem) {
     for (const auto& module : m_AllModules) {
         if (module->HasComponent(registry, entity)) {
             continue;
         }
 
         if (ImGui::MenuItem(module->GetName())) {
-            module->AddComponentToEntity(registry, entity, history);
+            module->AddComponentToEntity(registry, entity, commandSystem);
         }
     }
 }

@@ -53,9 +53,9 @@ public:
     using EntityPickerFunc = IComponentModule::EntityPickerFunc;
     using AssetPickerFunc = IComponentModule::AssetPickerFunc;
 
-    void RenderInspectorForEntity(entt::registry& registry, entt::entity entity, CommandHistory& history,
+    void RenderInspectorForEntity(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                                   EntityPickerFunc entityPicker, AssetPickerFunc assetPicker);
-    void RenderAddComponentMenu(entt::registry& registry, entt::entity entity, CommandHistory& history);
+    void RenderAddComponentMenu(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem);
     void DuplicateAllComponents(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity);
 #endif
 

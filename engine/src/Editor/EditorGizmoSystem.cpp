@@ -3,7 +3,7 @@
 #include "Editor/EditorGizmoSystem.hpp"
 #include "Editor/EditorCamera.hpp"
 #include "Editor/EditorCommands.hpp"
-#include "Editor/CommandHistory.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Core/Engine.hpp"
 #include "Scene/Scene.hpp"
 #include "Components/Transform.hpp"
@@ -30,7 +30,7 @@ void EditorGizmoSystem::HandleGizmoInteraction(
     float viewportPosY,
     float viewportWidth,
     float viewportHeight,
-    CommandHistory* commandHistory
+    EditorCommandSystem* commandSystem
 ) {
     if (!engine || !engine->GetActiveScene()) {
         return;
@@ -150,7 +150,7 @@ void EditorGizmoSystem::HandleGizmoInteraction(
                 oldTransform.rotation = m_EntityStartPos.x;
             }
 
-            commandHistory->AddCommand(
+            commandSystem->ExecuteCommand(
                 std::make_unique<ModifyTransformCommand>(&registry, selectedEntity, oldTransform, currentTransform));
         }
 

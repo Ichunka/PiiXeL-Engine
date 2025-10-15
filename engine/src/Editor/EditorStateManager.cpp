@@ -3,7 +3,7 @@
 #include "Editor/EditorStateManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorSelectionManager.hpp"
-#include "Editor/CommandHistory.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Core/Engine.hpp"
 #include "Core/Logger.hpp"
 #include "Scene/Scene.hpp"
@@ -28,7 +28,7 @@ void EditorStateManager::OnPlayButtonPressed(
     Engine* engine,
     EditorSceneManager* sceneManager,
     EditorSelectionManager* selectionManager,
-    CommandHistory* commandHistory
+    EditorCommandSystem* commandSystem
 ) {
     if (!engine || !engine->GetActiveScene()) {
         return;
@@ -46,7 +46,7 @@ void EditorStateManager::OnPlayButtonPressed(
     m_PlayModeSnapshot = serializer.SerializeToString();
 
     m_EditorState = EditorState::Play;
-    commandHistory->Clear();
+    commandSystem->Clear();
     selectionManager->SetSelectedEntity(entt::null);
 
     engine->CreatePhysicsBodies();
@@ -62,7 +62,7 @@ void EditorStateManager::OnPlayButtonPressed(
 void EditorStateManager::OnStopButtonPressed(
     Engine* engine,
     EditorSelectionManager* selectionManager,
-    CommandHistory* commandHistory
+    EditorCommandSystem* commandSystem
 ) {
     if (!engine || !engine->GetActiveScene()) {
         return;
@@ -78,7 +78,7 @@ void EditorStateManager::OnStopButtonPressed(
         SceneSerializer serializer{scene};
         if (serializer.DeserializeFromString(m_PlayModeSnapshot)) {
             m_EditorState = EditorState::Edit;
-            commandHistory->Clear();
+            commandSystem->Clear();
             selectionManager->SetSelectedEntity(entt::null);
 
             if (engine->GetScriptSystem()) {
@@ -187,7 +187,7 @@ void EditorStateManager::OnStopButtonPressed(
     }
     else {
         m_EditorState = EditorState::Edit;
-        commandHistory->Clear();
+        commandSystem->Clear();
     }
 }
 

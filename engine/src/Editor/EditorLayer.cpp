@@ -22,6 +22,7 @@
 #include "Editor/ConsoleLogger.hpp"
 #include "Editor/EditorCamera.hpp"
 #include "Editor/EditorCommands.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Editor/EditorPanelManager.hpp"
 #include "Editor/EditorSceneManager.hpp"
 #include "Editor/EditorSelectionManager.hpp"
@@ -89,15 +90,15 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_AnimatorControllerEditor->SetOnSelectionChangedCallback([this]() { m_SelectionManager->ClearSelection(); });
 
     m_HierarchyPanel = std::make_unique<HierarchyPanel>(
-        m_Engine, &m_CommandHistory, m_SelectionManager->GetSelectedEntityPtr(),
+        m_Engine, m_CommandSystem.get(), m_SelectionManager->GetSelectedEntityPtr(),
         m_SelectionManager->GetInspectorLockedPtr(), m_SelectionManager->GetSelectedAssetUUIDPtr(),
         m_SelectionManager->GetSelectedAssetPathPtr(), m_AnimatorControllerEditor.get());
 
     m_InspectorPanel = std::make_unique<InspectorPanel>(
-        m_Engine, &m_CommandHistory, m_SelectionManager->GetSelectedEntityPtr(),
+        m_Engine, m_CommandSystem.get(), m_SelectionManager->GetSelectedEntityPtr(),
         m_SelectionManager->GetInspectorLockedPtr(), m_SelectionManager->GetLockedEntityPtr(),
         m_SelectionManager->GetSelectedAssetUUIDPtr(), m_SelectionManager->GetSelectedAssetPathPtr(),
-        m_AnimatorControllerEditor.get(), &m_CachedTransform, &m_IsModifyingTransform, &m_DefaultWhiteTexture);
+        m_AnimatorControllerEditor.get(), &m_DefaultWhiteTexture);
 
     m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>(
         m_SelectionManager->GetSelectedAssetUUIDPtr(), m_SelectionManager->GetSelectedAssetPathPtr(),
@@ -116,6 +117,7 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_PanelManager = std::make_unique<EditorPanelManager>();
     m_GizmoSystem = std::make_unique<EditorGizmoSystem>();
     m_StateManager = std::make_unique<EditorStateManager>();
+    m_CommandSystem = std::make_unique<EditorCommandSystem>();
 
     m_GameViewportPanel = std::make_unique<GameViewportPanel>(m_Engine, &m_GameViewportTexture, m_StateManager.get());
 
@@ -200,10 +202,10 @@ void EditorLayer::OnImGuiRender() {
     ImGuiIO& io = ImGui::GetIO();
 
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_W, false)) {
-        m_CommandHistory.Undo();
+        m_CommandSystem->Undo();
     }
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
-        m_CommandHistory.Redo();
+        m_CommandSystem->Redo();
     }
 
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
@@ -313,11 +315,11 @@ void EditorLayer::RenderMenuBar() {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, m_CommandHistory.CanUndo())) {
-                m_CommandHistory.Undo();
+            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, m_CommandSystem->CanUndo())) {
+                m_CommandSystem->Undo();
             }
-            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, m_CommandHistory.CanRedo())) {
-                m_CommandHistory.Redo();
+            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, m_CommandSystem->CanRedo())) {
+                m_CommandSystem->Redo();
             }
             ImGui::EndMenu();
         }
@@ -326,7 +328,7 @@ void EditorLayer::RenderMenuBar() {
             if (ImGui::MenuItem("Create Empty")) {
                 Scene* scene = m_Engine->GetActiveScene();
                 if (m_Engine && scene) {
-                    m_CommandHistory.ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "Entity"));
+                    m_CommandSystem->ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "Entity"));
                 }
             }
             ImGui::EndMenu();
@@ -428,7 +430,7 @@ void EditorLayer::HandleGizmoInteraction() {
         m_ViewportPos.y,
         m_ViewportSize.x,
         m_ViewportSize.y,
-        &m_CommandHistory
+        m_CommandSystem.get()
     );
 }
 
@@ -479,17 +481,17 @@ entt::entity EditorLayer::GetPrimaryCamera() {
 }
 
 void EditorLayer::OnPlayButtonPressed() {
-    m_StateManager->OnPlayButtonPressed(m_Engine, m_SceneManager.get(), m_SelectionManager.get(), &m_CommandHistory);
+    m_StateManager->OnPlayButtonPressed(m_Engine, m_SceneManager.get(), m_SelectionManager.get(), m_CommandSystem.get());
 }
 
 void EditorLayer::OnStopButtonPressed() {
-    m_StateManager->OnStopButtonPressed(m_Engine, m_SelectionManager.get(), &m_CommandHistory);
+    m_StateManager->OnStopButtonPressed(m_Engine, m_SelectionManager.get(), m_CommandSystem.get());
 }
 
 void EditorLayer::NewScene() {
     m_SceneManager->NewScene();
     m_SelectionManager->SetSelectedEntity(entt::null);
-    m_CommandHistory.Clear();
+    m_CommandSystem->Clear();
 }
 
 void EditorLayer::SaveScene() {
@@ -503,7 +505,7 @@ void EditorLayer::SaveSceneAs() {
 void EditorLayer::LoadScene() {
     m_SceneManager->LoadScene();
     m_SelectionManager->SetSelectedEntity(entt::null);
-    m_CommandHistory.Clear();
+    m_CommandSystem->Clear();
     RestoreScriptPropertiesFromFile(m_SceneManager->GetCurrentScenePath());
 }
 

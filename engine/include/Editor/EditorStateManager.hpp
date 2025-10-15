@@ -9,7 +9,7 @@ namespace PiiXeL {
 class Engine;
 class EditorSceneManager;
 class EditorSelectionManager;
-class CommandHistory;
+class EditorCommandSystem;
 
 enum class EditorState {
     Edit,
@@ -24,13 +24,13 @@ public:
         Engine* engine,
         EditorSceneManager* sceneManager,
         EditorSelectionManager* selectionManager,
-        CommandHistory* commandHistory
+        EditorCommandSystem* commandSystem
     );
 
     void OnStopButtonPressed(
         Engine* engine,
         EditorSelectionManager* selectionManager,
-        CommandHistory* commandHistory
+        EditorCommandSystem* commandSystem
     );
 
     [[nodiscard]] EditorState GetState() const { return m_EditorState; }

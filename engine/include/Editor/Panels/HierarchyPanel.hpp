@@ -12,13 +12,13 @@
 namespace PiiXeL {
 
 class Engine;
-class CommandHistory;
+class EditorCommandSystem;
 class AnimatorControllerEditorPanel;
 class UUID;
 
 class HierarchyPanel : public EditorPanel {
 public:
-    HierarchyPanel(Engine* engine, CommandHistory* commandHistory, entt::entity* selectedEntity, bool* inspectorLocked,
+    HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity, bool* inspectorLocked,
                    UUID* selectedAssetUUID, std::string* selectedAssetPath,
                    AnimatorControllerEditorPanel* animatorControllerEditor);
 
@@ -34,7 +34,7 @@ public:
 
 private:
     Engine* m_Engine;
-    CommandHistory* m_CommandHistory;
+    EditorCommandSystem* m_CommandSystem;
     entt::entity* m_SelectedEntity;
     bool* m_InspectorLocked;
     UUID* m_SelectedAssetUUID;

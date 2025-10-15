@@ -15,8 +15,6 @@
 #include <raylib.h>
 #include <unordered_map>
 
-#include "CommandHistory.hpp"
-
 namespace PiiXeL {
 
 class Engine;
@@ -37,6 +35,7 @@ class EditorCamera;
 class EditorSelectionManager;
 class EditorGizmoSystem;
 class EditorStateManager;
+class EditorCommandSystem;
 
 class EditorLayer {
 public:
@@ -94,10 +93,6 @@ private:
     ImVec2 m_ViewportPos{0.0f, 0.0f};
     ImVec2 m_ViewportSize{0.0f, 0.0f};
 
-    CommandHistory m_CommandHistory;
-    Transform m_CachedTransform;
-    bool m_IsModifyingTransform{false};
-
     bool m_IsDraggingEntity{false};
 
     bool m_ShowProjectSettings{false};
@@ -136,6 +131,7 @@ private:
     std::unique_ptr<EditorSelectionManager> m_SelectionManager;
     std::unique_ptr<EditorGizmoSystem> m_GizmoSystem;
     std::unique_ptr<EditorStateManager> m_StateManager;
+    std::unique_ptr<EditorCommandSystem> m_CommandSystem;
 };
 
 } // namespace PiiXeL

@@ -7,7 +7,7 @@
 #include "Core/Engine.hpp"
 #include "Debug/Profiler.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
-#include "Editor/CommandHistory.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Editor/EditorCommands.hpp"
 #include "Scene/Scene.hpp"
 
@@ -15,10 +15,10 @@
 
 namespace PiiXeL {
 
-HierarchyPanel::HierarchyPanel(Engine* engine, CommandHistory* commandHistory, entt::entity* selectedEntity,
+HierarchyPanel::HierarchyPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
                                bool* inspectorLocked, UUID* selectedAssetUUID, std::string* selectedAssetPath,
                                AnimatorControllerEditorPanel* animatorControllerEditor) :
-    m_Engine{engine}, m_CommandHistory{commandHistory}, m_SelectedEntity{selectedEntity},
+    m_Engine{engine}, m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity},
     m_InspectorLocked{inspectorLocked}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
     m_AnimatorControllerEditor{animatorControllerEditor} {}
 
@@ -41,7 +41,7 @@ void HierarchyPanel::OnImGuiRender() {
         entt::registry& registry = scene->GetRegistry();
 
         if (ImGui::Button("+ Create Entity")) {
-            m_CommandHistory->ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "New Entity"));
+            m_CommandSystem->ExecuteCommand(std::make_unique<CreateEntityCommand>(scene, "New Entity"));
         }
 
         ImGui::Separator();

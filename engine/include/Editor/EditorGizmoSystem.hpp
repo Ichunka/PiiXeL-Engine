@@ -9,7 +9,7 @@ namespace PiiXeL {
 
 class Engine;
 class EditorCamera;
-class CommandHistory;
+class EditorCommandSystem;
 
 enum class GizmoMode {
     Translate,
@@ -35,7 +35,7 @@ public:
         float viewportPosY,
         float viewportWidth,
         float viewportHeight,
-        CommandHistory* commandHistory
+        EditorCommandSystem* commandSystem
     );
 
     void RenderGizmos(

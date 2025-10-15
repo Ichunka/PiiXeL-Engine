@@ -12,7 +12,7 @@
 namespace PiiXeL {
 
 #ifdef BUILD_WITH_EDITOR
-class CommandHistory;
+class EditorCommandSystem;
 #endif
 
 class IComponentModule {
@@ -32,9 +32,9 @@ public:
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
 
-    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                                    EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) = 0;
-    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity, CommandHistory& history) = 0;
+    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem) = 0;
     virtual void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) = 0;
     virtual int GetDisplayOrder() const = 0;
     virtual bool IsRenderedByRegistry() const = 0;
@@ -51,7 +51,7 @@ public:
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
     using EditorUIFunc =
-        std::function<void(T&, entt::registry&, entt::entity, CommandHistory&, EntityPickerFunc, AssetPickerFunc)>;
+        std::function<void(T&, entt::registry&, entt::entity, EditorCommandSystem&, EntityPickerFunc, AssetPickerFunc)>;
     using CreateDefaultFunc = std::function<T(entt::registry&, entt::entity)>;
     using DuplicateFunc = std::function<T(const T&)>;
 #endif
@@ -120,7 +120,7 @@ public:
     }
 
 #ifdef BUILD_WITH_EDITOR
-    void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+    void RenderInspectorUI(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                            EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) override {
         if (!registry.all_of<T>(entity)) {
             return;
@@ -128,12 +128,12 @@ public:
 
         T& component = registry.get<T>(entity);
         if (m_EditorUI) {
-            m_EditorUI(component, registry, entity, history, entityPicker, assetPicker);
+            m_EditorUI(component, registry, entity, commandSystem, entityPicker, assetPicker);
         }
     }
 
     void AddComponentToEntity(entt::registry& registry, entt::entity entity,
-                              [[maybe_unused]] CommandHistory& history) override {
+                              [[maybe_unused]] EditorCommandSystem& commandSystem) override {
         if (registry.all_of<T>(entity)) {
             return;
         }
