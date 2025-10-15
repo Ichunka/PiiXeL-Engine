@@ -28,18 +28,18 @@ void RegisterAllComponents() {
     registry.RegisterComponent("Transform", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
         Transform transform{};
 
-        if (data.contains("position") && data["position"].is_array() && data["position"].size() == 2) {
-            transform.position.x = data["position"][0].get<float>();
-            transform.position.y = data["position"][1].get<float>();
+        if (data.contains("position") && data["position"].is_object()) {
+            transform.position.x = data["position"].value("x", 0.0f);
+            transform.position.y = data["position"].value("y", 0.0f);
         }
 
         if (data.contains("rotation")) {
             transform.rotation = data["rotation"].get<float>();
         }
 
-        if (data.contains("scale") && data["scale"].is_array() && data["scale"].size() == 2) {
-            transform.scale.x = data["scale"][0].get<float>();
-            transform.scale.y = data["scale"][1].get<float>();
+        if (data.contains("scale") && data["scale"].is_object()) {
+            transform.scale.x = data["scale"].value("x", 1.0f);
+            transform.scale.y = data["scale"].value("y", 1.0f);
         }
 
         reg.emplace<Transform>(entity, transform);
@@ -83,9 +83,9 @@ void RegisterAllComponents() {
         camera.zoom = data.value("zoom", 1.0f);
         camera.rotation = data.value("rotation", 0.0f);
 
-        if (data.contains("offset") && data["offset"].is_array() && data["offset"].size() == 2) {
-            camera.offset.x = data["offset"][0].get<float>();
-            camera.offset.y = data["offset"][1].get<float>();
+        if (data.contains("offset") && data["offset"].is_object()) {
+            camera.offset.x = data["offset"].value("x", 0.0f);
+            camera.offset.y = data["offset"].value("y", 0.0f);
         }
 
         reg.emplace<Camera>(entity, camera);
@@ -107,14 +107,14 @@ void RegisterAllComponents() {
         "BoxCollider2D", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
             BoxCollider2D collider{};
 
-            if (data.contains("size") && data["size"].is_array() && data["size"].size() == 2) {
-                collider.size.x = data["size"][0].get<float>();
-                collider.size.y = data["size"][1].get<float>();
+            if (data.contains("size") && data["size"].is_object()) {
+                collider.size.x = data["size"].value("x", 16.0f);
+                collider.size.y = data["size"].value("y", 16.0f);
             }
 
-            if (data.contains("offset") && data["offset"].is_array() && data["offset"].size() == 2) {
-                collider.offset.x = data["offset"][0].get<float>();
-                collider.offset.y = data["offset"][1].get<float>();
+            if (data.contains("offset") && data["offset"].is_object()) {
+                collider.offset.x = data["offset"].value("x", 0.0f);
+                collider.offset.y = data["offset"].value("y", 0.0f);
             }
 
             collider.isTrigger = data.value("isTrigger", false);
@@ -130,9 +130,9 @@ void RegisterAllComponents() {
                 collider.radius = data["radius"].get<float>();
             }
 
-            if (data.contains("offset") && data["offset"].is_array() && data["offset"].size() == 2) {
-                collider.offset.x = data["offset"][0].get<float>();
-                collider.offset.y = data["offset"][1].get<float>();
+            if (data.contains("offset") && data["offset"].is_object()) {
+                collider.offset.x = data["offset"].value("x", 0.0f);
+                collider.offset.y = data["offset"].value("y", 0.0f);
             }
 
             collider.isTrigger = data.value("isTrigger", false);
