@@ -21,10 +21,12 @@ public:
     static entt::entity CreateEntity(Scene* scene, const std::string& name = "Entity");
 
     static entt::entity DuplicateEntity(Scene* scene, entt::entity source,
-                                       const DuplicationOptions& options = DuplicationOptions{});
+                                       const DuplicationOptions& options);
+    static entt::entity DuplicateEntity(Scene* scene, entt::entity source);
 
     static entt::entity DuplicateEntity(Engine* engine, entt::entity source,
-                                       const DuplicationOptions& options = DuplicationOptions{});
+                                       const DuplicationOptions& options);
+    static entt::entity DuplicateEntity(Engine* engine, entt::entity source);
 
 private:
     static void DuplicateBuiltInComponents(entt::registry& registry, entt::entity source,

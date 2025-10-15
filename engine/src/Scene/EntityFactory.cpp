@@ -64,6 +64,10 @@ entt::entity EntityFactory::DuplicateEntity(Scene* scene, entt::entity source,
     return destination;
 }
 
+entt::entity EntityFactory::DuplicateEntity(Scene* scene, entt::entity source) {
+    return DuplicateEntity(scene, source, DuplicationOptions{});
+}
+
 entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source,
                                            const DuplicationOptions& options) {
     if (!engine || !engine->GetActiveScene()) {
@@ -72,6 +76,10 @@ entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source,
     }
 
     return DuplicateEntity(engine->GetActiveScene(), source, options);
+}
+
+entt::entity EntityFactory::DuplicateEntity(Engine* engine, entt::entity source) {
+    return DuplicateEntity(engine, source, DuplicationOptions{});
 }
 
 void EntityFactory::DuplicateBuiltInComponents(entt::registry& registry, entt::entity source,

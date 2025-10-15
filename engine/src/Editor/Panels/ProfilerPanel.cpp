@@ -5,6 +5,8 @@
 #include "Debug/Profiler.hpp"
 
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <imgui.h>
 #include <raylib.h>
 
