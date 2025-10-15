@@ -31,6 +31,7 @@
 #include "Editor/EditorThemeManager.hpp"
 #include "Editor/Panels/ConsolePanel.hpp"
 #include "Editor/Panels/ContentBrowserPanel.hpp"
+#include "Editor/Utilities/EditorAssetPickerUtility.hpp"
 #include "Editor/Panels/GameViewportPanel.hpp"
 #include "Editor/Panels/HierarchyPanel.hpp"
 #include "Editor/Panels/InspectorPanel.hpp"
@@ -80,12 +81,18 @@ EditorLayer::EditorLayer(Engine* engine) :
         PX_LOG_ERROR(EDITOR, "Failed to create default white texture");
     }
 
+    m_EditorCamera = std::make_unique<EditorCamera>();
+    m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
+    m_PanelManager = std::make_unique<EditorPanelManager>();
+    m_GizmoSystem = std::make_unique<EditorGizmoSystem>();
+    m_StateManager = std::make_unique<EditorStateManager>();
+    m_CommandSystem = std::make_unique<EditorCommandSystem>();
+    m_SelectionManager = std::make_unique<EditorSelectionManager>();
+
     m_BuildPanel = std::make_unique<BuildPanel>();
     m_SpriteSheetEditor = std::make_unique<SpriteSheetEditorPanel>();
     m_AnimationClipEditor = std::make_unique<AnimationClipEditorPanel>();
     m_AnimatorControllerEditor = std::make_unique<AnimatorControllerEditorPanel>();
-
-    m_SelectionManager = std::make_unique<EditorSelectionManager>();
 
     m_AnimatorControllerEditor->SetOnSelectionChangedCallback([this]() { m_SelectionManager->ClearSelection(); });
 
@@ -112,13 +119,6 @@ EditorLayer::EditorLayer(Engine* engine) :
                                                       &m_ProfilerSelectedFrame, &m_ProfilerSelectedFrameSnapshot,
                                                       &m_ProfilerFlameGraphZoom, &m_ProfilerFlameGraphScroll);
 
-    m_EditorCamera = std::make_unique<EditorCamera>();
-    m_SceneManager = std::make_unique<EditorSceneManager>(m_Engine);
-    m_PanelManager = std::make_unique<EditorPanelManager>();
-    m_GizmoSystem = std::make_unique<EditorGizmoSystem>();
-    m_StateManager = std::make_unique<EditorStateManager>();
-    m_CommandSystem = std::make_unique<EditorCommandSystem>();
-
     m_GameViewportPanel = std::make_unique<GameViewportPanel>(m_Engine, &m_GameViewportTexture, m_StateManager.get());
 
     m_SceneViewportPanel =
@@ -129,9 +129,11 @@ EditorLayer::EditorLayer(Engine* engine) :
     m_HierarchyPanel->SetCopyEntityCallback([this](entt::entity entity) { CopyEntity(entity); });
 
     m_InspectorPanel->SetRenderEntityPickerCallback(
-        [this](const char* label, entt::entity* entity) { return RenderEntityPicker(label, entity); });
-    m_InspectorPanel->SetRenderAssetPickerCallback([this](const char* label, UUID* uuid, const std::string& assetType) {
-        return RenderAssetPicker(label, uuid, assetType);
+        [this](const char* label, entt::entity* entity) {
+            return EditorAssetPickerUtility::RenderEntityPicker(label, entity, m_Engine);
+        });
+    m_InspectorPanel->SetRenderAssetPickerCallback([](const char* label, UUID* uuid, const std::string& assetType) {
+        return EditorAssetPickerUtility::RenderAssetPicker(label, uuid, assetType);
     });
 
     m_ContentBrowserPanel->SetDeleteAssetCallback([this](const std::string& path) { DeleteAssetWithPackage(path); });
@@ -755,152 +757,6 @@ void EditorLayer::RenderProjectSettings() {
         }
     }
     ImGui::End();
-}
-
-bool EditorLayer::RenderEntityPicker(const char* label, entt::entity* entity) {
-    if (!m_Engine || !m_Engine->GetActiveScene()) {
-        return false;
-    }
-
-    Scene* scene = m_Engine->GetActiveScene();
-    entt::registry& registry = scene->GetRegistry();
-
-    std::string preview = "None";
-    if (*entity != entt::null && registry.valid(*entity)) {
-        if (registry.all_of<Tag>(*entity)) {
-            Tag& tag = registry.get<Tag>(*entity);
-            preview = tag.name + " [" + std::to_string(static_cast<uint32_t>(*entity)) + "]";
-        }
-        else {
-            preview = "Entity [" + std::to_string(static_cast<uint32_t>(*entity)) + "]";
-        }
-    }
-
-    bool changed = false;
-    if (ImGui::BeginCombo(label, preview.c_str())) {
-        if (ImGui::Selectable("None", *entity == entt::null)) {
-            *entity = entt::null;
-            changed = true;
-        }
-
-        registry.view<Tag>().each([&](entt::entity e, Tag& tag) {
-            bool isSelected = (*entity == e);
-            std::string itemLabel = tag.name + " [" + std::to_string(static_cast<uint32_t>(e)) + "]";
-
-            if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                *entity = e;
-                changed = true;
-            }
-
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        });
-
-        ImGui::EndCombo();
-    }
-
-    if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_REORDER")) {
-            if (payload->DataSize == sizeof(size_t)) {
-                size_t draggedIndex = *static_cast<size_t*>(payload->Data);
-                const std::vector<entt::entity>& entityOrder = scene->GetEntityOrder();
-                if (draggedIndex < entityOrder.size()) {
-                    entt::entity draggedEntity = entityOrder[draggedIndex];
-                    if (registry.valid(draggedEntity)) {
-                        *entity = draggedEntity;
-                        changed = true;
-                    }
-                }
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
-
-    return changed;
-}
-
-bool EditorLayer::RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType) {
-    std::string preview = "None";
-    if (uuid->Get() != 0) {
-        std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(*uuid);
-        if (asset) {
-            preview = asset->GetMetadata().name;
-        }
-        else {
-            preview = "Missing [" + uuid->ToString().substr(0, 8) + "]";
-        }
-    }
-
-    bool changed = false;
-    if (ImGui::BeginCombo(label, preview.c_str())) {
-        if (ImGui::Selectable("None", uuid->Get() == 0)) {
-            *uuid = UUID{0};
-            changed = true;
-        }
-
-        const auto& allKnownPaths = AssetRegistry::Instance().GetAllKnownAssetPaths();
-        for (const auto& [assetUUID, assetPath] : allKnownPaths) {
-            std::string extension = std::filesystem::path{assetPath}.extension().string();
-            bool matchesFilter = false;
-
-            if (assetType == "texture" && (extension == ".png" || extension == ".jpg" || extension == ".jpeg")) {
-                matchesFilter = true;
-            }
-            else if (assetType == "AnimatorController" && extension == ".animcontroller") {
-                matchesFilter = true;
-            }
-            else if (assetType == "SpriteSheet" && extension == ".spritesheet") {
-                matchesFilter = true;
-            }
-            else if (assetType == "AnimationClip" && extension == ".animclip") {
-                matchesFilter = true;
-            }
-            else if (assetType == "Audio" && (extension == ".wav" || extension == ".mp3" || extension == ".ogg")) {
-                matchesFilter = true;
-            }
-
-            if (matchesFilter) {
-                ImGui::PushID(static_cast<int>(assetUUID.Get()));
-
-                bool isSelected = (uuid->Get() == assetUUID.Get());
-                std::filesystem::path fsPath{assetPath};
-                std::string itemLabel = fsPath.stem().string();
-
-                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                    *uuid = assetUUID;
-                    changed = true;
-                }
-
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-
-                ImGui::PopID();
-            }
-        }
-
-        ImGui::EndCombo();
-    }
-
-    if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-            if (payload->DataSize == sizeof(std::string)) {
-                std::string draggedPath = *static_cast<std::string*>(payload->Data);
-                UUID draggedUUID = AssetRegistry::Instance().GetUUIDFromPath(draggedPath);
-                if (draggedUUID.Get() != 0) {
-                    std::shared_ptr<Asset> asset = AssetRegistry::Instance().GetAsset(draggedUUID);
-                    if (asset && asset->GetMetadata().type == AssetType::Texture && assetType == "texture") {
-                        *uuid = draggedUUID;
-                        changed = true;
-                    }
-                }
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
-
-    return changed;
 }
 
 void EditorLayer::RestoreScriptPropertiesFromFile(const std::string& filepath) {

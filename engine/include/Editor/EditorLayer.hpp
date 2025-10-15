@@ -75,9 +75,6 @@ private:
     void CopyEntity(entt::entity entity);
     void PasteEntity();
 
-    bool RenderEntityPicker(const char* label, entt::entity* entity);
-    bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
-
     void RestoreScriptPropertiesFromFile(const std::string& filepath);
     void UpdateAnimatorPreviewInEditMode();
 
