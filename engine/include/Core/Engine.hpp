@@ -11,6 +11,7 @@ class Scene;
 class RenderSystem;
 class PhysicsSystem;
 class ScriptSystem;
+class AudioSystem;
 class GamePackageLoader;
 
 class Engine {
@@ -32,11 +33,13 @@ public:
     [[nodiscard]] PhysicsSystem* GetPhysicsSystem() const { return m_PhysicsSystem.get(); }
     [[nodiscard]] RenderSystem* GetRenderSystem() const { return m_RenderSystem.get(); }
     [[nodiscard]] ScriptSystem* GetScriptSystem() const { return m_ScriptSystem.get(); }
+    [[nodiscard]] AudioSystem* GetAudioSystem() const { return m_AudioSystem.get(); }
 
     void SetActiveScene(std::unique_ptr<Scene> scene);
     void SetPhysicsEnabled(bool enabled) { m_PhysicsEnabled = enabled; }
     void SetScriptsEnabled(bool enabled) { m_ScriptsEnabled = enabled; }
     void SetAnimationEnabled(bool enabled) { m_AnimationEnabled = enabled; }
+    void SetAudioEnabled(bool enabled) { m_AudioEnabled = enabled; }
     void CreatePhysicsBodies();
     void DestroyAllPhysicsBodies();
 
@@ -53,10 +56,12 @@ private:
     std::unique_ptr<RenderSystem> m_RenderSystem;
     std::unique_ptr<PhysicsSystem> m_PhysicsSystem;
     std::unique_ptr<ScriptSystem> m_ScriptSystem;
+    std::unique_ptr<AudioSystem> m_AudioSystem;
     std::unique_ptr<GamePackageLoader> m_PackageLoader;
     bool m_PhysicsEnabled{false};
     bool m_ScriptsEnabled{true};
     bool m_AnimationEnabled{false};
+    bool m_AudioEnabled{false};
 
     entt::entity m_PrimaryCamera{entt::null};
     bool m_PrimaryCameraCached{false};

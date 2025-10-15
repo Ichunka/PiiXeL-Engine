@@ -1,4 +1,6 @@
 #include "Components/Animator.hpp"
+#include "Components/AudioListener.hpp"
+#include "Components/AudioSource.hpp"
 #include "Components/BoxCollider2D.hpp"
 #include "Components/Camera.hpp"
 #include "Components/CircleCollider2D.hpp"
@@ -158,6 +160,37 @@ void RegisterAllComponents() {
         animator.playbackSpeed = data.value("playbackSpeed", 1.0f);
 
         reg.emplace<Animator>(entity, animator);
+    });
+
+    registry.RegisterComponent("AudioSource", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
+        AudioSource source{};
+
+        if (data.contains("audioClip")) {
+            source.audioClip = UUID{data["audioClip"].get<uint64_t>()};
+        }
+
+        source.playOnAwake = data.value("playOnAwake", false);
+        source.loop = data.value("loop", false);
+        source.mute = data.value("mute", false);
+        source.spatialize = data.value("spatialize", true);
+        source.volume = data.value("volume", 1.0f);
+        source.pitch = data.value("pitch", 1.0f);
+        source.spatialBlend = data.value("spatialBlend", 1.0f);
+        source.minDistance = data.value("minDistance", 1.0f);
+        source.maxDistance = data.value("maxDistance", 500.0f);
+        source.priority = data.value("priority", 128.0f);
+
+        reg.emplace<AudioSource>(entity, source);
+    });
+
+    registry.RegisterComponent("AudioListener", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
+        AudioListener listener{};
+
+        listener.isActive = data.value("isActive", true);
+        listener.volume = data.value("volume", 1.0f);
+        listener.pauseOnFocusLoss = data.value("pauseOnFocusLoss", true);
+
+        reg.emplace<AudioListener>(entity, listener);
     });
 }
 

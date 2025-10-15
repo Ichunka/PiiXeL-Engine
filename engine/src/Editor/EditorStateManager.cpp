@@ -13,6 +13,7 @@
 #include "Scene/SceneSerializer.hpp"
 #include "Scripting/ScriptComponent.hpp"
 #include "Systems/AnimationSystem.hpp"
+#include "Systems/AudioSystem.hpp"
 #include "Systems/ScriptSystem.hpp"
 
 #include <entt/entt.hpp>
@@ -48,8 +49,10 @@ void EditorStateManager::OnPlayButtonPressed(Engine* engine, EditorSceneManager*
     engine->SetPhysicsEnabled(true);
     engine->SetScriptsEnabled(true);
     engine->SetAnimationEnabled(true);
+    engine->SetAudioEnabled(true);
 
     AnimationSystem::ResetAnimators(scene->GetRegistry());
+    AudioSystem::ResetAudioSources(scene->GetRegistry());
 
     PX_LOG_INFO(EDITOR, "Play mode started with memory snapshot");
 }
@@ -60,13 +63,19 @@ void EditorStateManager::OnStopButtonPressed(Engine* engine, EditorSelectionMana
         return;
     }
 
+    Scene* scene = engine->GetActiveScene();
+
     engine->SetPhysicsEnabled(false);
     engine->SetScriptsEnabled(false);
     engine->SetAnimationEnabled(false);
     engine->DestroyAllPhysicsBodies();
 
+    if (engine->GetAudioSystem()) {
+        engine->GetAudioSystem()->StopAllSources(scene->GetRegistry());
+    }
+    engine->SetAudioEnabled(false);
+
     if (!m_PlayModeSnapshot.empty()) {
-        Scene* scene = engine->GetActiveScene();
         SceneSerializer serializer{scene};
         if (serializer.DeserializeFromString(m_PlayModeSnapshot)) {
             m_EditorState = EditorState::Edit;

@@ -10,6 +10,8 @@ void __force_link_RigidBody2D();
 void __force_link_BoxCollider2D();
 void __force_link_CircleCollider2D();
 void __force_link_Animator();
+void __force_link_AudioSource();
+void __force_link_AudioListener();
 
 void InitializeReflection() {
     __force_link_Tag();
@@ -20,6 +22,8 @@ void InitializeReflection() {
     __force_link_BoxCollider2D();
     __force_link_CircleCollider2D();
     __force_link_Animator();
+    __force_link_AudioSource();
+    __force_link_AudioListener();
 }
 
 } // namespace PiiXeL::Reflection

@@ -5,8 +5,10 @@
 #include "Scene/Scene.hpp"
 #include "Components/RigidBody2D.hpp"
 #include "Components/Animator.hpp"
+#include "Components/AudioSource.hpp"
 #include "Physics/RigidBodyHandle.hpp"
 #include "Animation/AnimatorHandle.hpp"
+#include "Scripting/AudioSourceHandle.hpp"
 
 namespace PiiXeL {
 
@@ -44,6 +46,21 @@ inline std::optional<AnimatorHandle> ScriptComponent::GetHandle<Animator>() {
 
     Animator* animator = &registry.get<Animator>(m_Entity);
     return AnimatorHandle{m_Scene, m_Entity, animator};
+}
+
+template<>
+inline std::optional<AudioSourceHandle> ScriptComponent::GetHandle<AudioSource>() {
+    if (!m_Scene || m_Entity == entt::null) {
+        return std::nullopt;
+    }
+
+    entt::registry& registry = m_Scene->GetRegistry();
+    if (!registry.all_of<AudioSource>(m_Entity)) {
+        return std::nullopt;
+    }
+
+    AudioSource* audioSource = &registry.get<AudioSource>(m_Entity);
+    return AudioSourceHandle{m_Scene, m_Entity, audioSource};
 }
 
 } // namespace PiiXeL
