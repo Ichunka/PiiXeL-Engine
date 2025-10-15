@@ -2,6 +2,7 @@ build/
 export/
 .idea/
 
+*.clangd
 *.ini
 *.package
 .asset_uuid_cache
