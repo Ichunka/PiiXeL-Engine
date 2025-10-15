@@ -14,9 +14,10 @@ namespace PiiXeL {
 SceneViewportPanel::SceneViewportPanel(Engine* engine, RenderTexture2D* viewportTexture, Rectangle* viewportBounds,
                                        bool* viewportHovered, bool* viewportFocused, EditorCamera* editorCamera,
                                        ImVec2* viewportPos, ImVec2* viewportSize) :
-    m_Engine{engine}, m_ViewportTexture{viewportTexture}, m_ViewportBounds{viewportBounds},
-    m_ViewportHovered{viewportHovered}, m_ViewportFocused{viewportFocused}, m_EditorCamera{editorCamera},
-    m_ViewportPos{viewportPos}, m_ViewportSize{viewportSize} {}
+    m_Engine{engine},
+    m_ViewportTexture{viewportTexture}, m_ViewportBounds{viewportBounds}, m_ViewportHovered{viewportHovered},
+    m_ViewportFocused{viewportFocused}, m_EditorCamera{editorCamera}, m_ViewportPos{viewportPos}, m_ViewportSize{
+                                                                                                      viewportSize} {}
 
 void SceneViewportPanel::SetHandleGizmoInteractionCallback(std::function<void()> callback) {
     m_HandleGizmoInteractionCallback = callback;

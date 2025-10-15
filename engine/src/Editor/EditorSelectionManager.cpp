@@ -2,11 +2,13 @@
 
 #include "Editor/EditorSelectionManager.hpp"
 
-#include "Components/Sprite.hpp"
-#include "Components/Transform.hpp"
 #include "Core/Engine.hpp"
+#include "Core/Logger.hpp"
 #include "Editor/EditorCamera.hpp"
+#include "Scene/EntityFactory.hpp"
 #include "Scene/Scene.hpp"
+#include "Components/Transform.hpp"
+#include "Components/Sprite.hpp"
 
 #include <cmath>
 #include <imgui.h>
@@ -84,6 +86,49 @@ void EditorSelectionManager::ClearSelection() {
     m_SelectedEntity = entt::null;
     m_SelectedAssetUUID = UUID{0};
     m_SelectedAssetPath.clear();
+}
+
+entt::entity EditorSelectionManager::DuplicateEntity(Engine* engine, entt::entity entity) {
+    return EntityFactory::DuplicateEntity(engine, entity);
+}
+
+void EditorSelectionManager::CopyEntity(Engine* engine, entt::entity entity) {
+    if (!engine || !engine->GetActiveScene()) {
+        return;
+    }
+
+    Scene* scene = engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+
+    if (!registry.valid(entity)) {
+        return;
+    }
+
+    m_CopiedEntity = entity;
+    PX_LOG_INFO(EDITOR, "Entity copied to clipboard");
+}
+
+void EditorSelectionManager::PasteEntity(Engine* engine) {
+    if (m_CopiedEntity == entt::null) {
+        return;
+    }
+
+    if (!engine || !engine->GetActiveScene()) {
+        return;
+    }
+
+    Scene* scene = engine->GetActiveScene();
+    entt::registry& registry = scene->GetRegistry();
+
+    if (!registry.valid(m_CopiedEntity)) {
+        m_CopiedEntity = entt::null;
+        return;
+    }
+
+    entt::entity newEntity = DuplicateEntity(engine, m_CopiedEntity);
+    m_SelectedEntity = newEntity;
+
+    PX_LOG_INFO(EDITOR, "Entity pasted");
 }
 
 } // namespace PiiXeL

@@ -33,7 +33,7 @@
 #ifdef BUILD_WITH_EDITOR
 
 #define EDITOR_UI()                                                                                                    \
-        module->SetEditorUI([](ReflectedType& component, [[maybe_unused]] entt::registry& registry, [[maybe_unused]] entt::entity entity, [[maybe_unused]] ::PiiXeL::CommandHistory& history, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::EntityPickerFunc entityPicker, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::AssetPickerFunc assetPicker)
+        module->SetEditorUI([](ReflectedType& component, [[maybe_unused]] entt::registry& registry, [[maybe_unused]] entt::entity entity, [[maybe_unused]] ::PiiXeL::EditorCommandSystem& commandSystem, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::EntityPickerFunc entityPicker, [[maybe_unused]] ::PiiXeL::ComponentModule<ReflectedType>::AssetPickerFunc assetPicker)
 
 #define EDITOR_UI_END()                                                                                                \
         );

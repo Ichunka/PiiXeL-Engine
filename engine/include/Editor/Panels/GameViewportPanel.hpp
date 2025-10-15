@@ -13,12 +13,11 @@
 namespace PiiXeL {
 
 class Engine;
-
-enum class EditorState;
+class EditorStateManager;
 
 class GameViewportPanel : public EditorPanel {
 public:
-    GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture, EditorState* editorState);
+    GameViewportPanel(Engine* engine, RenderTexture2D* gameViewportTexture, EditorStateManager* stateManager);
 
     void OnImGuiRender() override;
     const char* GetTitle() const override { return "Game"; }
@@ -30,7 +29,7 @@ public:
 private:
     Engine* m_Engine;
     RenderTexture2D* m_GameViewportTexture;
-    EditorState* m_EditorState;
+    EditorStateManager* m_StateManager;
 
     bool m_IsOpen{true};
 

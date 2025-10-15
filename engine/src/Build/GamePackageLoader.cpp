@@ -151,8 +151,7 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                                     if (typeInfo) {
                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                             if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                                propertiesJson.contains(field.name))
-                                            {
+                                                propertiesJson.contains(field.name)) {
                                                 void* fieldPtr =
                                                     field.getPtr(static_cast<void*>(script.instance.get()));
                                                 Reflection::JsonSerializer::DeserializeField(
@@ -188,8 +187,7 @@ std::unique_ptr<Scene> GamePackageLoader::LoadScene(const std::string& sceneName
                                     if (typeInfo) {
                                         for (const Reflection::FieldInfo& field : typeInfo->GetFields()) {
                                             if ((field.flags & Reflection::FieldFlags::Serializable) &&
-                                                propertiesJson.contains(field.name))
-                                            {
+                                                propertiesJson.contains(field.name)) {
                                                 void* fieldPtr =
                                                     field.getPtr(static_cast<void*>(script.instance.get()));
                                                 Reflection::JsonSerializer::DeserializeField(

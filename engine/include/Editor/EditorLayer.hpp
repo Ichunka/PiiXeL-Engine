@@ -15,8 +15,6 @@
 #include <raylib.h>
 #include <unordered_map>
 
-#include "CommandHistory.hpp"
-
 namespace PiiXeL {
 
 class Engine;
@@ -31,21 +29,16 @@ class ContentBrowserPanel;
 class ProfilerPanel;
 class GameViewportPanel;
 class SceneViewportPanel;
+class ProjectSettingsPanel;
+class ToolbarPanel;
+class MenuBarPanel;
 class EditorSceneManager;
 class EditorPanelManager;
 class EditorCamera;
 class EditorSelectionManager;
-
-enum class EditorState { Edit, Play };
-
-enum class GizmoMode { Translate, Rotate, Scale };
-
-enum class GizmoAxis { None, X, Y };
-
-struct EntityState {
-    Transform transform;
-    Vector2 velocity{0.0f, 0.0f};
-};
+class EditorGizmoSystem;
+class EditorStateManager;
+class EditorCommandSystem;
 
 class EditorLayer {
 public:
@@ -61,11 +54,8 @@ public:
     [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
 
 private:
+    void LoadDefaultScene();
     void DeleteAssetWithPackage(const std::string& assetPath);
-
-    void RenderMenuBar();
-    void RenderToolbar();
-    void RenderProjectSettings();
 
     void HandleGizmoInteraction();
     void HandleEntitySelection();
@@ -74,22 +64,7 @@ private:
     void OnPlayButtonPressed();
     void OnStopButtonPressed();
 
-    void NewScene();
-    void SaveScene();
-    void SaveSceneAs();
-    void LoadScene();
-
     entt::entity GetPrimaryCamera();
-
-    entt::entity DuplicateEntity(entt::entity entity);
-    void CopyEntity(entt::entity entity);
-    void PasteEntity();
-
-    bool RenderEntityPicker(const char* label, entt::entity* entity);
-    bool RenderAssetPicker(const char* label, UUID* uuid, const std::string& assetType);
-
-    void RestoreScriptPropertiesFromFile(const std::string& filepath);
-    void UpdateAnimatorPreviewInEditMode();
 
 private:
     Engine* m_Engine;
@@ -100,34 +75,16 @@ private:
     bool m_ViewportHovered{false};
     bool m_ViewportFocused{false};
 
-    bool m_IsDragging{false};
-    Vector2 m_DragStartPos{0.0f, 0.0f};
-    Vector2 m_EntityStartPos{0.0f, 0.0f};
     ImVec2 m_ViewportPos{0.0f, 0.0f};
     ImVec2 m_ViewportSize{0.0f, 0.0f};
 
-    EditorState m_EditorState{EditorState::Edit};
-    GizmoMode m_GizmoMode{GizmoMode::Translate};
-    GizmoAxis m_SelectedAxis{GizmoAxis::None};
-    std::unordered_map<entt::entity, EntityState> m_SavedStates;
-
-    CommandHistory m_CommandHistory;
-    Transform m_CachedTransform;
-    bool m_IsModifyingTransform{false};
-
     bool m_IsDraggingEntity{false};
-
-    std::string m_PlayModeSnapshot{};
-
-    bool m_ShowProjectSettings{false};
 
     ConsoleFilters m_ConsoleFilters;
     bool m_ConsoleAutoScroll{true};
     int m_ConsoleSelectedTab{0};
     std::vector<int> m_ConsoleSelectedLines;
     int m_ConsoleLastClickedLine{-1};
-
-    entt::entity m_CopiedEntity{entt::null};
 
     bool m_ProfilerPaused{false};
     FrameSnapshot m_ProfilerPausedSnapshot{};
@@ -148,11 +105,17 @@ private:
     std::unique_ptr<ProfilerPanel> m_ProfilerPanel;
     std::unique_ptr<GameViewportPanel> m_GameViewportPanel;
     std::unique_ptr<SceneViewportPanel> m_SceneViewportPanel;
+    std::unique_ptr<ProjectSettingsPanel> m_ProjectSettingsPanel;
+    std::unique_ptr<ToolbarPanel> m_ToolbarPanel;
+    std::unique_ptr<MenuBarPanel> m_MenuBarPanel;
 
     std::unique_ptr<EditorSceneManager> m_SceneManager;
     std::unique_ptr<EditorPanelManager> m_PanelManager;
     std::unique_ptr<EditorCamera> m_EditorCamera;
     std::unique_ptr<EditorSelectionManager> m_SelectionManager;
+    std::unique_ptr<EditorGizmoSystem> m_GizmoSystem;
+    std::unique_ptr<EditorStateManager> m_StateManager;
+    std::unique_ptr<EditorCommandSystem> m_CommandSystem;
 };
 
 } // namespace PiiXeL

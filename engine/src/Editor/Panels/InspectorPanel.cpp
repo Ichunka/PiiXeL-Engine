@@ -17,8 +17,8 @@
 #include "Core/Logger.hpp"
 #include "Debug/Profiler.hpp"
 #include "Editor/AnimatorControllerEditorPanel.hpp"
-#include "Editor/CommandHistory.hpp"
 #include "Editor/EditorCommands.hpp"
+#include "Editor/EditorCommandSystem.hpp"
 #include "Reflection/Reflection.hpp"
 #include "Resources/AssetManager.hpp"
 #include "Resources/AssetRegistry.hpp"
@@ -36,15 +36,14 @@
 
 namespace PiiXeL {
 
-InspectorPanel::InspectorPanel(Engine* engine, CommandHistory* commandHistory, entt::entity* selectedEntity,
+InspectorPanel::InspectorPanel(Engine* engine, EditorCommandSystem* commandSystem, entt::entity* selectedEntity,
                                bool* inspectorLocked, entt::entity* lockedEntity, UUID* selectedAssetUUID,
                                std::string* selectedAssetPath, AnimatorControllerEditorPanel* animatorControllerEditor,
-                               Transform* cachedTransform, bool* isModifyingTransform, Texture2D* defaultWhiteTexture) :
-    m_Engine{engine}, m_CommandHistory{commandHistory}, m_SelectedEntity{selectedEntity},
-    m_InspectorLocked{inspectorLocked}, m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID},
-    m_SelectedAssetPath{selectedAssetPath}, m_AnimatorControllerEditor{animatorControllerEditor},
-    m_CachedTransform{cachedTransform}, m_IsModifyingTransform{isModifyingTransform},
-    m_DefaultWhiteTexture{defaultWhiteTexture} {}
+                               Texture2D* defaultWhiteTexture) :
+    m_Engine{engine},
+    m_CommandSystem{commandSystem}, m_SelectedEntity{selectedEntity}, m_InspectorLocked{inspectorLocked},
+    m_LockedEntity{lockedEntity}, m_SelectedAssetUUID{selectedAssetUUID}, m_SelectedAssetPath{selectedAssetPath},
+    m_AnimatorControllerEditor{animatorControllerEditor}, m_DefaultWhiteTexture{defaultWhiteTexture} {}
 
 void InspectorPanel::SetRenderEntityPickerCallback(std::function<bool(const char*, entt::entity*)> callback) {
     m_RenderEntityPickerCallback = callback;
@@ -279,9 +278,8 @@ void InspectorPanel::RenderEntityInspector() {
                 RenderSpriteComponent(registry, inspectedEntity);
             }
 
-            ComponentModuleRegistry::Instance().RenderInspectorForEntity(registry, inspectedEntity, *m_CommandHistory,
-                                                                         m_RenderEntityPickerCallback,
-                                                                         m_RenderAssetPickerCallback);
+            ComponentModuleRegistry::Instance().RenderInspectorForEntity(
+                registry, inspectedEntity, *m_CommandSystem, m_RenderEntityPickerCallback, m_RenderAssetPickerCallback);
 
             if (registry.all_of<Script>(inspectedEntity)) {
                 RenderScriptComponent(registry, inspectedEntity);
@@ -298,30 +296,18 @@ void InspectorPanel::RenderTransformComponent(entt::registry& registry, entt::en
     if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
         Transform& transform = registry.get<Transform>(entity);
 
-        if (!*m_IsModifyingTransform) {
-            *m_CachedTransform = transform;
-        }
+        m_CommandSystem->UpdateCachedTransform(transform);
 
         bool posModified = ImGui::DragFloat2("Position", &transform.position.x, 1.0f);
         bool rotModified = ImGui::DragFloat("Rotation", &transform.rotation, 0.5f);
         bool scaleModified = ImGui::DragFloat2("Scale", &transform.scale.x, 1.0f);
 
         if (posModified || rotModified || scaleModified) {
-            if (!*m_IsModifyingTransform) {
-                *m_IsModifyingTransform = true;
-            }
+            m_CommandSystem->BeginTransformEdit(&registry, entity);
         }
 
-        if (*m_IsModifyingTransform && !ImGui::IsAnyItemActive()) {
-            if (m_CachedTransform->position.x != transform.position.x ||
-                m_CachedTransform->position.y != transform.position.y ||
-                m_CachedTransform->rotation != transform.rotation || m_CachedTransform->scale.x != transform.scale.x ||
-                m_CachedTransform->scale.y != transform.scale.y)
-            {
-                m_CommandHistory->AddCommand(
-                    std::make_unique<ModifyTransformCommand>(&registry, entity, *m_CachedTransform, transform));
-            }
-            *m_IsModifyingTransform = false;
+        if (m_CommandSystem->IsModifyingTransform() && !ImGui::IsAnyItemActive()) {
+            m_CommandSystem->EndTransformEdit(&registry, entity);
         }
     }
 }
@@ -402,7 +388,7 @@ void InspectorPanel::RenderSpriteComponent(entt::registry& registry, entt::entit
     }
 
     if (removeSprite) {
-        m_CommandHistory->ExecuteCommand(std::make_unique<RemoveComponentCommand<Sprite>>(&registry, entity));
+        m_CommandSystem->ExecuteCommand(std::make_unique<RemoveComponentCommand<Sprite>>(&registry, entity));
     }
 }
 
@@ -512,11 +498,11 @@ void InspectorPanel::RenderAddComponentMenu(entt::registry& registry, entt::enti
     if (ImGui::BeginPopup("AddComponentPopup")) {
         if (ImGui::MenuItem("Sprite")) {
             if (!registry.all_of<Sprite>(entity)) {
-                m_CommandHistory->ExecuteCommand(
+                m_CommandSystem->ExecuteCommand(
                     std::make_unique<AddComponentCommand<Sprite>>(&registry, entity, Sprite{}));
             }
         }
-        ComponentModuleRegistry::Instance().RenderAddComponentMenu(registry, entity, *m_CommandHistory);
+        ComponentModuleRegistry::Instance().RenderAddComponentMenu(registry, entity, *m_CommandSystem);
 
         if (ImGui::MenuItem("Script")) {
             if (!registry.all_of<Script>(entity)) {

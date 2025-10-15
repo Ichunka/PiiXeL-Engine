@@ -13,8 +13,9 @@ namespace PiiXeL {
 
 ConsolePanel::ConsolePanel(ConsoleFilters* filters, bool* autoScroll, int* selectedTab, std::vector<int>* selectedLines,
                            int* lastClickedLine) :
-    m_Filters{filters}, m_AutoScroll{autoScroll}, m_SelectedTab{selectedTab}, m_SelectedLines{selectedLines},
-    m_LastClickedLine{lastClickedLine} {}
+    m_Filters{filters},
+    m_AutoScroll{autoScroll}, m_SelectedTab{selectedTab}, m_SelectedLines{selectedLines}, m_LastClickedLine{
+                                                                                              lastClickedLine} {}
 
 void ConsolePanel::OnImGuiRender() {
     PROFILE_FUNCTION();

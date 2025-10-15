@@ -12,7 +12,7 @@
 namespace PiiXeL {
 
 #ifdef BUILD_WITH_EDITOR
-class CommandHistory;
+class EditorCommandSystem;
 #endif
 
 class IComponentModule {
@@ -32,9 +32,10 @@ public:
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
 
-    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+    virtual void RenderInspectorUI(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                                    EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) = 0;
-    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity, CommandHistory& history) = 0;
+    virtual void AddComponentToEntity(entt::registry& registry, entt::entity entity,
+                                      EditorCommandSystem& commandSystem) = 0;
     virtual void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) = 0;
     virtual int GetDisplayOrder() const = 0;
     virtual bool IsRenderedByRegistry() const = 0;
@@ -51,7 +52,7 @@ public:
     using EntityPickerFunc = std::function<bool(const char*, entt::entity*)>;
     using AssetPickerFunc = std::function<bool(const char*, class UUID*, const std::string&)>;
     using EditorUIFunc =
-        std::function<void(T&, entt::registry&, entt::entity, CommandHistory&, EntityPickerFunc, AssetPickerFunc)>;
+        std::function<void(T&, entt::registry&, entt::entity, EditorCommandSystem&, EntityPickerFunc, AssetPickerFunc)>;
     using CreateDefaultFunc = std::function<T(entt::registry&, entt::entity)>;
     using DuplicateFunc = std::function<T(const T&)>;
 #endif
@@ -65,28 +66,50 @@ public:
     {
     }
 
-    const char* GetName() const override { return m_Name; }
+    const char* GetName() const override {
+        return m_Name;
+    }
 
-    std::type_index GetTypeIndex() const override { return m_TypeIndex; }
+    std::type_index GetTypeIndex() const override {
+        return m_TypeIndex;
+    }
 
-    void SetSerializer(SerializeFunc func) { m_Serializer = func; }
+    void SetSerializer(SerializeFunc func) {
+        m_Serializer = func;
+    }
 
-    void SetDeserializer(DeserializeFunc func) { m_Deserializer = func; }
+    void SetDeserializer(DeserializeFunc func) {
+        m_Deserializer = func;
+    }
 
 #ifdef BUILD_WITH_EDITOR
-    void SetEditorUI(EditorUIFunc func) { m_EditorUI = func; }
+    void SetEditorUI(EditorUIFunc func) {
+        m_EditorUI = func;
+    }
 
-    void SetCreateDefault(CreateDefaultFunc func) { m_CreateDefault = func; }
+    void SetCreateDefault(CreateDefaultFunc func) {
+        m_CreateDefault = func;
+    }
 
-    void SetDuplicateFunc(DuplicateFunc func) { m_DuplicateFunc = func; }
+    void SetDuplicateFunc(DuplicateFunc func) {
+        m_DuplicateFunc = func;
+    }
 
-    void SetDisplayOrder(int order) { m_DisplayOrder = order; }
+    void SetDisplayOrder(int order) {
+        m_DisplayOrder = order;
+    }
 
-    int GetDisplayOrder() const override { return m_DisplayOrder; }
+    int GetDisplayOrder() const override {
+        return m_DisplayOrder;
+    }
 
-    void SetRenderInRegistry(bool render) { m_RenderInRegistry = render; }
+    void SetRenderInRegistry(bool render) {
+        m_RenderInRegistry = render;
+    }
 
-    bool IsRenderedByRegistry() const override { return m_RenderInRegistry; }
+    bool IsRenderedByRegistry() const override {
+        return m_RenderInRegistry;
+    }
 #endif
 
     nlohmann::json Serialize(entt::registry& registry, entt::entity entity) const override {
@@ -120,7 +143,7 @@ public:
     }
 
 #ifdef BUILD_WITH_EDITOR
-    void RenderInspectorUI(entt::registry& registry, entt::entity entity, CommandHistory& history,
+    void RenderInspectorUI(entt::registry& registry, entt::entity entity, EditorCommandSystem& commandSystem,
                            EntityPickerFunc entityPicker, AssetPickerFunc assetPicker) override {
         if (!registry.all_of<T>(entity)) {
             return;
@@ -128,12 +151,12 @@ public:
 
         T& component = registry.get<T>(entity);
         if (m_EditorUI) {
-            m_EditorUI(component, registry, entity, history, entityPicker, assetPicker);
+            m_EditorUI(component, registry, entity, commandSystem, entityPicker, assetPicker);
         }
     }
 
     void AddComponentToEntity(entt::registry& registry, entt::entity entity,
-                              [[maybe_unused]] CommandHistory& history) override {
+                              [[maybe_unused]] EditorCommandSystem& commandSystem) override {
         if (registry.all_of<T>(entity)) {
             return;
         }
@@ -148,6 +171,10 @@ public:
 
     void DuplicateComponent(entt::registry& registry, entt::entity srcEntity, entt::entity dstEntity) override {
         if (!registry.all_of<T>(srcEntity)) {
+            return;
+        }
+
+        if (registry.all_of<T>(dstEntity)) {
             return;
         }
 

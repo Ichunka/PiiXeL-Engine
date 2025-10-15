@@ -214,8 +214,7 @@ void AssetRegistry::ScanAllPxaFiles(const std::string& rootPath, ProgressCallbac
 
     try {
         for (const auto& entry :
-             fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied))
-        {
+             fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied)) {
             if (entry.is_regular_file() && entry.path().extension() == ".pxa") {
                 pxaFiles.push_back(entry.path());
             }
