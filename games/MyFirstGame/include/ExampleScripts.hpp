@@ -85,7 +85,6 @@ class RotatingPlatform : public PiiXeL::ScriptComponent {
 public:
     RotatingPlatform() = default;
 
-    float rotationSpeed{90.0f};
     float amplitude{100.0f};
     float frequency{1.0f};
 
@@ -95,8 +94,10 @@ protected:
 
         auto rb = GetHandle<PiiXeL::RigidBody2D>();
         if (rb) {
-            float offset = sinf(m_Time * frequency) * amplitude;
-            rb->SetKinematicTarget({m_StartX, m_StartY + offset});
+            float targetY = m_StartY + sinf(m_Time * frequency) * amplitude;
+            float velocityY = amplitude * frequency * cosf(m_Time * frequency);
+
+            rb->SetVelocity({0.0f, velocityY});
         }
         else {
             Vector2 pos = GetPosition();
@@ -118,7 +119,6 @@ private:
 };
 
 BEGIN_REFLECT(RotatingPlatform)
-FIELD_RANGE(rotationSpeed, 0.0f, 360.0f, 5.0f)
 FIELD_RANGE(amplitude, 0.0f, 500.0f, 10.0f)
 FIELD_RANGE(frequency, 0.0f, 10.0f, 0.1f)
 END_REFLECT(RotatingPlatform)
