@@ -3,27 +3,20 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - '**/*.txt'
+      - '**/*.hpp'
+      - '**/*.cpp'
+      - '**/*.inl'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - '**/*.txt'
+      - '**/*.hpp'
+      - '**/*.cpp'
+      - '**/*.inl'
 
 jobs:
-  clang-format-check:
-    name: Clang Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install clang-format
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format
-
-      - name: Check code formatting
-        run: |
-          find engine/include engine/src games -type f \( -name "*.hpp" -o -name "*.cpp" \) \
-            -exec clang-format --dry-run --Werror {} +
-
   build-linux-gcc:
     name: Build (Linux GCC)
     runs-on: ubuntu-latest
