@@ -8,19 +8,9 @@
 
 namespace PiiXeL {
 
-enum class AudioFormat {
-    Unknown = 0,
-    WAV = 1,
-    OGG = 2,
-    MP3 = 3,
-    FLAC = 4
-};
+enum class AudioFormat { Unknown = 0, WAV = 1, OGG = 2, MP3 = 3, FLAC = 4 };
 
-enum class AudioLoadType {
-    DecompressOnLoad,
-    CompressedInMemory,
-    Streaming
-};
+enum class AudioLoadType { DecompressOnLoad, CompressedInMemory, Streaming };
 
 class AudioAsset : public Asset {
 public:

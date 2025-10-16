@@ -103,42 +103,42 @@ void RegisterAllComponents() {
         reg.emplace<RigidBody2D>(entity, rb);
     });
 
-    registry.RegisterComponent(
-        "BoxCollider2D", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
-            BoxCollider2D collider{};
+    registry.RegisterComponent("BoxCollider2D",
+                               [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
+                                   BoxCollider2D collider{};
 
-            if (data.contains("size") && data["size"].is_object()) {
-                collider.size.x = data["size"].value("x", 16.0f);
-                collider.size.y = data["size"].value("y", 16.0f);
-            }
+                                   if (data.contains("size") && data["size"].is_object()) {
+                                       collider.size.x = data["size"].value("x", 16.0f);
+                                       collider.size.y = data["size"].value("y", 16.0f);
+                                   }
 
-            if (data.contains("offset") && data["offset"].is_object()) {
-                collider.offset.x = data["offset"].value("x", 0.0f);
-                collider.offset.y = data["offset"].value("y", 0.0f);
-            }
+                                   if (data.contains("offset") && data["offset"].is_object()) {
+                                       collider.offset.x = data["offset"].value("x", 0.0f);
+                                       collider.offset.y = data["offset"].value("y", 0.0f);
+                                   }
 
-            collider.isTrigger = data.value("isTrigger", false);
+                                   collider.isTrigger = data.value("isTrigger", false);
 
-            reg.emplace<BoxCollider2D>(entity, collider);
-        });
+                                   reg.emplace<BoxCollider2D>(entity, collider);
+                               });
 
-    registry.RegisterComponent(
-        "CircleCollider2D", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
-            CircleCollider2D collider{};
+    registry.RegisterComponent("CircleCollider2D",
+                               [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
+                                   CircleCollider2D collider{};
 
-            if (data.contains("radius")) {
-                collider.radius = data["radius"].get<float>();
-            }
+                                   if (data.contains("radius")) {
+                                       collider.radius = data["radius"].get<float>();
+                                   }
 
-            if (data.contains("offset") && data["offset"].is_object()) {
-                collider.offset.x = data["offset"].value("x", 0.0f);
-                collider.offset.y = data["offset"].value("y", 0.0f);
-            }
+                                   if (data.contains("offset") && data["offset"].is_object()) {
+                                       collider.offset.x = data["offset"].value("x", 0.0f);
+                                       collider.offset.y = data["offset"].value("y", 0.0f);
+                                   }
 
-            collider.isTrigger = data.value("isTrigger", false);
+                                   collider.isTrigger = data.value("isTrigger", false);
 
-            reg.emplace<CircleCollider2D>(entity, collider);
-        });
+                                   reg.emplace<CircleCollider2D>(entity, collider);
+                               });
 
     registry.RegisterComponent("Script", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
         Script script{};
@@ -183,15 +183,16 @@ void RegisterAllComponents() {
         reg.emplace<AudioSource>(entity, source);
     });
 
-    registry.RegisterComponent("AudioListener", [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
-        AudioListener listener{};
+    registry.RegisterComponent("AudioListener",
+                               [](entt::registry& reg, entt::entity entity, const nlohmann::json& data) {
+                                   AudioListener listener{};
 
-        listener.isActive = data.value("isActive", true);
-        listener.volume = data.value("volume", 1.0f);
-        listener.pauseOnFocusLoss = data.value("pauseOnFocusLoss", true);
+                                   listener.isActive = data.value("isActive", true);
+                                   listener.volume = data.value("volume", 1.0f);
+                                   listener.pauseOnFocusLoss = data.value("pauseOnFocusLoss", true);
 
-        reg.emplace<AudioListener>(entity, listener);
-    });
+                                   reg.emplace<AudioListener>(entity, listener);
+                               });
 }
 
 } // namespace PiiXeL

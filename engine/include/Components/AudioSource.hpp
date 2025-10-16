@@ -7,11 +7,7 @@
 
 namespace PiiXeL {
 
-enum class AudioSourceState {
-    Stopped,
-    Playing,
-    Paused
-};
+enum class AudioSourceState { Stopped, Playing, Paused };
 
 struct AudioSource {
     UUID audioClip{0};

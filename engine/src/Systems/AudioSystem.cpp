@@ -8,9 +8,8 @@
 #include "Resources/AudioAsset.hpp"
 #include "Scene/Scene.hpp"
 
-#include <raymath.h>
-
 #include <cmath>
+#include <raymath.h>
 
 namespace PiiXeL {
 
@@ -174,7 +173,8 @@ void AudioSystem::UpdateSpatialAudio(entt::registry& registry) {
                 volumeAttenuation = 0.0f;
             }
             else {
-                volumeAttenuation = 1.0f - ((distance - source.minDistance) / (source.maxDistance - source.minDistance));
+                volumeAttenuation =
+                    1.0f - ((distance - source.minDistance) / (source.maxDistance - source.minDistance));
             }
         }
 

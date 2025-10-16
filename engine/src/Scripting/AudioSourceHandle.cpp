@@ -20,20 +20,23 @@ bool AudioSourceHandle::IsValid() const {
 }
 
 void AudioSourceHandle::Play() {
-    if (!IsValid()) return;
+    if (!IsValid())
+        return;
 
     m_Component->state = AudioSourceState::Playing;
     m_Component->hasPlayedOnAwake = false;
 }
 
 void AudioSourceHandle::Pause() {
-    if (!IsValid()) return;
+    if (!IsValid())
+        return;
 
     m_Component->state = AudioSourceState::Paused;
 }
 
 void AudioSourceHandle::Stop() {
-    if (!IsValid()) return;
+    if (!IsValid())
+        return;
 
     m_Component->state = AudioSourceState::Stopped;
 }
@@ -43,7 +46,8 @@ void AudioSourceHandle::PlayOneShot(UUID clipUuid) {
 }
 
 void AudioSourceHandle::PlayOneShot(UUID clipUuid, float volumeScale) {
-    if (!IsValid()) return;
+    if (!IsValid())
+        return;
 
     UUID originalClip = m_Component->audioClip;
     bool originalLoop = m_Component->loop;
@@ -198,7 +202,6 @@ bool AudioSourceHandle::IsStopped() const {
     return false;
 }
 
-void AudioSourceHandle::UpdateBackend() {
-}
+void AudioSourceHandle::UpdateBackend() {}
 
 } // namespace PiiXeL

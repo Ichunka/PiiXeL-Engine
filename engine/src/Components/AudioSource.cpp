@@ -32,7 +32,8 @@ reflectionBuilder.Field("minDistance", &ReflectedType::minDistance,
                         ::PiiXeL::Reflection::FieldMetadata{.rangeMin = 0.1f, .rangeMax = 1000.0f, .dragSpeed = 1.0f});
 reflectionBuilder.Field("maxDistance", &ReflectedType::maxDistance,
                         ::PiiXeL::Reflection::FieldFlags::Public | ::PiiXeL::Reflection::FieldFlags::Serializable,
-                        ::PiiXeL::Reflection::FieldMetadata{.rangeMin = 1.0f, .rangeMax = 10000.0f, .dragSpeed = 10.0f});
+                        ::PiiXeL::Reflection::FieldMetadata{
+                            .rangeMin = 1.0f, .rangeMax = 10000.0f, .dragSpeed = 10.0f});
 reflectionBuilder.Field("priority", &ReflectedType::priority,
                         ::PiiXeL::Reflection::FieldFlags::Public | ::PiiXeL::Reflection::FieldFlags::Serializable,
                         ::PiiXeL::Reflection::FieldMetadata{.rangeMin = 0.0f, .rangeMax = 256.0f, .dragSpeed = 1.0f});

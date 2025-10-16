@@ -27,21 +27,21 @@ bool AudioAsset::Load(const void* data, size_t size) {
 
     const char* fileExt = ".wav";
     switch (m_Format) {
-    case AudioFormat::WAV:
-        fileExt = ".wav";
-        break;
-    case AudioFormat::OGG:
-        fileExt = ".ogg";
-        break;
-    case AudioFormat::MP3:
-        fileExt = ".mp3";
-        break;
-    case AudioFormat::FLAC:
-        fileExt = ".flac";
-        break;
-    default:
-        PX_LOG_ERROR(ASSET, "Unsupported audio format for asset: %s", m_Metadata.name.c_str());
-        return false;
+        case AudioFormat::WAV:
+            fileExt = ".wav";
+            break;
+        case AudioFormat::OGG:
+            fileExt = ".ogg";
+            break;
+        case AudioFormat::MP3:
+            fileExt = ".mp3";
+            break;
+        case AudioFormat::FLAC:
+            fileExt = ".flac";
+            break;
+        default:
+            PX_LOG_ERROR(ASSET, "Unsupported audio format for asset: %s", m_Metadata.name.c_str());
+            return false;
     }
 
     m_Wave = LoadWaveFromMemory(fileExt, static_cast<const unsigned char*>(data), static_cast<int>(size));
@@ -106,7 +106,7 @@ uint32_t AudioAsset::GetChannels() const {
 AudioFormat AudioAsset::DetectAudioFormat(const std::string& extension) {
     std::string ext = extension;
     std::transform(ext.begin(), ext.end(), ext.begin(),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     if (ext == ".wav")
         return AudioFormat::WAV;
