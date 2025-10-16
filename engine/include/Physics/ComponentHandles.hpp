@@ -9,6 +9,9 @@ class RigidBodyHandle;
 struct Animator;
 class AnimatorHandle;
 
+struct AudioSource;
+class AudioSourceHandle;
+
 template <typename Component>
 struct ComponentHandle {
     using Type = void;
@@ -22,6 +25,11 @@ struct ComponentHandle<RigidBody2D> {
 template <>
 struct ComponentHandle<Animator> {
     using Type = AnimatorHandle;
+};
+
+template <>
+struct ComponentHandle<AudioSource> {
+    using Type = AudioSourceHandle;
 };
 
 } // namespace PiiXeL

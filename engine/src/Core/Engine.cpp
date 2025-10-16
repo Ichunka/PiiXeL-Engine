@@ -13,6 +13,7 @@
 #include "Scene/Scene.hpp"
 #include "Scene/SceneSerializer.hpp"
 #include "Systems/AnimationSystem.hpp"
+#include "Systems/AudioSystem.hpp"
 #include "Systems/PhysicsSystem.hpp"
 #include "Systems/RenderSystem.hpp"
 #include "Systems/ScriptSystem.hpp"
@@ -22,7 +23,8 @@
 namespace PiiXeL {
 
 Engine::Engine() :
-    m_Registry{}, m_ActiveScene{nullptr}, m_RenderSystem{nullptr}, m_PhysicsSystem{nullptr}, m_ScriptSystem{nullptr} {}
+    m_Registry{}, m_ActiveScene{nullptr}, m_RenderSystem{nullptr}, m_PhysicsSystem{nullptr}, m_ScriptSystem{nullptr},
+    m_AudioSystem{nullptr} {}
 
 Engine::~Engine() {
     Shutdown();
@@ -37,12 +39,16 @@ void Engine::Initialize() {
 
     m_ScriptSystem = std::make_unique<ScriptSystem>();
 
+    m_AudioSystem = std::make_unique<AudioSystem>();
+    m_AudioSystem->Initialize();
+
 #ifdef BUILD_WITH_EDITOR
     m_ActiveScene = std::make_unique<Scene>("Default Scene");
 #else
     m_PhysicsEnabled = true;
     m_ScriptsEnabled = true;
     m_AnimationEnabled = true;
+    m_AudioEnabled = true;
 
     if (FileExists("datas/game.package")) {
         if (LoadFromPackage("datas/game.package", "Default_Scene")) {
@@ -50,6 +56,7 @@ void Engine::Initialize() {
 
             if (m_ActiveScene) {
                 AnimationSystem::ResetAnimators(m_ActiveScene->GetRegistry());
+                AudioSystem::ResetAudioSources(m_ActiveScene->GetRegistry());
                 CreatePhysicsBodies();
             }
         }
@@ -87,6 +94,14 @@ void Engine::Update(float deltaTime) {
         PROFILE_SCOPE("AnimationSystem::Update");
         if (m_AnimationEnabled && m_ActiveScene) {
             AnimationSystem::Update(m_ActiveScene->GetRegistry(), deltaTime);
+        }
+    }
+
+    {
+        PROFILE_SCOPE("AudioSystem::Update");
+        if (m_AudioEnabled && m_AudioSystem && m_ActiveScene) {
+            m_AudioSystem->SetScene(m_ActiveScene.get());
+            m_AudioSystem->Update(deltaTime, m_ActiveScene->GetRegistry());
         }
     }
 
@@ -194,8 +209,13 @@ void Engine::Shutdown() {
         m_PhysicsSystem->Shutdown();
     }
 
+    if (m_AudioSystem) {
+        m_AudioSystem->Shutdown();
+    }
+
     m_PhysicsSystem.reset();
     m_ScriptSystem.reset();
+    m_AudioSystem.reset();
     m_RenderSystem.reset();
     m_PackageLoader.reset();
 }

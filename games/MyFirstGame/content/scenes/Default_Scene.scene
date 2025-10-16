@@ -158,8 +158,7 @@
                     "enabled": true,
                     "properties": {
                         "amplitude": 100.0,
-                        "frequency": 1.0,
-                        "rotationSpeed": 90.0
+                        "frequency": 1.0
                     },
                     "scriptName": "RotatingPlatform"
                 }
@@ -205,6 +204,11 @@
                 "controllerUUID": 14087063801697507855,
                 "isPlaying": true,
                 "playbackSpeed": 1.0
+            },
+            "AudioListener": {
+                "isActive": true,
+                "pauseOnFocusLoss": true,
+                "volume": 1.0
             },
             "BoxCollider2D": {
                 "isTrigger": false,
@@ -327,6 +331,19 @@
             "uuid": 5888343418577575954
         },
         {
+            "AudioSource": {
+                "audioClip": 12786010733558877680,
+                "loop": true,
+                "maxDistance": 500.0,
+                "minDistance": 1.0,
+                "mute": false,
+                "pitch": 1.0,
+                "playOnAwake": true,
+                "priority": 128.0,
+                "spatialBlend": 1.0,
+                "spatialize": true,
+                "volume": 1.0
+            },
             "BoxCollider2D": {
                 "isTrigger": false,
                 "offset": {
@@ -370,7 +387,7 @@
             },
             "Transform": {
                 "position": {
-                    "x": 379.13140869140625,
+                    "x": 181.74664306640625,
                     "y": -44.04249572753906
                 },
                 "rotation": 0.0,
@@ -516,6 +533,9 @@
                 }
             },
             "uuid": 13263326088268867360
+        },
+        {
+            "uuid": 3377259776643345202
         }
     ],
     "scene": "Default Scene"
