@@ -250,3 +250,9 @@ export CXX=g++-11
 ---
 
 **Built with modern C++20 | Cross-platform | Open source**
+
+
+## License
+
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for full details.
